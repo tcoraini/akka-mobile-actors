@@ -167,11 +167,12 @@ object ActorSerialization {
       supervisor,
       hotswap,
       loader.getOrElse(getClass.getClassLoader), // TODO: should we fall back to getClass.getClassLoader?
-      protocol.getMessagesList.toArray.toList.asInstanceOf[List[RemoteRequestProtocol]], format)
+      protocol.getMessagesList.toArray.toList.asInstanceOf[List[RemoteRequestProtocol]], 
+      format)
 
-      if (format.isInstanceOf[SerializerBasedActorFormat[_]] == false)
-        format.fromBinary(protocol.getActorInstance.toByteArray, ar.actor.asInstanceOf[T])
-      ar
+    if (format.isInstanceOf[SerializerBasedActorFormat[_]] == false)
+      format.fromBinary(protocol.getActorInstance.toByteArray, ar.actor.asInstanceOf[T])
+    ar
   }
 }
 
