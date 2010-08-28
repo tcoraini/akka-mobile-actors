@@ -218,7 +218,8 @@ class AkkaParentProject(info: ProjectInfo) extends DefaultProject(info) {
 
   lazy val akka_actor       = project("akka-actor", "akka-actor", new AkkaActorProject(_))
   lazy val akka_typed_actor = project("akka-typed-actor", "akka-typed-actor", new AkkaTypedActorProject(_), akka_actor)
-  lazy val akka_remote      = project("akka-remote", "akka-remote", new AkkaRemoteProject(_), akka_typed_actor)
+  lazy val akka_stm         = project("akka-stm", "akka-stm", new AkkaStmProject(_), akka_actor)
+  lazy val akka_remote      = project("akka-remote", "akka-remote", new AkkaRemoteProject(_), akka_typed_actor, akka_stm)
   lazy val akka_amqp        = project("akka-amqp", "akka-amqp", new AkkaAMQPProject(_), akka_remote)
   lazy val akka_http        = project("akka-http", "akka-http", new AkkaHttpProject(_), akka_remote, akka_camel)
   lazy val akka_camel       = project("akka-camel", "akka-camel", new AkkaCamelProject(_), akka_remote)
@@ -255,6 +256,7 @@ class AkkaParentProject(info: ProjectInfo) extends DefaultProject(info) {
     " scala-library.jar" +
     " dist/akka-actor_%s-%s.jar".format(buildScalaVersion, version) +
     " dist/akka-typed-actor_%s-%s.jar".format(buildScalaVersion, version) +
+    " dist/akka-stm_%s-%s.jar".format(buildScalaVersion, version) +
     " dist/akka-remote_%s-%s.jar".format(buildScalaVersion, version) +
     " dist/akka-http_%s-%s.jar".format(buildScalaVersion, version) +
     " dist/akka-camel_%s-%s.jar".format(buildScalaVersion, version) +
@@ -355,6 +357,18 @@ class AkkaParentProject(info: ProjectInfo) extends DefaultProject(info) {
     val aopalliance   = Dependencies.aopalliance
     val werkz         = Dependencies.werkz
     val werkz_core    = Dependencies.werkz_core
+
+    // testing
+    val junit     = Dependencies.junit
+    val scalatest = Dependencies.scalatest
+  }
+
+  // -------------------------------------------------------------------------------------------------------------------
+  // akka-stm subproject
+  // -------------------------------------------------------------------------------------------------------------------
+
+  class AkkaStmProject(info: ProjectInfo) extends AkkaDefaultProject(info, distPath) {
+    val multiverse    = Dependencies.multiverse
 
     // testing
     val junit     = Dependencies.junit

@@ -21,9 +21,11 @@ object ReflectiveAccess {
 
   lazy val isRemotingEnabled   = RemoteClientModule.isRemotingEnabled
   lazy val isTypedActorEnabled = TypedActorModule.isTypedActorEnabled
+  lazy val isStmEnabled        = StmModule.isStmEnabled
 
   def ensureRemotingEnabled   = RemoteClientModule.ensureRemotingEnabled
   def ensureTypedActorEnabled = TypedActorModule.ensureTypedActorEnabled
+  def ensureStmEnabled        = StmModule.ensureStmEnabled
 
   /**
    * Reflective access to the RemoteClient module. 
@@ -153,6 +155,37 @@ object ReflectiveAccess {
     def unregister(actorRef: ActorRef) = {
       ensureRemotingEnabled
       remoteNodeObjectInstance.get.unregister(actorRef)
+    }
+  }
+
+  /**
+   * Reflective access to the STM module. 
+   *
+   * @author <a href="http://jonasboner.com">Jonas Bon&#233;r</a>
+   */
+  object StmModule {
+
+    type TransactionFactoryObject = {
+      def apply(config: TransactionConfig, defaultName: String): AnyRef
+    }
+    
+    lazy val isStmEnabled = transactionFactoryObjectInstance.isDefined
+
+    def ensureStmEnabled = if (!isStmEnabled) throw new ModuleNotAvailableException(
+      "Can't load the STM module, make sure that akka-stm.jar is on the classpath")
+
+    val transactionFactoryObjectInstance: Option[TransactionFactoryObject] = {
+      try {
+        val clazz = loader.loadClass("se.scalablesolutions.akka.stm.TransactionFactory$")
+        val ctor = clazz.getDeclaredConstructor(Array[Class[_]](): _*)
+        ctor.setAccessible(true)
+        Some(ctor.newInstance(Array[AnyRef](): _*).asInstanceOf[TransactionFactoryObject])
+      } catch { case e => None }
+    }
+
+    def newTransactionFactory(config: TransactionConfig, defaultName: String): AnyRef = {
+      ensureStmEnabled
+      transactionFactoryObjectInstance.get.apply(config, defaultName)
     }
   }
 

@@ -27,7 +27,6 @@ object GlobalStm extends Logging
  */
 class GlobalStm extends TransactionManagement {
 
-  val DefaultGlobalTransactionConfig = TransactionConfig()
   val DefaultGlobalTransactionFactory = TransactionFactory(
     DefaultGlobalTransactionConfig, "DefaultGlobalTransaction")
 

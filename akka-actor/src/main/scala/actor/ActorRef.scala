@@ -8,9 +8,7 @@ import se.scalablesolutions.akka.dispatch._
 import se.scalablesolutions.akka.config.Config._
 import se.scalablesolutions.akka.config.{AllForOneStrategy, OneForOneStrategy, FaultHandlingStrategy}
 import se.scalablesolutions.akka.config.ScalaConfig._
-import se.scalablesolutions.akka.stm.global._
-import se.scalablesolutions.akka.stm.TransactionManagement._
-import se.scalablesolutions.akka.stm.{TransactionManagement, TransactionSetAbortedException}
+import se.scalablesolutions.akka.stm.TransactionConfig
 import se.scalablesolutions.akka.AkkaException
 import se.scalablesolutions.akka.util._
 import ReflectiveAccess._
@@ -18,8 +16,6 @@ import ReflectiveAccess._
 import org.multiverse.api.ThreadLocalTransaction._
 import org.multiverse.commitbarriers.CountDownCommitBarrier
 import org.multiverse.api.exceptions.DeadTransactionException
-
-import org.codehaus.aspectwerkz.joinpoint.JoinPoint
 
 import java.net.InetSocketAddress
 import java.util.concurrent.locks.ReentrantLock
@@ -64,7 +60,6 @@ import scala.reflect.BeanProperty
  */
 trait ActorRef extends 
   ActorRefShared with 
-  TransactionManagement with 
   Logging with
   java.lang.Comparable[ActorRef] { scalaRef: ScalaActorRef =>
 
@@ -192,12 +187,12 @@ trait ActorRef extends
   /**
    * Configuration for TransactionFactory. User overridable.
    */
-  @volatile protected[akka] var _transactionConfig: TransactionConfig = DefaultGlobalTransactionConfig
+  @volatile protected[akka] var _transactionConfig: TransactionConfig = TransactionConfig.DefaultGlobalTransactionConfig
 
   /**
    * TransactionFactory to be used for atomic when isTransactor. Configuration is overridable.
    */
-  @volatile private[akka] var _transactionFactory: Option[TransactionFactory] = None
+  @volatile private[akka] var _transactionFactory: Option[AnyRef] = None
 
   /**
    * This lock ensures thread safety in the dispatching: only one message can
@@ -808,7 +803,7 @@ class LocalActorRef private[akka](
       dispatcher.register(this)
       dispatcher.start
       if (isTransactor) {
-        _transactionFactory = Some(TransactionFactory(_transactionConfig, id))
+        _transactionFactory = Some(StmModule.newTransactionFactory(_transactionConfig, id))
       }
       _isRunning = true
       if (!isInInitialization) initializeActorInstance
@@ -1150,29 +1145,29 @@ class LocalActorRef private[akka](
   }
 
   private[this] def newActor: Actor = {
-    Actor.actorRefInCreation.withValue(Some(this)){
-    isInInitialization = true
-    val actor = actorFactory match {
-      case Left(Some(clazz)) =>
-        try {
-          clazz.newInstance
-        } catch {
-          case e: InstantiationException => throw new ActorInitializationException(
-            "Could not instantiate Actor due to:\n" + e +
-            "\nMake sure Actor is NOT defined inside a class/trait," +
-            "\nif so put it outside the class/trait, f.e. in a companion object," +
-            "\nOR try to change: 'actorOf[MyActor]' to 'actorOf(new MyActor)'.")
-        }
-      case Right(Some(factory)) =>
-        factory()
-      case _ =>
-        throw new ActorInitializationException(
-          "Can't create Actor, no Actor class or factory function in scope")
-    }
-    if (actor eq null) throw new ActorInitializationException(
-      "Actor instance passed to ActorRef can not be 'null'")
-    isInInitialization = false
-    actor
+    Actor.actorRefInCreation.withValue(Some(this)) {
+      isInInitialization = true
+      val actor = actorFactory match {
+        case Left(Some(clazz)) =>
+          try {
+            clazz.newInstance
+          } catch {
+            case e: InstantiationException => throw new ActorInitializationException(
+              "Could not instantiate Actor due to:\n" + e +
+              "\nMake sure Actor is NOT defined inside a class/trait," +
+              "\nif so put it outside the class/trait, f.e. in a companion object," +
+              "\nOR try to change: 'actorOf[MyActor]' to 'actorOf(new MyActor)'.")
+          }
+        case Right(Some(factory)) =>
+          factory()
+        case _ =>
+          throw new ActorInitializationException(
+            "Can't create Actor, no Actor class or factory function in scope")
+      }
+      if (actor eq null) throw new ActorInitializationException(
+        "Actor instance passed to ActorRef can not be 'null'")
+      isInInitialization = false
+      actor
     }
   }
 
