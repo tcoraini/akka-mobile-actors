@@ -4,7 +4,7 @@
 
 package se.scalablesolutions.akka.util
 
-import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.ConcurrentSkipListSet
 
 import se.scalablesolutions.akka.actor.ActorRef
 
@@ -15,24 +15,29 @@ import se.scalablesolutions.akka.actor.ActorRef
  */
 trait ListenerManagement extends Logging {
 
-  private val listeners = new CopyOnWriteArrayList[ActorRef]
+  private val listeners = new ConcurrentSkipListSet[ActorRef]
+
+  /**
+   * Specifies whether listeners should be started when added and stopped when removed or not
+   */
+  protected def manageLifeCycleOfListeners: Boolean = true
 
   /**
    * Adds the <code>listener</code> this this registry's listener list.
-   * The <code>listener</code> is started by this method.
+   * The <code>listener</code> is started by this method if manageLifeCycleOfListeners yields true.
    */
-  def addListener(listener: ActorRef) = {
-    listener.start
-    listeners.add(listener)
+  def addListener(listener: ActorRef) {
+    if (manageLifeCycleOfListeners) listener.start
+    listeners add listener
   }
 
   /**
    * Removes the <code>listener</code> this this registry's listener list.
-   * The <code>listener</code> is stopped by this method.
+   * The <code>listener</code> is stopped by this method if manageLifeCycleOfListeners yields true.
    */
-  def removeListener(listener: ActorRef) = {
-    listeners.remove(listener)
-    listener.stop
+  def removeListener(listener: ActorRef) {
+    listeners remove listener
+    if (manageLifeCycleOfListeners) listener.stop
   }
 
   /**

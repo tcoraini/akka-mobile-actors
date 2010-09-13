@@ -5,7 +5,9 @@
 package se.scalablesolutions.akka.dispatch
 
 import se.scalablesolutions.akka.actor.{ActorRef, IllegalActorStateException}
-import jsr166x.ConcurrentLinkedDeque
+
+import java.util.Queue
+import java.util.concurrent.{ConcurrentLinkedQueue, LinkedBlockingQueue}
 
 /**
  * Default settings are:
@@ -60,8 +62,15 @@ import jsr166x.ConcurrentLinkedDeque
  *                   always continues until the mailbox is empty.
  *                   Larger values (or zero or negative) increase througput, smaller values increase fairness
  */
-class ExecutorBasedEventDrivenDispatcher(_name: String, throughput: Int = Dispatchers.THROUGHPUT) extends MessageDispatcher with ThreadPoolBuilder {
+class ExecutorBasedEventDrivenDispatcher(
+  _name: String,
+  throughput: Int = Dispatchers.THROUGHPUT,
+  capacity: Int = Dispatchers.MAILBOX_CAPACITY) extends MessageDispatcher with ThreadPoolBuilder {
+
+  def this(_name: String, throughput: Int) = this(_name, throughput, Dispatchers.MAILBOX_CAPACITY) // Needed for Java API usage
   def this(_name: String) = this(_name, Dispatchers.THROUGHPUT) // Needed for Java API usage
+
+  mailboxCapacity = capacity
 
   @volatile private var active: Boolean = false
 
@@ -76,14 +85,14 @@ class ExecutorBasedEventDrivenDispatcher(_name: String, throughput: Int = Dispat
   /**
    * @return the mailbox associated with the actor
    */
-  private def getMailbox(receiver: ActorRef) = receiver.mailbox.asInstanceOf[ConcurrentLinkedDeque[MessageInvocation]]
+  private def getMailbox(receiver: ActorRef) = receiver.mailbox.asInstanceOf[Queue[MessageInvocation]]
 
   override def mailboxSize(actorRef: ActorRef) = getMailbox(actorRef).size
 
   override def register(actorRef: ActorRef) = {
-    // The actor will need a ConcurrentLinkedDeque based mailbox
-    if( actorRef.mailbox == null ) {
-      actorRef.mailbox = new ConcurrentLinkedDeque[MessageInvocation]()
+    if (actorRef.mailbox eq null ) {
+      if (mailboxCapacity <= 0) actorRef.mailbox = new ConcurrentLinkedQueue[MessageInvocation]
+      else actorRef.mailbox = new LinkedBlockingQueue[MessageInvocation](mailboxCapacity)
     }
     super.register(actorRef)
   }
@@ -153,7 +162,7 @@ class ExecutorBasedEventDrivenDispatcher(_name: String, throughput: Int = Dispat
 
   def ensureNotActive(): Unit = if (active) throw new IllegalActorStateException(
     "Can't build a new thread pool for a dispatcher that is already up and running")
-    
+
   override def toString = "ExecutorBasedEventDrivenDispatcher[" + name + "]"
 
   // FIXME: should we have an unbounded queue and not bounded as default ????

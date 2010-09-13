@@ -13,15 +13,17 @@ import scala.collection.mutable.HashMap
 
 import se.scalablesolutions.akka.util.Logging
 import se.scalablesolutions.akka.config.Config._
+import se.scalablesolutions.akka.AkkaException
 
 import org.multiverse.api.{Transaction => MultiverseTransaction}
 import org.multiverse.api.lifecycle.{TransactionLifecycleListener, TransactionLifecycleEvent}
 import org.multiverse.api.ThreadLocalTransaction._
+import org.multiverse.api.{PropagationLevel => MultiversePropagationLevel}
 import org.multiverse.api.{TraceLevel => MultiverseTraceLevel}
 
-class NoTransactionInScopeException extends RuntimeException
-class TransactionRetryException(message: String) extends RuntimeException(message)
-class StmConfigurationException(message: String) extends RuntimeException(message)
+class NoTransactionInScopeException extends AkkaException("No transaction in scope")
+class TransactionRetryException(message: String) extends AkkaException(message)
+class StmConfigurationException(message: String) extends AkkaException(message)
 
 object Transaction {
   val idFactory = new AtomicLong(-1L)
@@ -54,13 +56,24 @@ object Transaction {
   }
 
   /**
+   * Mapping to Multiverse PropagationLevel.
+   */
+  object Propagation {
+    val RequiresNew = MultiversePropagationLevel.RequiresNew
+    val Mandatory   = MultiversePropagationLevel.Mandatory
+    val Requires    = MultiversePropagationLevel.Requires
+    val Supports    = MultiversePropagationLevel.Supports
+    val Never       = MultiversePropagationLevel.Never
+  }
+
+  /**
    * Mapping to Multiverse TraceLevel.
    */
   object TraceLevel {
-    val None = MultiverseTraceLevel.none
+    val None   = MultiverseTraceLevel.none
     val Coarse = MultiverseTraceLevel.course // mispelling?
     val Course = MultiverseTraceLevel.course
-    val Fine = MultiverseTraceLevel.fine
+    val Fine   = MultiverseTraceLevel.fine
   }
 }
 
@@ -83,12 +96,12 @@ object Transaction {
     if (JTA_AWARE) Some(TransactionContainer())
     else None
 
-  log.ifTrace("Creating transaction " + toString)
+  log.trace("Creating transaction " + toString)
 
   // --- public methods ---------
 
   def begin = synchronized {
-    log.ifTrace("Starting transaction " + toString)
+    log.trace("Starting transaction " + toString)
     jta.foreach { txContainer =>
       txContainer.begin
       txContainer.registerSynchronization(new StmSynchronization(txContainer, this))
@@ -96,14 +109,14 @@ object Transaction {
   }
 
   def commit = synchronized {
-    log.ifTrace("Committing transaction " + toString)
+    log.trace("Committing transaction " + toString)
     persistentStateMap.valuesIterator.foreach(_.commit)
     status = TransactionStatus.Completed
     jta.foreach(_.commit)
   }
 
   def abort = synchronized {
-    log.ifTrace("Aborting transaction " + toString)
+    log.trace("Aborting transaction " + toString)
     jta.foreach(_.rollback)
     persistentStateMap.valuesIterator.foreach(_.abort)
     persistentStateMap.clear
