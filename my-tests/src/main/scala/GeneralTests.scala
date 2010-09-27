@@ -4,6 +4,8 @@ import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.Actor._
 import se.scalablesolutions.akka.actor.HotSwap
 
+import se.scalablesolutions.akka.actor.MobileTrait
+
 import se.scalablesolutions.akka.actor.ActorSerialization._
 import se.scalablesolutions.akka.actor.Format
 import se.scalablesolutions.akka.actor.StatelessActorFormat
@@ -28,6 +30,8 @@ class ExampleActor extends Actor {
 
 case class Wait(seconds: Int)
 case object Ack
+case object Retain
+case object Proceed
 case class Garbage(what: String)
 
 class MyStatelessActor extends Actor {
@@ -74,7 +78,9 @@ object GeneralTests {
    }
 
    def execute() {
-      val actor1 = actorOf[MyStatelessActor].start
+      val actor1: MobileTrait = mobileOf(new MyStatelessActor)
+      //val actor1 = actorOf[MyStatelessActor]
+      actor1.start
       //val actor1 = actorOf[HotSwapActor].start
 
       actor1 ! Ack
@@ -82,23 +88,28 @@ object GeneralTests {
       //actor1 ! Garbage("Lixo 2")
       //actor1 ! Garbage("Lixo 3")
 
-      (actor1 ! Wait(5))
+      (actor1 ! Wait(2))
       actor1 ! Ack
       actor1 ! Ack
       actor1 ! Ack
       actor1 ! Ack
 
-      println("Tamanho do mailbox do ator 1: " + actor1.mailboxSize)
+      println("[1] Tamanho do mailbox do ator 1: " + actor1.mailboxSize)
+
       //val reply1: String = (actor1 !! Ack).getOrElse("_").asInstanceOf[String]
       //println("First reply: " + reply1)
       //Thread.sleep(2000)
       // Fazendo a seriacao
-      println("Start of serialization")
-      val bytes = toBinary(actor1)
+      println("* * * Start of serialization * * *")
+      val bytes = actor1.migrate
       val actor2 = fromBinary(bytes)
-      println("End of serialization")
-
-      println("Tamanho do mailbox do ator 2: " + actor2.mailboxSize)
+      println("* * * End of serialization * * *")
+      
+      actor1 ! Ack
+      
+      println("[2] Tamanho do mailbox do ator 1: " + actor1.mailboxSize)
+      println("[2] Tamanho do mailbox do ator 2: " + actor2.mailboxSize)
+      println("% % % Retained messages: " + actor1.retainedMessagesQueue)
 
       //actor2 ! Ack
       //actor2 ! HotSwap(Some({case any => println("## Mensagem recebida (ator 2): " + any)}))
