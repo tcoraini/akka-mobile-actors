@@ -22,8 +22,8 @@
       <fileNamePattern>./logs/akka.log.%d{yyyy-MM-dd-HH}</fileNamePattern>
     </rollingPolicy>
   </appender>
-  <logger name="se.scalablesolutions" level="INFO"/>
-  <root level="INFO">
+  <logger name="se.scalablesolutions" level="OFF"/>
+  <root level="OFF">
     <appender-ref ref="stdout"/>
     <appender-ref ref="R"/>
   </root>
