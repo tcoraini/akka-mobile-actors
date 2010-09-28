@@ -144,6 +144,10 @@ object Actor extends Logging {
    */
   def actorOf(factory: => Actor): ActorRef = new LocalActorRef(() => factory)
 
+  /* MOBILE */
+  def mobileOf(factory: => Actor): MobileTrait = new LocalActorRef(() => factory) with MobileTrait
+  /* MOBILE */
+
   /**
    * Use to create an anonymous event-driven actor.
    * <p/>
