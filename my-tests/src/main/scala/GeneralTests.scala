@@ -2,6 +2,7 @@ package tests
 
 import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.Actor._
+import se.scalablesolutions.akka.actor.ActorRef
 import se.scalablesolutions.akka.actor.HotSwap
 
 import se.scalablesolutions.akka.actor.MobileTrait
@@ -15,17 +16,14 @@ import se.scalablesolutions.akka.serialization.Serializer
 
 import se.scalablesolutions.akka.config.Config.config
 
-case object Exit
-case class Sum(a: Int, b: Int)
-case class Result(x: Int)
+object BinaryFormatMyStatelessActor {
+   implicit object MyStatelessActorFormat extends StatelessActorFormat[MyStatelessActor]
+}
 
-class ExampleActor extends Actor {
-   def receive = {
-      case Sum(a, b) => self.reply(Result(a + b))
-      case Exit => self.exit()
-      case str: String => println("Recebi uma cadeia de caracteres: " + str)
-      case _ => println("Recebi algo desconhecido, descartando...")
-   }
+object BinaryFormatMyJavaSerializableActor {
+  implicit object MyJavaSerializableActorFormat extends SerializerBasedActorFormat[HotSwapActor] {
+    val serializer = Serializer.Java
+  }
 }
 
 case class Wait(seconds: Int)
@@ -33,23 +31,43 @@ case object Ack
 case object Retain
 case object Proceed
 case class Garbage(what: String)
+case class Message(what: String)
+case object Identify
 
 class MyStatelessActor extends Actor {
-   //self.makeRemote("localhost", 9999)
+  //self.makeRemote("localhost", 9999)
+  
+  private def show(str: String): Unit = println("[" + this + "] " + str)
 
-   def receive = {
-      case Wait(x) => 
-         Thread.sleep(x * 1000)
-         println("[" + this + "] Just slept for " + x + " seconds.")
-         //self.reply("[" + this + "] Just slept for " + x + " seconds.")        
-      case Ack =>
-         println("[" + this + "] Received 'Ack'.")
-         //self.reply("[" + this + "] Received 'Ack'.")
+  def receive = {
+    case Wait(x) => 
+      Thread.sleep(x * 1000)
+      show("Just slept for " + x + " seconds.")
+
+    case Ack =>
+      show("Received 'Ack'.")
+
+    case Message(msg) =>
+      show("Received 'Message': " + msg)
+
+    case Identify =>
+      val senderId = 
+        if (self.sender.isEmpty) "NAO IDENTIFICADO"
+        else self.sender.get.id
+      show("Sender ID: " + senderId)
+
+    case msg =>
+      show("Received unknown message: " + msg)
    }
 }
 
-object BinaryFormatMyStatelessActor {
-   implicit object MyStatelessActorFormat extends StatelessActorFormat[MyStatelessActor]
+class SenderActor(destination: ActorRef) extends Actor {
+  self.id = self.uuid
+
+  def receive = {
+    case Ack =>
+      destination ! Identify
+  }
 }
 
 @serializable class MyJavaSerializableActor extends Actor {
@@ -60,12 +78,6 @@ object BinaryFormatMyStatelessActor {
       count = count + 1
       Thread.sleep(1000)
       println("[" + this + "] Received 'hello'. Current mailbox size: " + self.mailboxSize)
-  }
-}
-
-object BinaryFormatMyJavaSerializableActor {
-  implicit object MyJavaSerializableActorFormat extends SerializerBasedActorFormat[HotSwapActor] {
-    val serializer = Serializer.Java
   }
 }
 
@@ -81,18 +93,19 @@ object GeneralTests {
       val actor1: MobileTrait = mobileOf(new MyStatelessActor)
       //val actor1 = actorOf[MyStatelessActor]
       actor1.start
-      //val actor1 = actorOf[HotSwapActor].start
+      
+      val sender = actorOf(new SenderActor(actor1)).start
+      println("ID of the SenderActor created: " + sender.id)
 
-      actor1 ! Ack
+      sender ! Ack
+
+      actor1 ! Message("Inicializando")
       //actor1 ! Garbage("Lixo 1")
       //actor1 ! Garbage("Lixo 2")
       //actor1 ! Garbage("Lixo 3")
 
-      (actor1 ! Wait(2))
-      actor1 ! Ack
-      actor1 ! Ack
-      actor1 ! Ack
-      actor1 ! Ack
+      actor1 ! Wait(2)
+      actor1 ! Message("Após espera")
 
       println("[1] Tamanho do mailbox do ator 1: " + actor1.mailboxSize)
 
@@ -101,11 +114,12 @@ object GeneralTests {
       //Thread.sleep(2000)
       // Fazendo a seriacao
       println("* * * Start of serialization * * *")
-      val bytes = actor1.migrate
+      val bytes = actor1.startMigration
+      actor1 ! Message("Após seriação")
       val actor2 = fromBinary(bytes)
+      actor1.forwardRetainedMessages(actor2)
       println("* * * End of serialization * * *")
       
-      actor1 ! Ack
       
       println("[2] Tamanho do mailbox do ator 1: " + actor1.mailboxSize)
       println("[2] Tamanho do mailbox do ator 2: " + actor2.mailboxSize)
