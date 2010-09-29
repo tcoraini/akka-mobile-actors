@@ -499,10 +499,6 @@ object TypedActor extends Logging {
     newInstance(intfClass, actorRef, config)
   }
 
-  private def newInstance[T](intfClass: Class[T], targetClass: Class[_], config: Option[TypedActorConfiguration]): T = {
-    newInstance(intfClass, targetClass, config)
-  }
-
   private[akka] def newInstance[T](intfClass: Class[T], actorRef: ActorRef): T = {
     if (!actorRef.actorInstance.get.isInstanceOf[TypedActor]) throw new IllegalArgumentException("ActorRef is not a ref to a typed actor")
     newInstance(intfClass, actorRef, TypedActorConfiguration())
