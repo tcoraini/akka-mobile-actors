@@ -1,0 +1,69 @@
+package se.scalablesolutions.akka.actor
+
+import se.scalablesolutions.akka.remote.protocol.RemoteProtocol._
+import se.scalablesolutions.akka.config.ScalaConfig._
+
+object Mobile {
+  def mobileOf(factory: => Actor): MobileTrait = new LocalActorRef(() => factory) with MobileTrait
+
+  /* Adapted from SerializationProtocol just to construct a MobileActorRef */
+  def mobileFromBinary[T <: Actor](bytes: Array[Byte])(implicit format: Format[T]): MobileTrait =
+    fromBinaryToMobileActorRef(bytes, format)
+
+  private def fromBinaryToMobileActorRef[T <: Actor](bytes: Array[Byte], format: Format[T]): MobileTrait =
+    fromProtobufToMobileActorRef(SerializedActorRefProtocol.newBuilder.mergeFrom(bytes).build, format, None)
+
+  private def fromProtobufToMobileActorRef[T <: Actor](
+    protocol: SerializedActorRefProtocol, format: Format[T], loader: Option[ClassLoader]): MobileTrait = {
+    Actor.log.debug("Deserializing SerializedActorRefProtocol to MobileActorRef:\n" + protocol)
+
+    val serializer =
+      if (format.isInstanceOf[SerializerBasedActorFormat[_]])
+        Some(format.asInstanceOf[SerializerBasedActorFormat[_]].serializer)
+      else None
+
+    val lifeCycle =
+      if (protocol.hasLifeCycle) {
+        val lifeCycleProtocol = protocol.getLifeCycle
+        Some(if (lifeCycleProtocol.getLifeCycle == LifeCycleType.PERMANENT) LifeCycle(Permanent)
+             else if (lifeCycleProtocol.getLifeCycle == LifeCycleType.TEMPORARY) LifeCycle(Temporary)
+             else throw new IllegalActorStateException("LifeCycle type is not valid: " + lifeCycleProtocol.getLifeCycle))
+      } else None
+
+    val supervisor =
+      if (protocol.hasSupervisor)
+        Some(RemoteActorSerialization.fromProtobufToRemoteActorRef(protocol.getSupervisor, loader))
+      else None
+
+    val hotswap =
+      if (serializer.isDefined && protocol.hasHotswapStack) Some(serializer.get
+        .fromBinary(protocol.getHotswapStack.toByteArray, Some(classOf[PartialFunction[Any, Unit]]))
+        .asInstanceOf[PartialFunction[Any, Unit]])
+      else None
+
+    val ar = new LocalActorRef(
+      protocol.getUuid,
+      protocol.getId,
+      protocol.getActorClassname,
+      protocol.getActorInstance.toByteArray,
+      protocol.getOriginalAddress.getHostname,
+      protocol.getOriginalAddress.getPort,
+      if (protocol.hasIsTransactor) protocol.getIsTransactor else false,
+      if (protocol.hasTimeout) protocol.getTimeout else Actor.TIMEOUT,
+      if (protocol.hasReceiveTimeout) Some(protocol.getReceiveTimeout) else None,
+      lifeCycle,
+      supervisor,
+      hotswap,
+      loader.getOrElse(getClass.getClassLoader), // TODO: should we fall back to getClass.getClassLoader?
+      protocol.getMessagesList.toArray.toList.asInstanceOf[List[RemoteRequestProtocol]], 
+      format) with MobileTrait
+
+    if (format.isInstanceOf[SerializerBasedActorFormat[_]] == false)
+      format.fromBinary(protocol.getActorInstance.toByteArray, ar.actor.asInstanceOf[T])
+    ar
+  }
+
+
+}
+
+

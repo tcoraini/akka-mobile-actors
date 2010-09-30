@@ -3,6 +3,8 @@ package tests
 import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.Actor._
 import se.scalablesolutions.akka.actor.ActorRef
+import se.scalablesolutions.akka.actor.Mobile._
+import se.scalablesolutions.akka.actor.Migrate
 import se.scalablesolutions.akka.actor.HotSwap
 
 import se.scalablesolutions.akka.actor.MobileTrait
@@ -11,6 +13,8 @@ import se.scalablesolutions.akka.actor.ActorSerialization._
 import se.scalablesolutions.akka.actor.Format
 import se.scalablesolutions.akka.actor.StatelessActorFormat
 import se.scalablesolutions.akka.actor.SerializerBasedActorFormat
+
+import se.scalablesolutions.akka.dispatch.FutureTimeoutException
 
 import se.scalablesolutions.akka.serialization.Serializer
 
@@ -28,8 +32,8 @@ object BinaryFormatMyJavaSerializableActor {
 
 case class Wait(seconds: Int)
 case object Ack
-case object Retain
-case object Proceed
+case object Ping
+case object Pong
 case class Garbage(what: String)
 case class Message(what: String)
 case object Identify
@@ -46,6 +50,10 @@ class MyStatelessActor extends Actor {
 
     case Ack =>
       show("Received 'Ack'.")
+    
+    case Ping =>
+      show("Received 'Ping'...Replying 'Pong'")
+      self.reply(Pong)
 
     case Message(msg) =>
       show("Received 'Message': " + msg)
@@ -100,23 +108,19 @@ object GeneralTests {
       sender ! Ack
 
       actor1 ! Message("Inicializando")
-      //actor1 ! Garbage("Lixo 1")
-      //actor1 ! Garbage("Lixo 2")
-      //actor1 ! Garbage("Lixo 3")
-
       actor1 ! Wait(2)
       actor1 ! Message("Após espera")
+      val future = (actor1 !!! Ping)
 
       println("[1] Tamanho do mailbox do ator 1: " + actor1.mailboxSize)
 
-      //val reply1: String = (actor1 !! Ack).getOrElse("_").asInstanceOf[String]
-      //println("First reply: " + reply1)
-      //Thread.sleep(2000)
       // Fazendo a seriacao
       println("* * * Start of serialization * * *")
-      val bytes = actor1.startMigration
+      actor1 ! Migrate
+      val bytes = actor1.serializedActor
       actor1 ! Message("Após seriação")
-      val actor2 = fromBinary(bytes)
+      //val actor2 = fromBinary(bytes)
+      val actor2 = mobileFromBinary(bytes)
       actor1.forwardRetainedMessages(actor2)
       println("* * * End of serialization * * *")
       
@@ -124,16 +128,21 @@ object GeneralTests {
       println("[2] Tamanho do mailbox do ator 1: " + actor1.mailboxSize)
       println("[2] Tamanho do mailbox do ator 2: " + actor2.mailboxSize)
       println("% % % Retained messages: " + actor1.retainedMessagesQueue)
+      println("% % % Retained messages with future: " + actor1.retainedMessagesWithFutureQueue)
 
-      //actor2 ! Ack
-      //actor2 ! HotSwap(Some({case any => println("## Mensagem recebida (ator 2): " + any)}))
-      //actor1 ! HotSwap(Some({case any => println("## Mensagem recebida (ator 1): " + any)}))
-
-      // Novo ator, deve ser igual ao anterior
-      //actor2.start
-      //println("Actor 2 (copy deserialized) started")
-      //val reply2: String = (actor2 !! Wait(2)).getOrElse("_").asInstanceOf[String]
-      //println("Second reply (after serialization): " + reply2)
+      /*println("Aguardando pela resolução do Futuro [" + future + "]...")
+      try {
+        future.await
+      } catch {
+        case e: FutureTimeoutException =>
+          println("Exceção de TIMEOUT lançada!")
+      }
+      if (future.exception.isDefined) {
+        println("Future preenchido com exceção! Lançando:")
+        throw future.exception.get
+      }
+      else
+        println("Future preenchido com resultado: " + future.result)*/
    }
 
       

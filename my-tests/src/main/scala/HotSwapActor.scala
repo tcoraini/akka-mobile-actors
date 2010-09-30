@@ -5,6 +5,9 @@ import se.scalablesolutions.akka.actor.Actor._
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
+case object Retain
+case object Proceed
+
 @serializable class HotSwapActor extends Actor {
    val retainedMessagesQueue = new ConcurrentLinkedQueue[Any]
 
