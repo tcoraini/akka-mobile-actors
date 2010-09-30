@@ -96,7 +96,7 @@ trait MobileTrait extends ActorRef with ScalaActorRef {
     _isMigrating = true
     // We should stop the message dispatching, so the messages won't be processed in this actor
     // TODO What about Reactor dispatchers?
-    dispatcher match {
+    /*dispatcher match {
       case _: ThreadBasedDispatcher =>
         dispatcher.shutdown
       
@@ -105,6 +105,6 @@ trait MobileTrait extends ActorRef with ScalaActorRef {
 
       case _: ExecutorBasedEventDrivenWorkStealingDispatcher =>
         dispatcherLock.tryLock
-    }
+    }*/
   }
 }
