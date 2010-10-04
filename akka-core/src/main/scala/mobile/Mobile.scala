@@ -1,20 +1,27 @@
-package se.scalablesolutions.akka.actor
+package se.scalablesolutions.akka.mobile
+
+import se.scalablesolutions.akka.actor.Actor
+import se.scalablesolutions.akka.actor.LocalActorRef
+import se.scalablesolutions.akka.actor.Format
+import se.scalablesolutions.akka.actor.SerializerBasedActorFormat
+import se.scalablesolutions.akka.actor.IllegalActorStateException
+import se.scalablesolutions.akka.actor.RemoteActorSerialization
 
 import se.scalablesolutions.akka.remote.protocol.RemoteProtocol._
 import se.scalablesolutions.akka.config.ScalaConfig._
 
 object Mobile {
-  def mobileOf(factory: => Actor): MobileTrait = new LocalActorRef(() => factory) with MobileTrait
+  def mobileOf(factory: => Actor): MobileLocalActorRef = new LocalActorRef(() => factory) with MobileLocalActorRef
 
   /* Adapted from SerializationProtocol just to construct a MobileActorRef */
-  def mobileFromBinary[T <: Actor](bytes: Array[Byte])(implicit format: Format[T]): MobileTrait =
+  def mobileFromBinary[T <: Actor](bytes: Array[Byte])(implicit format: Format[T]): MobileLocalActorRef =
     fromBinaryToMobileActorRef(bytes, format)
 
-  private def fromBinaryToMobileActorRef[T <: Actor](bytes: Array[Byte], format: Format[T]): MobileTrait =
+  private def fromBinaryToMobileActorRef[T <: Actor](bytes: Array[Byte], format: Format[T]): MobileLocalActorRef =
     fromProtobufToMobileActorRef(SerializedActorRefProtocol.newBuilder.mergeFrom(bytes).build, format, None)
 
   private def fromProtobufToMobileActorRef[T <: Actor](
-    protocol: SerializedActorRefProtocol, format: Format[T], loader: Option[ClassLoader]): MobileTrait = {
+    protocol: SerializedActorRefProtocol, format: Format[T], loader: Option[ClassLoader]): MobileLocalActorRef = {
     Actor.log.debug("Deserializing SerializedActorRefProtocol to MobileActorRef:\n" + protocol)
 
     val serializer =
@@ -56,7 +63,7 @@ object Mobile {
       hotswap,
       loader.getOrElse(getClass.getClassLoader), // TODO: should we fall back to getClass.getClassLoader?
       protocol.getMessagesList.toArray.toList.asInstanceOf[List[RemoteRequestProtocol]], 
-      format) with MobileTrait
+      format) with MobileLocalActorRef
 
     if (format.isInstanceOf[SerializerBasedActorFormat[_]] == false)
       format.fromBinary(protocol.getActorInstance.toByteArray, ar.actor.asInstanceOf[T])

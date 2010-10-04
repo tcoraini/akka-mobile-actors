@@ -3,11 +3,11 @@ package tests
 import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.Actor._
 import se.scalablesolutions.akka.actor.ActorRef
-import se.scalablesolutions.akka.actor.Mobile._
-import se.scalablesolutions.akka.actor.Migrate
 import se.scalablesolutions.akka.actor.HotSwap
 
-import se.scalablesolutions.akka.actor.MobileTrait
+import se.scalablesolutions.akka.mobile.MobileLocalActorRef
+import se.scalablesolutions.akka.mobile.Mobile._
+import se.scalablesolutions.akka.mobile.Migrate
 
 import se.scalablesolutions.akka.actor.ActorSerialization._
 import se.scalablesolutions.akka.actor.Format
@@ -98,7 +98,7 @@ object GeneralTests {
    }
 
    def execute() {
-      val actor1: MobileTrait = mobileOf(new MyStatelessActor)
+      val actor1 = mobileOf(new MyStatelessActor)
       //val actor1 = actorOf[MyStatelessActor]
       actor1.start
       
@@ -121,14 +121,14 @@ object GeneralTests {
       actor1 ! Message("Após seriação")
       //val actor2 = fromBinary(bytes)
       val actor2 = mobileFromBinary(bytes)
-      actor1.forwardRetainedMessages(actor2)
+      //actor1.forwardRetainedMessages(actor2)
       println("* * * End of serialization * * *")
       
       
       println("[2] Tamanho do mailbox do ator 1: " + actor1.mailboxSize)
       println("[2] Tamanho do mailbox do ator 2: " + actor2.mailboxSize)
       println("% % % Retained messages: " + actor1.retainedMessagesQueue)
-      println("% % % Retained messages with future: " + actor1.retainedMessagesWithFutureQueue)
+      //println("% % % Retained messages with future: " + actor1.retainedMessagesWithFutureQueue)
 
       /*println("Aguardando pela resolução do Futuro [" + future + "]...")
       try {

@@ -6,6 +6,8 @@ import se.scalablesolutions.akka.actor.ActorRef
 import se.scalablesolutions.akka.actor.LocalActorRef
 import se.scalablesolutions.akka.actor.ScalaActorRef
 
+import se.scalablesolutions.akka.mobile.MobileLocalActorRef
+
 import se.scalablesolutions.akka.dispatch._
 import se.scalablesolutions.akka.stm.TransactionConfig
 
@@ -13,13 +15,12 @@ import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicReference
 import java.util.{Map => JMap}
 
-class MobileActorRef extends ActorRef with ScalaActorRef {
-  var actorRef: ActorRef with ScalaActorRef = _
+class MobileActorRef(private var actorRef: ActorRef) extends ActorRef with ScalaActorRef {
 
-  lazy val localActorInstance = new HotSwapActor
-  actorRef = actorOf(localActorInstance).asInstanceOf[LocalActorRef]
-
-  private var isActorLocal = true
+  private var isActorLocal = actorRef match {
+    case _: MobileLocalActorRef => true
+    case _ => false
+  }
 
   // Normais
   def start: ActorRef = actorRef.start

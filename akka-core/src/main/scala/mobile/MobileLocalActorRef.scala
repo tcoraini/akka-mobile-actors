@@ -1,4 +1,7 @@
-package se.scalablesolutions.akka.actor
+package se.scalablesolutions.akka.mobile
+
+import se.scalablesolutions.akka.actor.ActorRef
+import se.scalablesolutions.akka.actor.ScalaActorRef
 
 import se.scalablesolutions.akka.dispatch.MessageInvocation
 import se.scalablesolutions.akka.dispatch.CompletableFuture
@@ -7,6 +10,10 @@ import se.scalablesolutions.akka.dispatch.DefaultCompletableFuture
 import se.scalablesolutions.akka.dispatch.ThreadBasedDispatcher
 import se.scalablesolutions.akka.dispatch.ExecutorBasedEventDrivenDispatcher
 import se.scalablesolutions.akka.dispatch.ExecutorBasedEventDrivenWorkStealingDispatcher
+
+import se.scalablesolutions.akka.actor.Actor
+import se.scalablesolutions.akka.actor.Format
+import se.scalablesolutions.akka.actor.ActorSerialization
 
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.TimeUnit
@@ -17,12 +24,16 @@ case object Migrate
 case class RetainedMessage(message: Any, sender: Option[ActorRef])
 case class RetainedMessageWithFuture(message: Any, timeout: Long, sender: Option[ActorRef], senderFuture: Option[CompletableFuture[Any]])
 
-trait MobileTrait extends ActorRef with ScalaActorRef {
+trait MobileLocalActorRef extends ActorRef with ScalaActorRef {
   val retainedMessagesQueue = new ConcurrentLinkedQueue[RetainedMessage]
   val retainedMessagesWithFutureQueue = new ConcurrentLinkedQueue[RetainedMessageWithFuture]
 
   private var _isMigrating = false
   def isMigrating = _isMigrating
+  
+  // Setting a specific dispatcher for mobile actors
+  if (!isRunning)
+    dispatcher = MobileDispatcher.globalMobileExecutorBasedEventDrivenDispatcher
 
   def serializedActor[T <: Actor](implicit format: Format[T]): Array[Byte] = {
     if (!isMigrating) throw new RuntimeException("This actor is not migrating. You should send it a 'Migrate' message first")
@@ -72,8 +83,8 @@ trait MobileTrait extends ActorRef with ScalaActorRef {
   override abstract def invoke(messageHandle: MessageInvocation): Unit = {
     // Don't process messages during migration, put them in the retained messages queue
     if (isMigrating) {
-      println("[" + this.actorInstance + "] Processing invoke, migrating, puting in the retained messages queue...")
-      println("\t\t\t\t Message: " + messageHandle.message)
+      //println("[" + this.actorInstance + "] Processing invoke, migrating, puting in the retained messages queue...")
+      //println("\t\t\t\t Message: " + messageHandle.message)
       messageHandle.senderFuture match {
       // Message without Future
       case None => 
@@ -86,8 +97,8 @@ trait MobileTrait extends ActorRef with ScalaActorRef {
       }
     }
     else {
-      println("[" + this.actorInstance + "] Processing invoke, not migrating, calling super.invoke...")
-      println("\t\t\t\t Message: " + messageHandle.message)
+      //println("[" + this.actorInstance + "] Processing invoke, not migrating, calling super.invoke...")
+      //println("\t\t\t\t Message: " + messageHandle.message)
       super.invoke(messageHandle)
     }
   }
