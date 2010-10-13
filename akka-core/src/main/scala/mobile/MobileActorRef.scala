@@ -5,8 +5,9 @@ import se.scalablesolutions.akka.actor.Actor._
 import se.scalablesolutions.akka.actor.ActorRef
 import se.scalablesolutions.akka.actor.LocalActorRef
 import se.scalablesolutions.akka.actor.ScalaActorRef
+import se.scalablesolutions.akka.actor.ActorSerialization
 
-import se.scalablesolutions.akka.mobile.MobileLocalActorRef
+import se.scalablesolutions.akka.remote.RemoteClient
 
 import se.scalablesolutions.akka.dispatch._
 import se.scalablesolutions.akka.stm.TransactionConfig
@@ -30,6 +31,31 @@ class MobileActorRef(private var actorRef: ActorRef) extends ActorRef with Scala
       case _: MobileLocalActorRef => true
       case _ => false
     }
+  }
+
+  def migrateTo(hostname: String, port: Int): Boolean = {
+    if (!isActorLocal) throw new RuntimeException("The method 'migrateTo' should be call only on local actors")
+
+    // Sinalizing the start of the migration process
+    actorRef ! Migrate
+    val bytes = ActorSerialization.toBinary(actorRef)(DefaultActorFormat)
+    val theaterAgentName = "theater@" + hostname + ":" + port
+    val theaterAgent = RemoteClient.actorFor(theaterAgentName, hostname, port)
+    
+    // Sending the serialized actor and waiting for the confirmation
+    val confirmation = theaterAgent !! MovingActor(bytes)
+    val newActorRef = confirmation match {
+      // TODO verificar isso do id, essa classe tem um id diferente do id da classe que ela representa
+      case Some(MobileActorRegistered(id)) if id == actorRef.id =>
+        RemoteClient.actorFor(actorRef.id, hostname, port)
+      case msg => 
+        throw new RuntimeException("Migration failed, confirmation not received. \n Instead received " + msg)
+    }
+    
+    // Switching for the now RemoteActorRef serving as a proxy for the migrated actor
+    switchActorRef(newActorRef)
+
+    true
   }
 
   // Normais
