@@ -1,4 +1,4 @@
-package tests
+package se.scalablesolutions.akka.mobile
 
 import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.Actor._
@@ -17,9 +17,19 @@ import java.util.{Map => JMap}
 
 class MobileActorRef(private var actorRef: ActorRef) extends ActorRef with ScalaActorRef {
 
-  private var isActorLocal = actorRef match {
-    case _: MobileLocalActorRef => true
-    case _ => false
+  private var isActorLocal = switchActorRef(actorRef)
+  
+  /**
+   * Changes the actor reference behind this proxy.
+   * Returns true if the new actor is local, false otherwise.
+   */ 
+  def switchActorRef(actorRef: ActorRef): Boolean = {
+    this.actorRef = actorRef
+
+    actorRef match {
+      case _: MobileLocalActorRef => true
+      case _ => false
+    }
   }
 
   // Normais
