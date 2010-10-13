@@ -31,7 +31,11 @@ trait MobileLocalActorRef extends ActorRef with ScalaActorRef {
   private var _isMigrating = false
   def isMigrating = _isMigrating
   
+  if (actor.isInstanceOf[MobileActor] == false)
+    throw new RuntimeException("MobileActorRef should be used only with a MobileActor")
+
   // Setting a specific dispatcher for mobile actors
+  // TODO what if the actor is running? (like after deserialization)
   if (!isRunning)
     dispatcher = MobileDispatcher.globalMobileExecutorBasedEventDrivenDispatcher
 
@@ -48,13 +52,13 @@ trait MobileLocalActorRef extends ActorRef with ScalaActorRef {
     //for (RetainedMessageWithFuture(message, timeout, sender, senderFuture)
   }
 
-  override abstract def !!(message: Any, timeout: Long = this.timeout)(implicit sender: Option[ActorRef] = None): Option[Any] = {
+  abstract override def !!(message: Any, timeout: Long = this.timeout)(implicit sender: Option[ActorRef] = None): Option[Any] = {
     // TODO Verificar como fica isso. O próprio ActorRef será responsável por esperar pelo Futuro ser completado com o
     // resultado e então devolver a resposta. Mas o ActorRef será serializado e depois, talvez inutilizado. Vai dar certo?
     super.!!(message, timeout)
   }
 
-  override abstract def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = {
+  abstract override def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = {
     message match {
       case Migrate =>
         initMigration()
@@ -64,7 +68,7 @@ trait MobileLocalActorRef extends ActorRef with ScalaActorRef {
     }
   }
 
-  override abstract def postMessageToMailboxAndCreateFutureResultWithTimeout[T](
+  abstract override def postMessageToMailboxAndCreateFutureResultWithTimeout[T](
       message: Any,
       timeout: Long,
       senderOption: Option[ActorRef],
@@ -80,7 +84,7 @@ trait MobileLocalActorRef extends ActorRef with ScalaActorRef {
     } else super.postMessageToMailboxAndCreateFutureResultWithTimeout(message, timeout, senderOption, senderFuture)
   }
 
-  override abstract def invoke(messageHandle: MessageInvocation): Unit = {
+  abstract override def invoke(messageHandle: MessageInvocation): Unit = {
     // Don't process messages during migration, put them in the retained messages queue
     if (isMigrating) {
       //println("[" + this.actorInstance + "] Processing invoke, migrating, puting in the retained messages queue...")
