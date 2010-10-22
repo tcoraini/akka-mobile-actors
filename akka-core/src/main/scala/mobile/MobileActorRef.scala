@@ -98,7 +98,7 @@ class MobileActorRef(private var actorRef: ActorRef) extends ActorRef with Scala
   override def forward(message: Any)(implicit sender: Some[ActorRef]) = {
     actorRef.forward(message)
   }
-
+  
   // Protected
   def mailbox: AnyRef = unsupported
   def mailbox_=(value: AnyRef):AnyRef = unsupported
