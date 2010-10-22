@@ -1,0 +1,2 @@
+- Em RemoteClient, o valor default para READ_TIMEOUT no código (1) não bate com o do arquivo de configuração (10)
+- Em RemoteClient, na definição dos Handlers, o ReadTimeoutHandler parece receber o argumento em milissegundos, onde deveria ser segundos.
