@@ -102,6 +102,9 @@ enum ActorType {
   SCALA_ACTOR = 1;
   JAVA_ACTOR = 2;
   TYPED_ACTOR = 3;
+
+  // for the mobile actors framework
+  MOBILE_ACTOR = 4;
 }
 
 /**
