@@ -27,6 +27,9 @@ import org.jboss.netty.handler.ssl.SslHandler
 import scala.collection.mutable.Map
 import scala.reflect.BeanProperty
 
+import se.scalablesolutions.akka.mobile.PipelineFactoryCreator
+import se.scalablesolutions.akka.mobile.DefaultPipelineFactoryCreator
+
 /**
  * Use this object if you need a single remote server on a specific node.
  *
@@ -205,6 +208,11 @@ class RemoteServer extends Logging with ListenerManagement {
 
   def isRunning = _isRunning
 
+  private var pipelineFactoryCreator: PipelineFactoryCreator = DefaultPipelineFactoryCreator
+  def setPipelineFactoryCreator(creator: PipelineFactoryCreator) = {
+    pipelineFactoryCreator = creator
+  }
+
   def start: RemoteServer =
     start(hostname, port, None)
 
@@ -231,8 +239,10 @@ class RemoteServer extends Logging with ListenerManagement {
         log.info("Starting remote server at [%s:%s]", hostname, port)
         RemoteServer.register(hostname, port, this)
         val remoteActorSet = RemoteServer.actorsFor(RemoteServer.Address(hostname, port))
-        val pipelineFactory = new RemoteServerPipelineFactory(
-          name, openChannels, loader, remoteActorSet.actors, remoteActorSet.typedActors,this)
+        //val pipelineFactory = new RemoteServerPipelineFactory(
+        //  name, openChannels, loader, remoteActorSet.actors, remoteActorSet.typedActors,this)
+        val pipelineFactory = pipelineFactoryCreator.createPipelineFactory(
+          name, openChannels, loader, remoteActorSet.actors, remoteActorSet.typedActors, this)
         bootstrap.setPipelineFactory(pipelineFactory)
         bootstrap.setOption("child.tcpNoDelay", true)
         bootstrap.setOption("child.keepAlive", true)
