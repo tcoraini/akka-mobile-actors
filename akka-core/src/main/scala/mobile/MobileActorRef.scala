@@ -32,7 +32,8 @@ class MobileActorRef(private var actorRef: ActorRef) extends ActorRef with Scala
       case _ => false
     }
   }
-
+  
+  // TODO Não seria melhor uma mensagem MigrateTo que essa classe interceptaria e desencadearia esse processo?
   def migrateTo(hostname: String, port: Int): Boolean = {
     if (!isActorLocal) throw new RuntimeException("The method 'migrateTo' should be call only on local actors")
 
@@ -47,7 +48,7 @@ class MobileActorRef(private var actorRef: ActorRef) extends ActorRef with Scala
     val newActorRef = confirmation match {
       // TODO verificar isso do id, essa classe tem um id diferente do id da classe que ela representa
       case Some(MobileActorRegistered(id)) if id == actorRef.id =>
-        RemoteClient.actorFor(actorRef.id, hostname, port)
+        Mobile.mobileActorFor(actorRef.id, hostname, port, actorRef.timeout)
       case msg => 
         throw new RuntimeException("Migration failed, confirmation not received. \n Instead received " + msg)
     }
@@ -57,6 +58,9 @@ class MobileActorRef(private var actorRef: ActorRef) extends ActorRef with Scala
 
     true
   }
+
+  def mobid = actorRef.id
+  def mobid_=(id: String) = { actorRef.id = id }
 
   // Normais
   def start: ActorRef = actorRef.start

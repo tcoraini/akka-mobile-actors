@@ -9,6 +9,7 @@ import se.scalablesolutions.akka.remote.RemoteNode
 import se.scalablesolutions.akka.remote.RemoteServer
 import se.scalablesolutions.akka.remote.protocol.RemoteProtocol._
 import se.scalablesolutions.akka.remote.MessageSerializer
+import se.scalablesolutions.akka.remote.protocol.RemoteProtocol._
 
 import se.scalablesolutions.akka.mobile.Mobile._
 
@@ -27,78 +28,73 @@ case class MovingActor(bytes: Array[Byte])
 case class MobileActorRegistered(actorId: String)
 
 class Theater {
-  // TODO tratar conexoes (ChannelGroup) e fechar todas no final
+  
+  val server = new RemoteServer
 
-  private val actors = new ConcurrentHashMap[String, ActorRef]
+  // FIXME melhor colocar MobileActorRef?
+  private val mobileActors = new ConcurrentHashMap[String, MobileActorRef]
 
-  private val factory = new NioServerSocketChannelFactory(
-    Executors.newCachedThreadPool,
-    Executors.newCachedThreadPool)
-
-  private val bootstrap = new ServerBootstrap(factory)
+  //private val actors = new ConcurrentHashMap[String, ActorRef]
 
   def start(hostname: String, port: Int) = {
-    val pipelineFactory = new TheaterPipelineFactory(actors)
-    bootstrap.setPipelineFactory(pipelineFactory)
-    bootstrap.setOption("child.tcpNoDelay", true)
-    bootstrap.setOption("child.keepAlive", true)
-    bootstrap.setOption("child.reuseAddress", true)
-    bootstrap.setOption("child.connectTimeoutMillis", RemoteServer.CONNECTION_TIMEOUT_MILLIS.toMillis)
+    server.setPipelineFactoryCreator(new TheaterPipelineFactoryCreator(mobileActors))
+    server.start(hostname, port)
 
-    bootstrap.bind(new InetSocketAddress(hostname, port))
+    val agentName = "theater@" + hostname + ":" + port
+    server.register(agentName, actorOf(new TheaterAgent(this)))
   }
-}
 
-class TheaterPipelineFactory(actors: Map[String, ActorRef]) extends ChannelPipelineFactory {
-  def getPipeline: ChannelPipeline = {
-  
-    def join(ch: ChannelHandler*) = Array[ChannelHandler](ch:_*)
+  def migrate(uuid: String) = new {
+    def to(destination: Tuple2[String, Int]): Boolean = {
+      mobileActors.get(uuid) match {
+        case actorRef: MobileActorRef => 
+          actorRef.migrateTo(destination._1, destination._2)
 
-    // Strips out the first 4 bytes of messages (the message lenght)
-    val lenDec      = new LengthFieldBasedFrameDecoder(1048576, 0, 4, 0, 4)
-    // Adds the message lenght as 4 bytes in the beginning of the message
-    val lenPrep     = new LengthFieldPrepender(4)
-    // Encoder and decoder for the messages in the Protobuf format
-    val protobufDec = new ProtobufDecoder(RemoteRequestProtocol.getDefaultInstance)
-    val protobufEnc = new ProtobufEncoder
-    // Compression methods
-    val (compressionEnc, compressionDec) = RemoteServer.COMPRESSION_SCHEME match {
-      case "zlib"  => (join(new ZlibEncoder(RemoteServer.ZLIB_COMPRESSION_LEVEL)), join(new ZlibDecoder))
-      case       _ => (join(), join())
+        case null => false // Actor not found
+      }
     }
-    // TODO SSL?
-
-    val theaterHandler = new TheaterHandler(actors)
-    val stages = compressionDec ++ join(lenDec, protobufDec) ++ compressionEnc ++ join(lenPrep, protobufEnc, theaterHandler)
-    // FIXME Pode ser preciso mudar de ChannelPipeline para permitir mudanças on-the-fly dos handlers, caso
-    // o mecanismo de monitoramento da entrada de mensagens seja um handler opcional
-    new StaticChannelPipeline(stages: _*)  
   }
+
+  def register(actor: MobileActorRef) = {
+    mobileActors.put(actor.mobid, actor)
+  }
+
+  def receiveActor(bytes: Array[Byte], senderOption: Option[ActorRef] = None): ActorRef = {
+    println("[THEATER] Received actor")
+    val actor = mobileFromBinary(bytes)(DefaultActorFormat)
+    register(new MobileActorRef(actor))
+    actor
+  }
+
 }
 
 @ChannelHandler.Sharable // FIXME eh mesmo?
-class TheaterHandler(val actors: Map[String, ActorRef]) extends SimpleChannelUpstreamHandler {
+class TheaterHandler(actors: Map[String, MobileActorRef]) extends SimpleChannelUpstreamHandler {
 
   override def messageReceived(ctx: ChannelHandlerContext, event: MessageEvent) = {
     val message = event.getMessage
-    if (message eq null) throw new RuntimeException("Message in remote MessageEvent is null: " + event)
-    if (message.isInstanceOf[RemoteRequestProtocol])
-      handleRemoteRequestProtocol(message.asInstanceOf[RemoteRequestProtocol])
+    if (message.isInstanceOf[RemoteRequestProtocol]) {
+      val request = message.asInstanceOf[RemoteRequestProtocol]
+      if (request.getActorInfo.getActorType == ActorType.MOBILE_ACTOR)
+        handleMobileActorRequest(request)
+      else ctx.sendUpstream(event)
+    } 
+    else ctx.sendUpstream(event)
   }
 
-  private def handleRemoteRequestProtocol(request: RemoteRequestProtocol) = {
-    val actorInfo = request.getActorInfo
-    val uuid = actorInfo.getUuid
+  private def handleMobileActorRequest(request: RemoteRequestProtocol) = {
+    val uuid = request.getActorInfo.getUuid
     
     actors.get(uuid) match {
       case actor: ActorRef =>
         val message = MessageSerializer.deserialize(request.getMessage)
-        val sender =
+        // TODO Descomentar
+        /*val sender =
           // FIXME classloader sempre como None? 
           if (request.hasSender) Some(RemoteActorSerialization.fromProtobufToRemoteActorRef(request.getSender, None))
-          else None
+          else None*/
 
-        actor.!(message)(sender)
+        actor.!(message)(None)
 
       case null =>
         handleActorNotFound(uuid)
@@ -116,7 +112,7 @@ class TheaterHandler(val actors: Map[String, ActorRef]) extends SimpleChannelUps
  
 object Theater {
   // FIXME Pq lazy?
-  lazy val agent = actorOf(new TheaterAgent)
+  lazy val agent = actorOf(new TheaterAgent(new Theater))
 
   def start(hostname: String, port: Int): Unit = {
     RemoteNode.start(hostname, port)
@@ -133,11 +129,11 @@ object Theater {
   }
 } 
 
-class TheaterAgent extends Actor {
+class TheaterAgent(val theater: Theater) extends Actor {
   
   def receive = {
     case MovingActor(bytes) =>
-      val actor = Theater.receiveActor(bytes, self.sender)
+      val actor = theater.receiveActor(bytes, self.sender)
       self.reply(MobileActorRegistered(actor.id))
       
     case msg => 

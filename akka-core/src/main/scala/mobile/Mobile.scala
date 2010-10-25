@@ -2,6 +2,7 @@ package se.scalablesolutions.akka.mobile
 
 import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.LocalActorRef
+import se.scalablesolutions.akka.actor.RemoteActorRef
 import se.scalablesolutions.akka.actor.Format
 import se.scalablesolutions.akka.actor.SerializerBasedActorFormat
 import se.scalablesolutions.akka.actor.IllegalActorStateException
@@ -12,6 +13,10 @@ import se.scalablesolutions.akka.config.ScalaConfig._
 
 object Mobile {
   def mobileOf(factory: => Actor): MobileLocalActorRef = new LocalActorRef(() => factory) with MobileLocalActorRef
+
+  def mobileActorFor(actorId: String, hostname: String, port: Int, timeout: Long): MobileRemoteActorRef = 
+    new RemoteActorRef(actorId, actorId, hostname, port, timeout, None) with MobileRemoteActorRef
+    
 
   /* Adapted from SerializationProtocol just to construct a MobileActorRef */
   def mobileFromBinary[T <: Actor](bytes: Array[Byte])(implicit format: Format[T]): MobileLocalActorRef =
