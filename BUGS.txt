@@ -1,2 +1,6 @@
 - Em RemoteClient, o valor default para READ_TIMEOUT no código (1) não bate com o do arquivo de configuração (10)
 - Em RemoteClient, na definição dos Handlers, o ReadTimeoutHandler parece receber o argumento em milissegundos, onde deveria ser segundos.
+
+- Em ActorRef.scala, no método postMessageToMailboxAndCreateFutureResultWithTimeout, tanto da classe RemoteActorRef quanto da classe LocalActorRef quando o ator é remoto, o valor de timeout recebido como parâmetro não é usado. Isso significa que será usado o valor de timeout do ator, e caso o cliente tenha passado um timeout da forma:
+	ref.!!(msg,customTimeout)
+esse novo timeout será desconsiderado.
