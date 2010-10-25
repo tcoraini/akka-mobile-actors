@@ -1,0 +1,7 @@
+MODIFICAÇÕES FEITAS NO CÓDIGO DO AKKA:
+
+RemoteServer.scala
+  - Não cria uma RemoteServerPipelineFactory diretamente, mas usa uma factory para isso, chamada PipelineFactoryCreator. Dessa forma, podemos modificar o ChannelPipelineFactory a ser usado, criando um tipo que permita criar pipelines que possuem tratamento especial para os atores móveis.
+
+RemoteProtocol.proto
+  - Adicionado no enum ActorType o tipo MOBILE_ACTOR
