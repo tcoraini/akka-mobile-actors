@@ -53,6 +53,11 @@ trait MobileLocalActorRef extends ActorRef with ScalaActorRef {
     //for (RetainedMessageWithFuture(message, timeout, sender, senderFuture)
   }
 
+  abstract override def start(): ActorRef = {
+    if (isMigrating) throw new RuntimeException("Cannot start an actor that is migrating")
+    else super.start()
+  }
+
   abstract override def !!(message: Any, timeout: Long = this.timeout)(implicit sender: Option[ActorRef] = None): Option[Any] = {
     // TODO Verificar como fica isso. O próprio ActorRef será responsável por esperar pelo Futuro ser completado com o
     // resultado e então devolver a resposta. Mas o ActorRef será serializado e depois, talvez inutilizado. Vai dar certo?

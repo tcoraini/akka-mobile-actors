@@ -19,7 +19,12 @@ import java.util.{Map => JMap}
 class MobileActorRef(private var actorRef: ActorRef) extends ActorRef with ScalaActorRef {
 
   private var isActorLocal = switchActorRef(actorRef)
-  
+
+  def isLocal = isActorLocal
+ 
+  private var _migratingTo: Option[TheaterNode] = None
+  def migratingTo = _migratingTo 
+
   /**
    * Changes the actor reference behind this proxy.
    * Returns true if the new actor is local, false otherwise.
@@ -29,12 +34,25 @@ class MobileActorRef(private var actorRef: ActorRef) extends ActorRef with Scala
 
     actorRef match {
       case _: MobileLocalActorRef => true
-      case _ => false
+      case _: MobileRemoteActorRef => false
+      case _ => throw new RuntimeException("A MobileActorRef should be created only with a mobile reference (local or remote)")
     }
   }
   
+  private[mobile] def startMigration(hostname: String, port: Int): Array[Byte] = {
+    if (!isActorLocal) throw new RuntimeException("The method 'migrateTo' should be call only on local actors")
+
+    // Sinalizing the start of the migration process
+    if (isRunning)
+      actorRef ! Migrate
+
+    _migratingTo = Some(TheaterNode(hostname, port))
+    ActorSerialization.toBinary(actorRef)(DefaultActorFormat)
+  }
+
+
   // TODO Não seria melhor uma mensagem MigrateTo que essa classe interceptaria e desencadearia esse processo?
-  def migrateTo(hostname: String, port: Int): Boolean = {
+/*  def migrateTo(hostname: String, port: Int): Boolean = {
     if (!isActorLocal) throw new RuntimeException("The method 'migrateTo' should be call only on local actors")
 
     // Sinalizing the start of the migration process
@@ -47,8 +65,8 @@ class MobileActorRef(private var actorRef: ActorRef) extends ActorRef with Scala
     val confirmation = theaterAgent !! MovingActor(bytes)
     val newActorRef = confirmation match {
       // TODO verificar isso do id, essa classe tem um id diferente do id da classe que ela representa
-      case Some(MobileActorRegistered(id)) if id == actorRef.id =>
-        Mobile.mobileActorFor(actorRef.id, hostname, port, actorRef.timeout)
+      case Some(MobileActorRegistered(uuid)) if uuid == actorRef.uuid =>
+        Mobile.mobileOf(actorRef.uuid, hostname, port, actorRef.timeout)
       case msg => 
         throw new RuntimeException("Migration failed, confirmation not received. \n Instead received " + msg)
     }
@@ -58,10 +76,7 @@ class MobileActorRef(private var actorRef: ActorRef) extends ActorRef with Scala
 
     true
   }
-
-  def mobid = actorRef.id
-  def mobid_=(id: String) = { actorRef.id = id }
-
+*/
   // Normais
   def start: ActorRef = actorRef.start
   def stop: Unit = actorRef.stop
@@ -87,6 +102,12 @@ class MobileActorRef(private var actorRef: ActorRef) extends ActorRef with Scala
   def supervisor: Option[ActorRef] = actorRef.supervisor
   def shutdownLinkedActors: Unit = actorRef.shutdownLinkedActors
 
+  override def uuid = actorRef.uuid
+  override def getUuid() = actorRef.getUuid()
+
+  // TODO colocar outros métodos da API aqui
+  override def isRunning = actorRef.isRunning
+  
   override def !(message: Any)(implicit sender: Option[ActorRef] = None): Unit = {
     actorRef.!(message)
   }

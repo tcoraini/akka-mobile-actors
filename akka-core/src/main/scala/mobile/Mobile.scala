@@ -12,9 +12,55 @@ import se.scalablesolutions.akka.remote.protocol.RemoteProtocol._
 import se.scalablesolutions.akka.config.ScalaConfig._
 
 object Mobile {
-  def mobileOf(factory: => Actor): MobileLocalActorRef = new LocalActorRef(() => factory) with MobileLocalActorRef
+  
+  private var algorithm: DistributionAlgorithm = new RoundRobinAlgorithm
 
-  def mobileActorFor(actorId: String, hostname: String, port: Int, timeout: Long): MobileRemoteActorRef = 
+  def spawn[T <: MobileActor : Manifest]: MobileActorRef = {
+    val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
+
+    spawn(Left(clazz.getName))
+    
+    //val node: TheaterNode = algorithm.chooseTheater
+    //Theater.start(clazz) at node
+
+    //val localRef = mobileOf(manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]])
+    //val mobileRef = new MobileActorRef(localRef)  
+
+    //Theater.register(mobileRef)
+    //mobileRef
+  }
+
+  def spawn(factory: => MobileActor): MobileActorRef = {
+    spawn(Right(() => factory))
+  }
+
+  private def spawn(constructor: Either[String, () => MobileActor]): MobileActorRef = {
+    val node: TheaterNode = algorithm.chooseTheater
+    Theater.startActor(constructor) at node
+  }
+
+  def mobileOf(clazz: Class[_ <: MobileActor]): MobileActorRef = new MobileActorRef(createMobileLocalActorRef(clazz))
+
+  def mobileOf(classname: String): MobileActorRef = {
+    val clazz = Class.forName(classname).asInstanceOf[Class[_ <: MobileActor]]
+    mobileOf(clazz)
+  }
+
+  def mobileOf(factory: => MobileActor): MobileActorRef = new MobileActorRef(createMobileLocalActorRef(factory))
+
+  // For remote actors
+  def mobileOf(actorId: String, hostname: String, port: Int, timeout: Long) = 
+    new MobileActorRef(createMobileRemoteActorRef(actorId, hostname, port, timeout))
+
+
+  // TODO provavalmente isso precisa ser private, expor apenas MobileActorRef aos clientes
+  // Local Actor Ref
+  def createMobileLocalActorRef(clazz: Class[_ <: MobileActor]): MobileLocalActorRef = new LocalActorRef(clazz) with MobileLocalActorRef
+
+  def createMobileLocalActorRef(factory: => MobileActor): MobileLocalActorRef = new LocalActorRef(() => factory) with MobileLocalActorRef
+  
+  // Remote Actor Ref
+  def createMobileRemoteActorRef(actorId: String, hostname: String, port: Int, timeout: Long): MobileRemoteActorRef = 
     new RemoteActorRef(actorId, actorId, hostname, port, timeout, None) with MobileRemoteActorRef
     
 
