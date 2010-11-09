@@ -47,7 +47,7 @@ class MobileActorRef(private var actorRef: ActorRef) extends ActorRef with Scala
       actorRef ! Migrate
 
     _migratingTo = Some(TheaterNode(hostname, port))
-    ActorSerialization.toBinary(actorRef)(DefaultActorFormat)
+    ActorSerialization.toBinary(actorRef, false)(DefaultActorFormat)
   }
 
 

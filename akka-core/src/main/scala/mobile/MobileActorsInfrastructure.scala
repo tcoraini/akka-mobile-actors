@@ -4,7 +4,7 @@ import se.scalablesolutions.akka.util.Logging
 
 import java.net.InetAddress
 
-object MobileActorInfrastructure extends Logging {
+object MobileActorsInfrastructure extends Logging {
   
   def main(args: Array[String]) {
     log.info("Starting the mobile actors infrastructure...Deploying the local Theater")
