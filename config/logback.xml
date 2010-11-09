@@ -23,6 +23,7 @@
     </rollingPolicy>
   </appender>
   <logger name="se.scalablesolutions" level="WARN"/>
+  <logger name="se.scalablesolutions.akka.mobile" level="DEBUG"/>
   <root level="OFF">
     <appender-ref ref="stdout"/>
     <appender-ref ref="R"/>
