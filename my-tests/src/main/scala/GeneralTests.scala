@@ -46,6 +46,8 @@ case class Garbage(what: String)
 case class Message(what: String)
 case object Identify
 
+case class MsgFunction(func: Function0[String])
+
 case object ShowCount
 
 class MyStatelessActor extends MobileActor {
@@ -74,6 +76,9 @@ class MyStatelessActor extends MobileActor {
         else self.sender.get.id
       show("Sender ID: " + senderId)
 
+    case MsgFunction(func) =>
+      show("Received function. Applying it: " + func())
+
     case msg =>
       show("Received unknown message: " + msg)
    }
@@ -93,6 +98,11 @@ class SenderActor(destination: ActorRef) extends Actor {
   
   private def show(str: String): Unit = println("[" + this + "] " + str)
 
+  def this(init: Int) = {
+    this()
+    count = init
+  }
+
   def receive = {
     case Ping =>
       count = count + 1
@@ -111,7 +121,7 @@ object GeneralTests {
    def execute() {
       import BinaryFormatMyStatelessActor._
       
-      val actor1 = mobileOf(new MyStatelessActor)
+      val actor1 = actorOf(new MyStatelessActor)
       //val actor1 = actorOf[MyStatelessActor]
       actor1.start
       
@@ -129,18 +139,18 @@ object GeneralTests {
       // Fazendo a seriacao
       println("* * * Start of serialization * * *")
       actor1 ! Migrate
-      val bytes = actor1.serializedActor
+      //val bytes = actor1.serializedActor
       actor1 ! Message("Após seriação")
       
       //val actor2 = fromBinary(bytes)
-      val actor2 = mobileFromBinary(bytes)
+      //val actor2 = mobileFromBinary(bytes)
       //actor1.forwardRetainedMessages(actor2)
       println("* * * End of serialization * * *")
       
       
       println("[2] Tamanho do mailbox do ator 1: " + actor1.mailboxSize)
-      println("[2] Tamanho do mailbox do ator 2: " + actor2.mailboxSize)
-      println("% % % Retained messages: " + actor1.retainedMessagesQueue)
+      //println("[2] Tamanho do mailbox do ator 2: " + actor2.mailboxSize)
+      //println("% % % Retained messages: " + actor1.retainedMessagesQueue)
       //println("% % % Retained messages with future: " + actor1.retainedMessagesWithFutureQueue)
 
       /*println("Aguardando pela resolução do Futuro [" + future + "]...")
@@ -158,7 +168,7 @@ object GeneralTests {
         println("Future preenchido com resultado: " + future.result)*/
 
       actor1.stop
-      actor2.stop
+      //actor2.stop
    }
 
   def testStatefulActor(): Unit = {
@@ -177,7 +187,7 @@ object GeneralTests {
     val bytes = toBinary(counter)(format)
     // Enviando para um teatro remoto
     val theaterAgent = RemoteClient.actorFor("theater@localhost:1810", "localhost", 1810)
-    theaterAgent ! MovingActor(bytes)
+    //theaterAgent ! MovingActor(bytes)
     Thread.sleep(3000) 
     // Obtendo uma referencia remota (RemoteActorRef) para o ator migrado, agora no teatro remoto
     val newCounter = RemoteClient.actorFor(counter.id, "localhost", 1810)
