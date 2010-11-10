@@ -32,9 +32,9 @@ object Mobile {
   
     if (node.isLocal) {
       val mobileRef = constructor match {
-        case Left(clazz) => newMobileActor(clazz)
+        case Left(clazz) => new MobileActorRef(newMobileActor(clazz))
 
-        case Right(factory) => newMobileActor(factory())
+        case Right(factory) => new MobileActorRef(newMobileActor(factory()))
       }
       mobileRef.start
       Theater.register(mobileRef)
@@ -44,20 +44,20 @@ object Mobile {
     }
   }
 
-  private[mobile] def newMobileActor(factory: => MobileActor): MobileActorRef = 
-    new MobileActorRef(new LocalActorRef(() => factory) with MobileLocalActorRef)
+  private[mobile] def newMobileActor(factory: => MobileActor): MobileLocalActorRef = 
+    new LocalActorRef(() => factory) with MobileLocalActorRef
 
-  private[mobile] def newMobileActor(clazz: Class[_ <: MobileActor]): MobileActorRef = 
-    new MobileActorRef(new LocalActorRef(clazz) with MobileLocalActorRef)
+  private[mobile] def newMobileActor(clazz: Class[_ <: MobileActor]): MobileLocalActorRef = 
+    new LocalActorRef(clazz) with MobileLocalActorRef
 
-  private[mobile] def newMobileActor(classname: String): MobileActorRef = {
+  private[mobile] def newMobileActor(classname: String): MobileLocalActorRef = {
     val clazz = Class.forName(classname).asInstanceOf[Class[_ <: MobileActor]]
     newMobileActor(clazz)
   }
 
   // For remote actors
-  private[mobile] def newRemoteMobileActor(actorId: String, hostname: String, port: Int, timeout: Long) = 
-    new MobileActorRef(new RemoteActorRef(actorId, actorId, hostname, port, timeout, None) with MobileRemoteActorRef)
+  private[mobile] def newRemoteMobileActor(actorId: String, hostname: String, port: Int, timeout: Long): MobileRemoteActorRef = 
+    new RemoteActorRef(actorId, actorId, hostname, port, timeout, None) with MobileRemoteActorRef
 
 }
 

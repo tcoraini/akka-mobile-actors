@@ -18,6 +18,18 @@ import java.util.{Map => JMap}
 
 class MobileActorRef(private var actorRef: ActorRef) extends ActorRef with ScalaActorRef {
 
+  def retained: java.util.concurrent.ConcurrentLinkedQueue[RetainedMessage] = 
+    if (isLocal) 
+      actorRef.asInstanceOf[MobileLocalActorRef].retainedMessagesQueue
+    else
+      throw new RuntimeException("Não existem mensagens retidas para atores remotos")
+
+  def mb: java.util.Queue[se.scalablesolutions.akka.dispatch.MessageInvocation] =
+    if (isLocal)
+      actorRef.mailbox.asInstanceOf[java.util.Queue[se.scalablesolutions.akka.dispatch.MessageInvocation]]
+    else
+      throw new RuntimeException("Não existe mailbox para atores remotos")
+
   private var isActorLocal = switchActorRef(actorRef)
 
   def isLocal = isActorLocal
@@ -32,51 +44,40 @@ class MobileActorRef(private var actorRef: ActorRef) extends ActorRef with Scala
   def switchActorRef(actorRef: ActorRef): Boolean = {
     this.actorRef = actorRef
 
-    actorRef match {
+    isActorLocal = actorRef match {
       case _: MobileLocalActorRef => true
       case _: MobileRemoteActorRef => false
       case _ => throw new RuntimeException("A MobileActorRef should be created only with a mobile reference (local or remote)")
     }
+    isActorLocal
   }
   
   private[mobile] def startMigration(hostname: String, port: Int): Array[Byte] = {
     if (!isActorLocal) throw new RuntimeException("The method 'migrateTo' should be call only on local actors")
-
-    // Sinalizing the start of the migration process
-    if (isRunning)
-      actorRef ! Migrate
+    
+    // The mailbox won't be serialized if the actor has not been started yet. In this case, we're migrating
+    // a 'new' actor, that has been instantiated through a '() => MobileActor' factory
+    val serializeMailbox = 
+      if (isRunning) {
+        // Sinalizing the start of the migration process
+        actorRef ! Migrate
+        true
+      } else false
 
     _migratingTo = Some(TheaterNode(hostname, port))
-    ActorSerialization.toBinary(actorRef, false)(DefaultActorFormat)
+    ActorSerialization.toBinary(actorRef, serializeMailbox)(DefaultActorFormat)
   }
 
-
-  // TODO Não seria melhor uma mensagem MigrateTo que essa classe interceptaria e desencadearia esse processo?
-/*  def migrateTo(hostname: String, port: Int): Boolean = {
-    if (!isActorLocal) throw new RuntimeException("The method 'migrateTo' should be call only on local actors")
-
-    // Sinalizing the start of the migration process
-    actorRef ! Migrate
-    val bytes = ActorSerialization.toBinary(actorRef)(DefaultActorFormat)
-    val theaterAgentName = "theater@" + hostname + ":" + port
-    val theaterAgent = RemoteClient.actorFor(theaterAgentName, hostname, port)
-    
-    // Sending the serialized actor and waiting for the confirmation
-    val confirmation = theaterAgent !! MovingActor(bytes)
-    val newActorRef = confirmation match {
-      // TODO verificar isso do id, essa classe tem um id diferente do id da classe que ela representa
-      case Some(MobileActorRegistered(uuid)) if uuid == actorRef.uuid =>
-        Mobile.mobileOf(actorRef.uuid, hostname, port, actorRef.timeout)
-      case msg => 
-        throw new RuntimeException("Migration failed, confirmation not received. \n Instead received " + msg)
+  private[mobile] def endMigration(): Unit = {
+    if (isActorLocal && migratingTo.isDefined) {
+      val destination = migratingTo.get
+      val remoteActorRef = Mobile.newRemoteMobileActor(uuid, destination.hostname, destination.port, actorRef.timeout)
+      actorRef.asInstanceOf[MobileLocalActorRef].endMigration(remoteActorRef)
+      isActorLocal = switchActorRef(remoteActorRef)
     }
-    
-    // Switching for the now RemoteActorRef serving as a proxy for the migrated actor
-    switchActorRef(newActorRef)
-
-    true
   }
-*/
+    
+
   // Normais
   def start: ActorRef = actorRef.start
   def stop: Unit = actorRef.stop
@@ -123,7 +124,7 @@ class MobileActorRef(private var actorRef: ActorRef) extends ActorRef with Scala
   override def forward(message: Any)(implicit sender: Some[ActorRef]) = {
     actorRef.forward(message)
   }
-  
+
   // Protected
   def mailbox: AnyRef = unsupported
   def mailbox_=(value: AnyRef):AnyRef = unsupported

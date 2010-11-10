@@ -53,6 +53,8 @@ trait MobileLocalActorRef extends ActorRef with ScalaActorRef {
     //for (RetainedMessageWithFuture(message, timeout, sender, senderFuture)
   }
 
+  abstract override def actor: MobileActor = super.actor.asInstanceOf[MobileActor]
+
   abstract override def start(): ActorRef = {
     if (isMigrating) throw new RuntimeException("Cannot start an actor that is migrating")
     else super.start()
@@ -115,6 +117,7 @@ trait MobileLocalActorRef extends ActorRef with ScalaActorRef {
 
   private def initMigration(): Unit = {
     _isMigrating = true
+    actor.beforeMigration()
     // We should stop the message dispatching, so the messages won't be processed in this actor
     // TODO What about Reactor dispatchers?
     /*dispatcher match {
@@ -127,5 +130,12 @@ trait MobileLocalActorRef extends ActorRef with ScalaActorRef {
       case _: ExecutorBasedEventDrivenWorkStealingDispatcher =>
         dispatcherLock.tryLock
     }*/
+  }
+
+  def endMigration(newActor: ActorRef): Unit = {
+    for (RetainedMessage(message, sender) <- retainedMessagesQueue.toArray)
+      newActor.!(message)(sender)
+
+    actor.afterMigration()
   }
 }

@@ -98,6 +98,7 @@ object Theater extends Logging {
 
       val mobileRef = MobileSerialization.mobileFromBinary(bytes)(DefaultActorFormat)
       register(mobileRef)
+      println("MAILBOX: " + mobileRef.mb)
       // Notifying the sender that the actor is now registered in this theater
       sendToTheater(MobileActorRegistered(mobileRef.uuid), sender)
       ""
@@ -107,7 +108,7 @@ object Theater extends Logging {
   def startLocalActor(constructor: Either[String, Array[Byte]]): MobileActorRef = {
     val mobileRef: MobileActorRef = constructor match {
       case Left(classname) =>
-        Mobile.newMobileActor(classname)
+        new MobileActorRef(Mobile.newMobileActor(classname))
         
       case Right(bytes) =>
         MobileSerialization.mobileFromBinary(bytes)(DefaultActorFormat)
@@ -122,9 +123,9 @@ object Theater extends Logging {
     log.debug("Finishing the migration process of actor with UUID %s", actorUuid)
     val actor = mobileActors.get(actorUuid)
     if (actor != null) {
-      val destination: TheaterNode = actor.migratingTo.get
-      val newActorRef = Mobile.newRemoteMobileActor(actorUuid, destination.hostname, destination.port, actor.timeout)
-      actor.switchActorRef(newActorRef)
+      println("RETAINED MESSAGES: " + actor.retained)
+      println("MAILBOX: " + actor.mb)
+      actor.endMigration()
       Theater.unregister(actor)
       // TODO encaminhar mensagens
       // TODO destruir instancia

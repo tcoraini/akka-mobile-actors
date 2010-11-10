@@ -11,11 +11,8 @@ import se.scalablesolutions.akka.actor.SerializerBasedActorFormat
 
 import se.scalablesolutions.akka.remote.RemoteClient
 
-import se.scalablesolutions.akka.mobile.MobileLocalActorRef
-import se.scalablesolutions.akka.mobile.MobileActor
 import se.scalablesolutions.akka.mobile.Mobile._
-import se.scalablesolutions.akka.mobile.Migrate
-import se.scalablesolutions.akka.mobile.MovingActor
+import se.scalablesolutions.akka.mobile._
 
 import se.scalablesolutions.akka.dispatch.FutureTimeoutException
 
@@ -23,8 +20,8 @@ import se.scalablesolutions.akka.serialization.Serializer
 
 import se.scalablesolutions.akka.config.Config.config
 
-object BinaryFormatMyStatelessActor {
-   implicit object MyStatelessActorFormat extends StatelessActorFormat[MyStatelessActor]
+object BinaryFormatMyActor {
+   implicit object MyActorFormat extends StatelessActorFormat[MyActor]
 }
 
 object BinaryFormatMyJavaSerializableActor {
@@ -50,7 +47,7 @@ case class MsgFunction(func: Function0[String])
 
 case object ShowCount
 
-class MyStatelessActor extends MobileActor {
+@serializable class MyActor extends MobileActor {
   //self.makeRemote("localhost", 9999)
   
   private def show(str: String): Unit = println("[" + this + "] " + str)
@@ -82,6 +79,15 @@ class MyStatelessActor extends MobileActor {
     case msg =>
       show("Received unknown message: " + msg)
    }
+
+  def beforeMigration() {
+    show("MyActor starting a migration")
+  }
+
+  def afterMigration() {
+    show("MyActor finalizing a migration")
+  }
+
 }
 
 class SenderActor(destination: ActorRef) extends Actor {
@@ -110,6 +116,14 @@ class SenderActor(destination: ActorRef) extends Actor {
     case ShowCount =>
       show("Current count: " + count)    
   }
+
+  def beforeMigration() {
+    show("StatefulActor starting a migration")
+  }
+
+  def afterMigration() {
+    show("StatefulActor finalizing a migration")
+  }
 }
 
 object GeneralTests {
@@ -119,10 +133,10 @@ object GeneralTests {
    }
 
    def execute() {
-      import BinaryFormatMyStatelessActor._
+      import BinaryFormatMyActor._
       
-      val actor1 = actorOf(new MyStatelessActor)
-      //val actor1 = actorOf[MyStatelessActor]
+      val actor1 = actorOf(new MyActor)
+      //val actor1 = actorOf[MyActor]
       actor1.start
       
       val sender = actorOf(new SenderActor(actor1)).start
@@ -202,4 +216,16 @@ object GeneralTests {
     counter.stop
     newCounter.stop
   }   
+
+  def testMigration(): Unit = {
+    Theater.start("ubuntu-tcoraini", 1810)
+
+    val ref = Mobile.spawn[MyActor]
+
+    //ref ! Wait(20)
+    //ref ! Message("APÓS MIGRAÇÃO")
+    Theater.migrate(ref.uuid) to ("localhost", 2312)
+    ref ! Message("RETIDA")
+
+  } 
 }

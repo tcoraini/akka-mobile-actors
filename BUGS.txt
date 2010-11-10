@@ -4,3 +4,5 @@
 - Em ActorRef.scala, no método postMessageToMailboxAndCreateFutureResultWithTimeout, tanto da classe RemoteActorRef quanto da classe LocalActorRef quando o ator é remoto, o valor de timeout recebido como parâmetro não é usado. Isso significa que será usado o valor de timeout do ator, e caso o cliente tenha passado um timeout da forma:
 	ref.!!(msg,customTimeout)
 esse novo timeout será desconsiderado.
+
+- Em RemoteServer.scala, na função createRemoteRequestProtocolBuilder, o ator é registrado pelo UUID no servidor para seu HomeAddress, e então a função toRemoteActorRefProtocol é chamada, e nessa função novamente esse ator é registrado no servidor pelo UUID.

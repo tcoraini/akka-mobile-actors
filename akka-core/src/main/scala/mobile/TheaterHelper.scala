@@ -22,7 +22,7 @@ object TheaterHelper extends Logging {
         Left(clazz.getName)
 
       case Right(factory) =>
-        val mobileRef = Mobile.newMobileActor(factory())
+        val mobileRef = new MobileActorRef(Mobile.newMobileActor(factory()))
         val bytes = mobileRef.startMigration(hostname, port)
         Right(bytes)
     }
@@ -31,7 +31,7 @@ object TheaterHelper extends Logging {
     (agent !! StartMobileActorRequest(serializableConstructor)) match {
       case Some(StartMobileActorReply(uuid)) => 
         log.debug("Mobile actor with UUID %s started remote theater %s:%d", uuid, hostname, port)
-        Mobile.newRemoteMobileActor(uuid, hostname, port, 5000L) // TODO Timeout hard-coded?
+        new MobileActorRef(Mobile.newRemoteMobileActor(uuid, hostname, port, 5000L)) // TODO Timeout hard-coded?
 
       case None =>
         log.debug("Could not start actor at remote theater %s:%d, request timeout", hostname, port)
