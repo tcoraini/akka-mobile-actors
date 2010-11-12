@@ -1,0 +1,7 @@
+1 - É melhor que a ordem de migração seja:
+  - Via uma mensagem do tipo MigrateTo(node): dessa forma qualquer um (em princípio) poderia solicitar a migração do ator para um outro nó
+  - Via uma chamada de método, possivelmente privada para o pacote, portanto restringindo quem poderia fazer essa requisição de migração.
+
+2 - Uma referência a um ator móvel remoto precisa ser atualizada para apontar diretamente para a instância local quando esse ator migra para a mesma máquina da referência. Abordagens e possíveis soluções:
+  - Se a referência é apenas um intermediário para uma outra referência que de fato processa a mensagem, basta trocar essa referência "atrás" do intermediário.
+  - Se a referência é uma classe híbrida que assume os 2 comportamentos (tanto de referência local quanto de referência remota)...manter uma tabela de todas as referências em usa (locais e remotas) naquele computador?

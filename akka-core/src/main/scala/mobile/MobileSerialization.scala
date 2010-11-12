@@ -16,11 +16,11 @@ object MobileSerialization {
   def mobileFromBinary[T <: Actor](bytes: Array[Byte])(implicit format: Format[T]): MobileActorRef =
     new MobileActorRef(fromBinaryToMobileActorRef(bytes, format))
 
-  private def fromBinaryToMobileActorRef[T <: Actor](bytes: Array[Byte], format: Format[T]): MobileLocalActorRef =
+  private def fromBinaryToMobileActorRef[T <: Actor](bytes: Array[Byte], format: Format[T]): LocalMobileActor =
     fromProtobufToMobileActorRef(SerializedActorRefProtocol.newBuilder.mergeFrom(bytes).build, format, None)
 
   private def fromProtobufToMobileActorRef[T <: Actor](
-    protocol: SerializedActorRefProtocol, format: Format[T], loader: Option[ClassLoader]): MobileLocalActorRef = {
+    protocol: SerializedActorRefProtocol, format: Format[T], loader: Option[ClassLoader]): LocalMobileActor = {
     Actor.log.debug("Deserializing SerializedActorRefProtocol to MobileActorRef:\n" + protocol)
 
     val serializer =
@@ -62,7 +62,7 @@ object MobileSerialization {
       hotswap,
       loader.getOrElse(getClass.getClassLoader), // TODO: should we fall back to getClass.getClassLoader?
       protocol.getMessagesList.toArray.toList.asInstanceOf[List[RemoteRequestProtocol]], 
-      format) with MobileLocalActorRef
+      format) with LocalMobileActor
 
     if (format.isInstanceOf[SerializerBasedActorFormat[_]] == false)
       format.fromBinary(protocol.getActorInstance.toByteArray, ar.actor.asInstanceOf[T])

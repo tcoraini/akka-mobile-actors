@@ -8,7 +8,7 @@ import se.scalablesolutions.akka.actor.RemoteActorSerialization._
 
 import se.scalablesolutions.akka.remote.protocol.RemoteProtocol._
 
-trait MobileRemoteActorRef extends ActorRef with ScalaActorRef {
+trait RemoteMobileActor extends ActorRef with ScalaActorRef {
   /*
    * Só funciona pq estamos dentro do pacote Akka. Quando não for o caso, como resolver?
    *

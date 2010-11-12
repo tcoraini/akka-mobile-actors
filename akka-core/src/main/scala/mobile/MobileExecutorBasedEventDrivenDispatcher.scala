@@ -27,7 +27,7 @@ class MobileExecutorBasedEventDrivenDispatcher(
   init
 
   def dispatch(invocation: MessageInvocation) = invocation.receiver match {
-    case receiver: MobileLocalActorRef =>
+    case receiver: LocalMobileActor =>
       getMailbox(invocation.receiver).add(invocation)
       dispatch(receiver)
 
@@ -50,7 +50,7 @@ class MobileExecutorBasedEventDrivenDispatcher(
     super.register(actorRef)
   }
 
-  def dispatch(receiver: MobileLocalActorRef): Unit = if (active) {
+  def dispatch(receiver: LocalMobileActor): Unit = if (active) {
     executor.execute(new Runnable() {
       def run = {
         var lockAcquiredOnce = false
@@ -82,7 +82,7 @@ class MobileExecutorBasedEventDrivenDispatcher(
    *
    * @return true if the processing finished before the mailbox was empty, due to the throughput constraint
    */
-  def processMailbox(receiver: MobileLocalActorRef): Boolean = {
+  def processMailbox(receiver: LocalMobileActor): Boolean = {
     var processedMessages = 0
     val mailbox = getMailbox(receiver)
     // Don't dispatch if the actor is migrating, the messages should stay in the mailbox to be

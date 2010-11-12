@@ -44,20 +44,20 @@ object Mobile {
     }
   }
 
-  private[mobile] def newMobileActor(factory: => MobileActor): MobileLocalActorRef = 
-    new LocalActorRef(() => factory) with MobileLocalActorRef
+  private[mobile] def newMobileActor(factory: => MobileActor): LocalMobileActor = 
+    new LocalActorRef(() => factory) with LocalMobileActor
 
-  private[mobile] def newMobileActor(clazz: Class[_ <: MobileActor]): MobileLocalActorRef = 
-    new LocalActorRef(clazz) with MobileLocalActorRef
+  private[mobile] def newMobileActor(clazz: Class[_ <: MobileActor]): LocalMobileActor = 
+    new LocalActorRef(clazz) with LocalMobileActor
 
-  private[mobile] def newMobileActor(classname: String): MobileLocalActorRef = {
+  private[mobile] def newMobileActor(classname: String): LocalMobileActor = {
     val clazz = Class.forName(classname).asInstanceOf[Class[_ <: MobileActor]]
     newMobileActor(clazz)
   }
 
   // For remote actors
-  private[mobile] def newRemoteMobileActor(actorId: String, hostname: String, port: Int, timeout: Long): MobileRemoteActorRef = 
-    new RemoteActorRef(actorId, actorId, hostname, port, timeout, None) with MobileRemoteActorRef
+  private[mobile] def newRemoteMobileActor(actorId: String, hostname: String, port: Int, timeout: Long): RemoteMobileActor = 
+    new RemoteActorRef(actorId, actorId, hostname, port, timeout, None) with RemoteMobileActor
 
 }
 

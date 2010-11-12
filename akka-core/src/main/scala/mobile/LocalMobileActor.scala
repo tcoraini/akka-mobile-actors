@@ -25,7 +25,7 @@ case class RetainedMessage(message: Any, sender: Option[ActorRef])
 case class RetainedMessageWithFuture(message: Any, timeout: Long, sender: Option[ActorRef], senderFuture: Option[CompletableFuture[Any]])
 
 // TODO Estender LocalActorRef diretamente nao seria melhor?
-trait MobileLocalActorRef extends ActorRef with ScalaActorRef {
+trait LocalMobileActor extends ActorRef with ScalaActorRef {
   val retainedMessagesQueue = new ConcurrentLinkedQueue[RetainedMessage]
   val retainedMessagesWithFutureQueue = new ConcurrentLinkedQueue[RetainedMessageWithFuture]
 
