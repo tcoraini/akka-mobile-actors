@@ -44,6 +44,13 @@ trait ActorRefMethodsDelegation extends ActorRef with ScalaActorRef {
   override def homeAddress: InetSocketAddress = reference.homeAddress
   override def mailboxSize = reference.mailboxSize
 
+  // These methods are used to get and set the 'id' and 'timeout' fields in the actual reference,
+  // since this fields are var's that cannot be overriden
+  override def getId = reference.id
+  override def setId(id: String) = { reference.id = id }
+  override def getTimeout = reference.timeout
+  override def setTimeout(timeout: Long) = { reference.timeout = timeout }
+
   // Overrided methods from AnyRef
   // Should be overrided to forward to the reference
   override def hashCode: Int = reference.hashCode
