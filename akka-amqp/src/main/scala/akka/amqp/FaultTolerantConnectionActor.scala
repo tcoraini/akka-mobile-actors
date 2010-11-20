@@ -38,7 +38,7 @@ private[amqp] class FaultTolerantConnectionActor(connectionParameters: Connectio
           self.reply(Some(chanel))
         }
         case None => {
-          log.warning("Unable to create new channel - no connection")
+          log.warn("Unable to create new channel - no connection")
           self.reply(None)
         }
       }

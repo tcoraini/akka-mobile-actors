@@ -69,7 +69,7 @@ trait FSM[S, D] {
 
   private var handleEvent: StateFunction = {
     case Event(value, stateData) =>
-      log.warning("Event %s not handled in state %s, staying at current state", value, currentState.stateName)
+      log.warn("Event %s not handled in state %s, staying at current state", value, currentState.stateName)
       stay
   }
 

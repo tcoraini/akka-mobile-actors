@@ -95,7 +95,7 @@ object Config {
       }
       Configgy.config
     } else {
-      ConfigLogger.log.warning(
+      ConfigLogger.log.warn(
         "\nCan't load '" + confName + "'." +
         "\nOne of the three ways of locating the '" + confName + "' file needs to be defined:" +
         "\n\t1. Define the '-Dakka.config=...' system property option." +

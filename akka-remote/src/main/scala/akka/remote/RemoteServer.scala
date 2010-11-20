@@ -263,7 +263,7 @@ class RemoteServer extends Logging with ListenerManagement {
         notifyListeners(RemoteServerShutdown(this))
       } catch {
         case e: java.nio.channels.ClosedChannelException =>  {}
-        case e => log.warning("Could not close remote server channel in a graceful way")
+        case e => log.warn("Could not close remote server channel in a graceful way")
       }
     }
   }

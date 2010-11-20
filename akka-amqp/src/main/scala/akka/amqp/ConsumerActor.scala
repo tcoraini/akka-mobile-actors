@@ -108,7 +108,7 @@ private[amqp] class ConsumerActor(consumerParameters: ConsumerParameters)
   private def rejectDeliveryTag(deliveryTag: Long, remoteAcknowledgement: Boolean) = {
     log.debug("Rejecting message with delivery tag [%s]", deliveryTag)
     // FIXME: when rabbitmq 1.9 arrives, basicReject should be available on the API and implemented instead of this
-    log.warning("Consumer is rejecting delivery with tag [%s] - " +
+    log.warn("Consumer is rejecting delivery with tag [%s] - " +
             "for now this means we have to self terminate and kill the channel - see you in a second.")
     channel.foreach {
       ch =>

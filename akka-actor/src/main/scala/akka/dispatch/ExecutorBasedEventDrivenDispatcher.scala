@@ -152,7 +152,7 @@ class ExecutorBasedEventDrivenDispatcher(
           throw e
       }
     }
-  } else log.warning("%s is shut down,\n\tignoring the rest of the messages in the mailbox of\n\t%s", this, mbox)
+  } else log.warn("%s is shut down,\n\tignoring the rest of the messages in the mailbox of\n\t%s", this, mbox)
 
   override val toString = getClass.getSimpleName + "[" + name + "]"
 

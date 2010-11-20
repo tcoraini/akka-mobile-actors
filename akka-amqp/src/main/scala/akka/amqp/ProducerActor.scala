@@ -25,7 +25,7 @@ private[amqp] class ProducerActor(producerParameters: ProducerParameters)
       channel.foreach(_.basicPublish(exchangeName.getOrElse(""), routingKey, mandatory, immediate, properties.getOrElse(null), payload))
     }
     case message@Message(payload, routingKey, mandatory, immediate, properties) => {
-      log.warning("Unable to send message [%s]", message)
+      log.warn("Unable to send message [%s]", message)
       // FIXME: If channel is not available, messages should be queued back into the actor mailbox and actor should only react on 'Start'
     }
   }

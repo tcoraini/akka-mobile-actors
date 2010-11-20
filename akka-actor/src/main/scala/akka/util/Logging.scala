@@ -35,13 +35,34 @@ trait Logging {
  * http://download-llnw.oracle.com/javase/6/docs/api/java/lang/String.html#format(java.lang.String,%20java.lang.Object...)
  */
 class Logger(val logger: SLFLogger) {
-  def name      = logger.getName
+  final def name      = logger.getName
 
-  def trace_?   = logger.isTraceEnabled
-  def debug_?   = logger.isDebugEnabled
-  def info_?    = logger.isInfoEnabled
-  def warning_? = logger.isWarnEnabled
-  def error_?   = logger.isErrorEnabled
+  final def trace_?   = logger.isTraceEnabled
+  final def debug_?   = logger.isDebugEnabled
+  final def info_?    = logger.isInfoEnabled
+  final def warn_? = logger.isWarnEnabled
+  final def error_?   = logger.isErrorEnabled
+
+  protected final def message(fmt: String, arg: Any, argN: Any*) : String = {
+    if ((argN eq null) || argN.isEmpty) fmt.format(arg)
+    else fmt.format((arg +: argN):_*)
+  }
+
+  protected final def toArray(arg1: Any, arg2: Any, arg3: Any, rest: Seq[Any] = Nil): Array[AnyRef] = if ((rest eq null) || rest.isEmpty) {
+    Array[AnyRef](arg1.asInstanceOf[AnyRef],arg2.asInstanceOf[AnyRef],arg3.asInstanceOf[AnyRef])
+  } else {
+    val restLength = rest.length
+    val a = new Array[AnyRef](3 + restLength)
+    a(0) = arg1.asInstanceOf[AnyRef]
+    a(1) = arg2.asInstanceOf[AnyRef]
+    a(2) = arg3.asInstanceOf[AnyRef]
+    var i = 0
+    while(i < restLength) {
+      a(i+3) = rest(i).asInstanceOf[AnyRef]
+      i = i + 1
+    }
+    a
+  }
 
   //Trace
   def trace(t: Throwable, fmt: => String, arg: Any, argN: Any*) {
@@ -52,12 +73,20 @@ class Logger(val logger: SLFLogger) {
     if (trace_?) logger.trace(msg,t)
   }
 
-  def trace(fmt: => String, arg: Any, argN: Any*) {
-     trace(message(fmt,arg,argN:_*))
-  }
-
   def trace(msg: => String) {
      if (trace_?) logger trace msg
+  }
+
+  def trace(fmt: => String, arg: Any) {
+    if (trace_?) logger.trace(fmt,arg)
+  }
+
+  def trace(fmt: => String, arg1: Any, arg2: Any) {
+    if (trace_?) logger.trace(fmt,arg1,arg2)
+  }
+
+  def trace(fmt: => String, arg1: Any, arg2: Any, arg3: Any, rest: Any*) {
+    if (trace_?) logger.trace(fmt,toArray(arg1,arg2,arg3,rest))
   }
 
   //Debug
@@ -69,12 +98,20 @@ class Logger(val logger: SLFLogger) {
     if (debug_?) logger.debug(msg,t)
   }
 
-  def debug(fmt: => String, arg: Any, argN: Any*) {
-     debug(message(fmt,arg,argN:_*))
-  }
-
   def debug(msg: => String) {
      if (debug_?) logger debug msg
+  }
+
+  def debug(fmt: => String, arg: Any) {
+    if (debug_?) logger.debug(fmt,arg)
+  }
+
+  def debug(fmt: => String, arg1: Any, arg2: Any) {
+    if (debug_?) logger.debug(fmt,arg1,arg2)
+  }
+
+  def debug(fmt: => String, arg1: Any, arg2: Any, arg3: Any, rest: Any*) {
+    if (debug_?) logger.debug(fmt,toArray(arg1,arg2,arg3,rest))
   }
 
   //Info
@@ -86,38 +123,46 @@ class Logger(val logger: SLFLogger) {
     if (info_?) logger.info(msg,t)
   }
 
-  def info(fmt: => String, arg: Any, argN: Any*) {
-     info(message(fmt,arg,argN:_*))
-  }
-
   def info(msg: => String) {
      if (info_?) logger info msg
   }
 
+  def info(fmt: => String, arg: Any) {
+    if (info_?) logger.info(fmt,arg)
+  }
+
+  def info(fmt: => String, arg1: Any, arg2: Any) {
+    if (info_?) logger.info(fmt,arg1,arg2)
+  }
+
+  def info(fmt: => String, arg1: Any, arg2: Any, arg3: Any, rest: Any*) {
+    if (info_?) logger.info(fmt,toArray(arg1,arg2,arg3,rest))
+  }
+
   //Warning
-  def warning(t: Throwable, fmt: => String, arg: Any, argN: Any*) {
-    warning(t,message(fmt,arg,argN:_*))
+  def warn(t: Throwable, fmt: => String, arg: Any, argN: Any*) {
+    warn(t,message(fmt,arg,argN:_*))
   }
 
-  def warn(t: Throwable, fmt: => String, arg: Any, argN: Any*) = warning(t, fmt, arg, argN)
-
-  def warning(t: Throwable, msg: => String) {
-    if (warning_?) logger.warn(msg,t)
+  def warn(t: Throwable, msg: => String) {
+    if (warn_?) logger.warn(msg,t)
   }
 
-  def warn(t: Throwable, msg: => String) = warning(t, msg)
-
-  def warning(fmt: => String, arg: Any, argN: Any*) {
-     warning(message(fmt,arg,argN:_*))
+  def warn(msg: => String) {
+     if (warn_?) logger warn msg
   }
 
-  def warn(fmt: => String, arg: Any, argN: Any*) = warning(fmt, arg, argN:_*)
-
-  def warning(msg: => String) {
-     if (warning_?) logger warn msg
+  def warn(fmt: => String, arg: Any) {
+    if (warn_?) logger.warn(fmt,arg)
   }
 
-  def warn(msg: => String) = warning(msg)
+  def warn(fmt: => String, arg1: Any, arg2: Any) {
+    if (warn_?) logger.warn(fmt,arg1,arg2)
+  }
+
+  def warn(fmt: => String, arg1: Any, arg2: Any, arg3: Any, rest: Any*) {
+    if (warn_?) logger.warn(fmt,toArray(arg1,arg2,arg3,rest))
+  }
 
   //Error
   def error(t: Throwable, fmt: => String, arg: Any, argN: Any*) {
@@ -128,17 +173,20 @@ class Logger(val logger: SLFLogger) {
     if (error_?) logger.error(msg,t)
   }
 
-  def error(fmt: => String, arg: Any, argN: Any*) {
-     error(message(fmt,arg,argN:_*))
-  }
-
   def error(msg: => String) {
      if (error_?) logger error msg
   }
 
-  protected def message(fmt: String, arg: Any, argN: Any*) : String = {
-    if ((argN eq null) || argN.isEmpty) fmt.format(arg)
-    else fmt.format((arg +: argN):_*)
+  def error(fmt: => String, arg: Any) {
+    if (error_?) logger.error(fmt,arg)
+  }
+
+  def error(fmt: => String, arg1: Any, arg2: Any) {
+    if (error_?) logger.error(fmt,arg1,arg2)
+  }
+
+  def error(fmt: => String, arg1: Any, arg2: Any, arg3: Any, rest: Any*) {
+    if (error_?) logger.error(fmt,toArray(arg1,arg2,arg3,rest))
   }
 }
 

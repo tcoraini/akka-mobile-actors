@@ -358,7 +358,7 @@ trait Actor extends Logging {
    *       log.info("got a 'OneWay' message")
    *
    *     case unknown =&gt;
-   *       log.warning("unknown message [%s], ignoring", unknown)
+   *       log.warn("unknown message [%s], ignoring", unknown)
    * }
    * </pre>
    */

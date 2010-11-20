@@ -121,7 +121,7 @@ class TransactionContainer private (
           case Right(Some(txMan)) => // try to use TransactionManager
             txMan.getTransaction.registerSynchronization(sync)
           case _ =>
-            log.warning("Cannot find TransactionSynchronizationRegistry in JNDI, can't register STM synchronization")
+            log.warn("Cannot find TransactionSynchronizationRegistry in JNDI, can't register STM synchronization")
         }
     }
   }
