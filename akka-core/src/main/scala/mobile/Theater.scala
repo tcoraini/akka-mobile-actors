@@ -10,6 +10,9 @@ import se.scalablesolutions.akka.remote.RemoteClient
 
 import se.scalablesolutions.akka.util.Logging
 
+import se.scalablesolutions.akka.mobile.nameservice.NameService
+import se.scalablesolutions.akka.mobile.nameservice.DistributedNameService
+
 import java.util.concurrent.ConcurrentHashMap
 
 import TheaterHelper._
@@ -25,10 +28,15 @@ case class TheaterNode(hostname: String, port: Int) {
 }
 
 case object TheaterNode {
-  // Defining an implicit conversion from TheaterNode to Tuple2 (hostname, port), just for convenience
+  // Defining some implicit conversions, just for convenience
+
+  // From TheaterNode to Tuple2 (hostname, port)
   implicit def theaterNodeToTuple2(node: TheaterNode): Tuple2[String, Int] = {
     (node.hostname, node.port)
   }
+
+  // From NodeInformation to TheaterNode
+  implicit def nodeInformationToTheaterNode(nodeInfo: NodeInformation) = TheaterNode(nodeInfo.hostname, nodeInfo.port)
 }
 
 object Theater extends Logging {
@@ -38,29 +46,51 @@ object Theater extends Logging {
   // Mobile actors running in this theater
   private val mobileActors = new ConcurrentHashMap[String, MobileActorRef]
   
-  private var hostname: String = _
-  private var port: Int = _
+  private var _hostname: String = _
+  private var _port: Int = _
+
+  def hostname: String = _hostname
+  def port: Int = _port
 
   // The address of this Theater
-  private lazy val sender = TheaterNode(hostname, port)
+  private[mobile] lazy val localNode = TheaterNode(hostname, port)
 
   private var _isRunning = false
 
   def isRunning = _isRunning
-  
+
+  //var namingService: Option[NamingService] = _
+
+  private var _localAgent: ActorRef = _
+  private[mobile] def localAgent = _localAgent
+
   def start(hostname: String, port: Int) = {
     log.debug("Starting a theater at %s:%d.", hostname, port)
 
-    this.hostname = hostname
-    this.port = port
+    _hostname = hostname
+    _port = port
 
     server.setPipelineFactoryCreator(new TheaterPipelineFactoryCreator(mobileActors))
     server.start(hostname, port)
 
     val agentName = "theater@" + hostname + ":" + port
-    server.register(agentName, actorOf(new TheaterAgent))
+    _localAgent = actorOf(new TheaterAgent)
+    server.register(agentName, _localAgent)
+
+    /*namingService = 
+      if (NamingServiceControl.hasNameServer(TheaterNode(hostname, port))) Some(new NamingService)
+      else None
+    */
+    initNameService()
 
     _isRunning = true
+  }
+
+  def initNameService(): Unit = {
+    // TODO pegar classe do arquivo de conf
+    val nameService = new DistributedNameService
+    nameService.init()
+    NameService.init(nameService)
   }
 
   // Request the migration of actor with UUID to some destination
@@ -71,7 +101,7 @@ object Theater extends Logging {
       if (_isRunning && actorRef != null) {
         val actorBytes = actorRef.startMigration(destination._1, destination._2)
         val agent = agentFor(destination._1, destination._2)
-        agent ! MovingActor(actorBytes, sender)
+        agent ! MovingActor(actorBytes, localNode)
         true
         //actorRef.migrateTo(destination._1, destination._2)
       } else false
@@ -83,6 +113,17 @@ object Theater extends Logging {
   def register(actor: MobileActorRef): Unit = {
     if (_isRunning) {
       mobileActors.put(actor.uuid, actor)
+      // Registering in the naming server
+      NameService.put(actor.uuid, localNode)
+      /*NamingServiceControl.namingServerFor(actor.uuid) match {
+        case TheaterNode(hostname, port) => // Local theater
+          if (!namingService.isEmpty)
+            namingService.get.register(actor, localNode)
+
+        case node =>
+          agentFor(node) ! RegisterActorInNamingServer(actor.uuid, hostname, port)
+      }*/
+
     } // TODO verificar isso, tratamento quando o theater nao estao rodando
   }
 
@@ -98,6 +139,7 @@ object Theater extends Logging {
 
       val mobileRef = MobileSerialization.mobileFromBinary(bytes)(DefaultActorFormat)
       register(mobileRef)
+      NameService.put(mobileRef.uuid, localNode)
       println("MAILBOX: " + mobileRef.mb)
       // Notifying the sender that the actor is now registered in this theater
       sendToTheater(MobileActorRegistered(mobileRef.uuid), sender)
@@ -134,6 +176,14 @@ object Theater extends Logging {
 
   def isLocal(hostname: String, port: Int): Boolean = (Theater.hostname == hostname && Theater.port == port)
 
+  def registerAgent(name: String, agent: ActorRef): Unit = {
+    server.register(name, agent)
+  }
+
+  def unregisterAgent(name: String) = {
+    server.unregister(name)
+  }
+
 }
 
 class TheaterAgent extends Actor {
@@ -151,7 +201,25 @@ class TheaterAgent extends Actor {
 
     case MobileActorRegistered(uuid) =>
       Theater.finishMigration(uuid)
-      
+    
+    // Naming Server Messages
+
+    /*case ActorLocationRequest(actorUuid) =>
+      if (Theater.namingService.isEmpty) self.reply(ActorNotFound)
+      else {
+        Theater.namingService.get.get(actorUuid) match {
+          case Some(node) =>
+            self.reply(ActorLocationResponse(node.hostname, node.port))
+
+          case None =>
+            self.reply(ActorNotFound)
+        }
+      }
+    
+    case RegisterActorInNamingServer(uuid, hostname, port) =>
+      if (!Theater.namingService.isEmpty)
+        Theater.namingService.get.register(uuid, TheaterNode(hostname, port))
+*/
     case msg =>
       Theater.log.debug("Theater agent received an unknown message: " + msg)
   }

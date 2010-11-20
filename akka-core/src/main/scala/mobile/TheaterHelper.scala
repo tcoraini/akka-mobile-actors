@@ -10,7 +10,9 @@ import scala.collection.mutable.HashMap
 
 object TheaterHelper extends Logging {
   // This theater comunicates with other theaters through these agents
-  private val agents = new HashMap[TheaterNode, ActorRef]
+  private lazy val agents = {
+    (new HashMap[TheaterNode, ActorRef]) += Theater.localNode -> Theater.localAgent
+  }
 
   def spawnActorRemotely(constructor: Either[Class[_ <: MobileActor], () => MobileActor], node: TheaterNode): MobileActorRef = {
     val hostname = node.hostname
@@ -39,13 +41,15 @@ object TheaterHelper extends Logging {
     }
   }
 
-  def agentFor(hostname: String, port: Int): ActorRef = agents.get(TheaterNode(hostname, port)) match {
+  def agentFor(hostname: String, port: Int): ActorRef = agentFor(TheaterNode(hostname, port))
+
+  def agentFor(node: TheaterNode): ActorRef = agents.get(node) match {
     case Some(agent) => agent
       
     case None => 
-      val agentName = "theater@" + hostname + ":" + port
-      val newAgent = RemoteClient.actorFor(agentName, hostname, port)
-      agents += ((TheaterNode(hostname, port), newAgent))
+      val agentName = "theater@" + node.hostname + ":" + node.port
+      val newAgent = RemoteClient.actorFor(agentName, node.hostname, node.port)
+      agents += node -> newAgent
       newAgent
   }
 

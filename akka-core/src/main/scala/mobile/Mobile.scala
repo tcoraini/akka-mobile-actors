@@ -56,7 +56,7 @@ object Mobile {
   }
 
   // For remote actors
-  private[mobile] def newRemoteMobileActor(actorId: String, hostname: String, port: Int, timeout: Long): RemoteMobileActor = 
+  def newRemoteMobileActor(actorId: String, hostname: String, port: Int, timeout: Long): RemoteMobileActor = 
     new RemoteActorRef(actorId, actorId, hostname, port, timeout, None) with RemoteMobileActor
 
 }
