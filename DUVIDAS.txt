@@ -5,3 +5,5 @@
 2 - Uma referência a um ator móvel remoto precisa ser atualizada para apontar diretamente para a instância local quando esse ator migra para a mesma máquina da referência. Abordagens e possíveis soluções:
   - Se a referência é apenas um intermediário para uma outra referência que de fato processa a mensagem, basta trocar essa referência "atrás" do intermediário.
   - Se a referência é uma classe híbrida que assume os 2 comportamentos (tanto de referência local quanto de referência remota)...manter uma tabela de todas as referências em usa (locais e remotas) naquele computador?
+
+3 - UUID do AspectWerkz parece ser gerado apenas com base no currentTimeInMillis(). Isso é seguro? Será viável acreditar que possam aparecer UUID's iguais em máquinas diferentes?

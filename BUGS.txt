@@ -6,3 +6,10 @@
 esse novo timeout será desconsiderado.
 
 - Em RemoteServer.scala, na função createRemoteRequestProtocolBuilder, o ator é registrado pelo UUID no servidor para seu HomeAddress, e então a função toRemoteActorRefProtocol é chamada, e nessa função novamente esse ator é registrado no servidor pelo UUID.
+
+- A geração de UUID é feita na verdade pelo AspectWerkz. Notei 2 coisas:
+  - O UUID leva em conta apenas o currentTimeInMillis(). Pode dar problema em várias máquinas?
+  - O UUID gerado deveria ainda usar 7 bits com o número 85 ('U'), sendo 1010101, chamado de UUID_MAGIC no código do AspectWerkz. O UUID seria então esses 7 bits deslocados para a esquerda 56 posições + o currentTimeInMillis, que dá por volta de 40 bits. O número final seria algo do tipo:
+  01010101 0000000000000000 XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+ UUID_MAGIC                          currentTimeInMillis()
+   Porém, pelo menos na execução em Scala (não sei se em Java funciona), o que ocorre é que 'U' << 56 acaba utilizando um inteiro para efetuar o deslocamento, e portanto o resultado é diferente do esperado. O erro pode ser constatado facilmente fazendo Uuid.isValid(Uuid.newUuid), que retorna falso.
