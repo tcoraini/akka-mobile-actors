@@ -3,9 +3,10 @@ package se.scalablesolutions.akka.mobile.nameservice
 import se.scalablesolutions.akka.mobile.TheaterNode
 import se.scalablesolutions.akka.mobile.ClusterConfiguration
 
-import se.scalablesolutions.akka.config.Config._
+import se.scalablesolutions.akka.util.Logging
+import se.scalablesolutions.akka.config.Config
 
-object DistributedNameService {
+object DistributedNameService extends Logging {
   
   private val nodes: Array[TheaterNode] = findNameServiceNodes
 
@@ -13,11 +14,12 @@ object DistributedNameService {
 
   private lazy val defaultHashFunction = new DefaultHashFunction
 
-  private val hashFunction: HashFunction = config.getString("cluster.hash_function") match {
+  private val hashFunction: HashFunction = Config.config.getString("cluster.name-service.hash-function") match {
     case Some(classname) =>
       try {
-        val instance = Class.forName(classname).newInstance
-        instance.asInstanceOf[HashFunction]
+        val instance = Class.forName(classname).newInstance.asInstanceOf[HashFunction]
+        log.info("Using '%s' as the hash function for the distributed name service.", classname)
+        instance
       } catch {
         case cnfe: ClassNotFoundException =>
           log.warning("The class '%s' could not be found. Using the default hash function instead.", classname)
@@ -87,5 +89,7 @@ class DistributedNameService extends NameService {
     val agent = NameServiceAgent.agentFor(nameServer)
     agent ! ActorUnregistrationRequest(uuid)
   }
+
+  override def toString = "Distributed Name Service"
 }
 

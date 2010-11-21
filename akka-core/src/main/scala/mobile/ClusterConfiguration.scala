@@ -30,7 +30,7 @@ object ClusterConfiguration extends Logging {
       label = "cluster." + node
       hostname = config.getString(label + ".hostname").getOrElse(throw new RuntimeException("Cluster configuration file not properly formed")) 
       port = config.getInt(label + ".port").getOrElse(throw new RuntimeException("Cluster configuration file not properly formed"))
-      hasNameServer = config.getBool(label + ".naming_service").getOrElse(false)
+      hasNameServer = config.getBool(label + ".name-server").getOrElse(false)
       
       nodeInfo = NodeInformation(hostname, port, hasNameServer)
     } _nodes = _nodes + ((hostname, nodeInfo)) // TODO Indexado pelo host, se for permitir mais de um teatro por host, tem q mudar

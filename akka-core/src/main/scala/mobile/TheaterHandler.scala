@@ -65,20 +65,5 @@ class TheaterHandler(actors: Map[String, MobileActorRef]) extends SimpleChannelU
     // procurar no serviço de nomes
   }
 
-  // Find the new actor location by sending a request to the name server
-  /*private def findActorNewLocation(uuid: String): Option[TheaterNode] = {
-    val namingServer = NamingServiceControl.namingServerFor(uuid)
-    log.debug("The location of actor with uuid '%s' is in the naming server at %s:%d", uuid, namingServer.hostname, namingServer.port)
-    val agent = 
-      if (namingServer.isLocal) Theater.localAgent
-      else TheaterHelper.agentFor(namingServer)
-
-    (agent !! ActorLocationRequest(uuid)) match {
-      case Some(ActorLocationResponse(hostname, port)) =>
-        Some(TheaterNode(hostname, port))
-
-      case _ => None
-    }
-  }*/
 }
 

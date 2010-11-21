@@ -8,6 +8,7 @@ import se.scalablesolutions.akka.actor.RemoteActorSerialization
 import se.scalablesolutions.akka.remote.RemoteServer
 import se.scalablesolutions.akka.remote.RemoteClient
 
+import se.scalablesolutions.akka.config.Config
 import se.scalablesolutions.akka.util.Logging
 
 import se.scalablesolutions.akka.mobile.nameservice.NameService
@@ -59,8 +60,6 @@ object Theater extends Logging {
 
   def isRunning = _isRunning
 
-  //var namingService: Option[NamingService] = _
-
   private var _localAgent: ActorRef = _
   private[mobile] def localAgent = _localAgent
 
@@ -77,18 +76,37 @@ object Theater extends Logging {
     _localAgent = actorOf(new TheaterAgent)
     server.register(agentName, _localAgent)
 
-    /*namingService = 
-      if (NamingServiceControl.hasNameServer(TheaterNode(hostname, port))) Some(new NamingService)
-      else None
-    */
     initNameService()
 
     _isRunning = true
   }
 
   def initNameService(): Unit = {
-    // TODO pegar classe do arquivo de conf
-    val nameService = new DistributedNameService
+    lazy val defaultNameService = new DistributedNameService
+
+    // The user can specify his own name service through the configuration file
+    val nameService: NameService = Config.config.getString("cluster.name-service.name-service-class") match {
+      case Some(classname) =>
+        try {
+          val instance = Class.forName(classname).newInstance.asInstanceOf[NameService]
+          log.info("Using the class '%s' as the name service.", instance.getClass.getSimpleName)
+          instance
+        } catch {
+          case cnfe: ClassNotFoundException =>
+            log.warning("The class '%s' could not be found. Using the default name service (%s) instead.", 
+                classname, defaultNameService.getClass.getSimpleName)
+            defaultNameService
+          
+          case cce: ClassCastException =>
+            log.warning("The class '%s' does not extend the NameService trait. Using the default name service (%s) instead.", 
+                classname, defaultNameService.getClass.getSimpleName)
+            defaultNameService
+        }
+
+      case None =>
+        defaultNameService
+    }
+    
     nameService.init()
     NameService.init(nameService)
   }
@@ -113,17 +131,9 @@ object Theater extends Logging {
   def register(actor: MobileActorRef): Unit = {
     if (_isRunning) {
       mobileActors.put(actor.uuid, actor)
-      // Registering in the naming server
+      
+      // Registering in the name server
       NameService.put(actor.uuid, localNode)
-      /*NamingServiceControl.namingServerFor(actor.uuid) match {
-        case TheaterNode(hostname, port) => // Local theater
-          if (!namingService.isEmpty)
-            namingService.get.register(actor, localNode)
-
-        case node =>
-          agentFor(node) ! RegisterActorInNamingServer(actor.uuid, hostname, port)
-      }*/
-
     } // TODO verificar isso, tratamento quando o theater nao estao rodando
   }
 
@@ -202,24 +212,6 @@ class TheaterAgent extends Actor {
     case MobileActorRegistered(uuid) =>
       Theater.finishMigration(uuid)
     
-    // Naming Server Messages
-
-    /*case ActorLocationRequest(actorUuid) =>
-      if (Theater.namingService.isEmpty) self.reply(ActorNotFound)
-      else {
-        Theater.namingService.get.get(actorUuid) match {
-          case Some(node) =>
-            self.reply(ActorLocationResponse(node.hostname, node.port))
-
-          case None =>
-            self.reply(ActorNotFound)
-        }
-      }
-    
-    case RegisterActorInNamingServer(uuid, hostname, port) =>
-      if (!Theater.namingService.isEmpty)
-        Theater.namingService.get.register(uuid, TheaterNode(hostname, port))
-*/
     case msg =>
       Theater.log.debug("Theater agent received an unknown message: " + msg)
   }
