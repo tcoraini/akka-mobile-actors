@@ -1,4 +1,4 @@
-package se.scalablesolutions.akka.mobile
+package se.scalablesolutions.akka.mobile.util
 
 import java.util.Map
 

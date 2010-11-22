@@ -1,4 +1,4 @@
-package se.scalablesolutions.akka.mobile
+package se.scalablesolutions.akka.mobile.dispatcher
 
 import se.scalablesolutions.akka.dispatch.ExecutorBasedEventDrivenDispatcher
 

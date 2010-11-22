@@ -1,4 +1,7 @@
-package se.scalablesolutions.akka.mobile
+package se.scalablesolutions.akka.mobile.algorithm
+
+import se.scalablesolutions.akka.mobile.util.ClusterConfiguration
+import se.scalablesolutions.akka.mobile.theater.TheaterNode
 
 class RoundRobinAlgorithm extends DistributionAlgorithm {
   

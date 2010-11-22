@@ -1,4 +1,4 @@
-package se.scalablesolutions.akka.mobile
+package se.scalablesolutions.akka.mobile.actor
 
 import se.scalablesolutions.akka.actor.ActorRef
 import se.scalablesolutions.akka.actor.ScalaActorRef

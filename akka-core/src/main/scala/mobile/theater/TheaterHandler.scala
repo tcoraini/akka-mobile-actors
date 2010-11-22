@@ -1,4 +1,8 @@
-package se.scalablesolutions.akka.mobile
+package se.scalablesolutions.akka.mobile.theater
+
+import se.scalablesolutions.akka.mobile.nameservice.NameService
+import se.scalablesolutions.akka.mobile.actor.MobileActorRef
+import se.scalablesolutions.akka.mobile.Mobile
 
 import se.scalablesolutions.akka.actor.ActorRef
 import se.scalablesolutions.akka.actor.Actor
@@ -7,8 +11,6 @@ import se.scalablesolutions.akka.remote.protocol.RemoteProtocol._
 import se.scalablesolutions.akka.remote.MessageSerializer
 
 import se.scalablesolutions.akka.util.Logging
-
-import se.scalablesolutions.akka.mobile.nameservice.NameService
 
 import java.util.Map
 

@@ -1,4 +1,4 @@
-package se.scalablesolutions.akka.mobile
+package se.scalablesolutions.akka.mobile.actor
 
 import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.ActorRef
@@ -14,7 +14,7 @@ import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicReference
 import java.util.{Map => JMap}
 
-trait ActorRefMethodsDelegation extends ActorRef with ScalaActorRef {
+trait MethodDelegation extends ActorRef with ScalaActorRef {
   
   protected var reference: ActorRef
 

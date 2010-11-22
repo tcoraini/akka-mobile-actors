@@ -17,7 +17,7 @@ class AkkaParentProject(info: ProjectInfo) extends DefaultProject(info) {
   // -------------------------------------------------------------------------------------------------------------------
 
   override def compileOptions = super.compileOptions ++
-    Seq("-deprecation",
+    Seq("-deprecation", "-unchecked",
         "-Xmigration",
         "-Xcheckinit",
         "-Xstrict-warnings",

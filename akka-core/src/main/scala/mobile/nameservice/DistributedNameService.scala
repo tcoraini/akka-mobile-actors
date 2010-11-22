@@ -1,7 +1,7 @@
 package se.scalablesolutions.akka.mobile.nameservice
 
-import se.scalablesolutions.akka.mobile.TheaterNode
-import se.scalablesolutions.akka.mobile.ClusterConfiguration
+import se.scalablesolutions.akka.mobile.theater.TheaterNode
+import se.scalablesolutions.akka.mobile.util.ClusterConfiguration
 
 import se.scalablesolutions.akka.util.Logging
 import se.scalablesolutions.akka.config.Config

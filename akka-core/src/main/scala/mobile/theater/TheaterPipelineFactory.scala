@@ -1,4 +1,7 @@
-package se.scalablesolutions.akka.mobile
+package se.scalablesolutions.akka.mobile.theater
+
+import se.scalablesolutions.akka.mobile.util.PipelineFactoryCreator
+import se.scalablesolutions.akka.mobile.actor.MobileActorRef
 
 import java.util.Map
 

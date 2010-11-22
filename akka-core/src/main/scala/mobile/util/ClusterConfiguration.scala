@@ -1,4 +1,6 @@
-package se.scalablesolutions.akka.mobile
+package se.scalablesolutions.akka.mobile.util
+
+import se.scalablesolutions.akka.mobile.theater.TheaterNode
 
 import scala.collection.immutable.HashMap
 

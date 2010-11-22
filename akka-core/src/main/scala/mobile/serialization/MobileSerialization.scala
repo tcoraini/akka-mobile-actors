@@ -1,4 +1,7 @@
-package se.scalablesolutions.akka.mobile
+package se.scalablesolutions.akka.mobile.serialization
+
+import se.scalablesolutions.akka.mobile.actor.MobileActorRef
+import se.scalablesolutions.akka.mobile.actor.LocalMobileActor
 
 import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.LocalActorRef

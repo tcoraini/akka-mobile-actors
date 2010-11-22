@@ -1,5 +1,8 @@
 package se.scalablesolutions.akka.mobile
 
+import se.scalablesolutions.akka.mobile.util.ClusterConfiguration
+import se.scalablesolutions.akka.mobile.theater.Theater
+
 import se.scalablesolutions.akka.util.Logging
 
 import java.net.InetAddress

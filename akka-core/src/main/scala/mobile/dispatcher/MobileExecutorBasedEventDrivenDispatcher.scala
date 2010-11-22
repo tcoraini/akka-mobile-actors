@@ -2,7 +2,9 @@
  * Copyright (C) 2009-2010 Scalable Solutions AB <http://scalablesolutions.se>
  */
 
-package se.scalablesolutions.akka.mobile
+package se.scalablesolutions.akka.mobile.dispatcher
+
+import se.scalablesolutions.akka.mobile.actor.LocalMobileActor
 
 import se.scalablesolutions.akka.dispatch.MessageDispatcher
 import se.scalablesolutions.akka.dispatch.ThreadPoolBuilder

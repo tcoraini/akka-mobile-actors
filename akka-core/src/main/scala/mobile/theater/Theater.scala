@@ -1,4 +1,11 @@
-package se.scalablesolutions.akka.mobile
+package se.scalablesolutions.akka.mobile.theater
+
+import se.scalablesolutions.akka.mobile.actor.MobileActorRef
+import se.scalablesolutions.akka.mobile.serialization.MobileSerialization
+import se.scalablesolutions.akka.mobile.serialization.DefaultActorFormat
+import se.scalablesolutions.akka.mobile.util.NodeInformation
+
+import se.scalablesolutions.akka.mobile.Mobile
 
 import se.scalablesolutions.akka.actor.ActorRef
 import se.scalablesolutions.akka.actor.Actor

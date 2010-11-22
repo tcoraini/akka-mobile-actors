@@ -1,7 +1,7 @@
 package se.scalablesolutions.akka.mobile.nameservice
 
-import se.scalablesolutions.akka.mobile.TheaterNode
-import se.scalablesolutions.akka.mobile.MobileActorRef
+import se.scalablesolutions.akka.mobile.theater.TheaterNode
+import se.scalablesolutions.akka.mobile.actor.MobileActorRef
 
 object NameService {
   private var isRunning = false

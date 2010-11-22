@@ -1,4 +1,8 @@
-package se.scalablesolutions.akka.mobile
+package se.scalablesolutions.akka.mobile.actor
+
+import se.scalablesolutions.akka.mobile.theater.TheaterNode
+import se.scalablesolutions.akka.mobile.serialization.DefaultActorFormat
+import se.scalablesolutions.akka.mobile.Mobile
 
 import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.Actor._
@@ -17,7 +21,7 @@ import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicReference
 import java.util.{Map => JMap}
 
-class MobileActorRef(protected var reference: ActorRef) extends ActorRefMethodsDelegation with Logging {
+class MobileActorRef(protected var reference: ActorRef) extends MethodDelegation with Logging {
 
   /* DEBUG ONLY */
   def retained: java.util.concurrent.ConcurrentLinkedQueue[RetainedMessage] = 

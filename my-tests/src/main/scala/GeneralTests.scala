@@ -11,8 +11,9 @@ import se.scalablesolutions.akka.actor.SerializerBasedActorFormat
 
 import se.scalablesolutions.akka.remote.RemoteClient
 
-import se.scalablesolutions.akka.mobile.Mobile._
-import se.scalablesolutions.akka.mobile._
+import se.scalablesolutions.akka.mobile.Mobile
+import se.scalablesolutions.akka.mobile.actor._
+import se.scalablesolutions.akka.mobile.theater._
 
 import se.scalablesolutions.akka.dispatch.FutureTimeoutException
 

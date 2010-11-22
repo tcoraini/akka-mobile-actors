@@ -1,5 +1,17 @@
 package se.scalablesolutions.akka.mobile
 
+import se.scalablesolutions.akka.mobile.algorithm.DistributionAlgorithm
+import se.scalablesolutions.akka.mobile.algorithm.RoundRobinAlgorithm
+
+import se.scalablesolutions.akka.mobile.actor.MobileActor
+import se.scalablesolutions.akka.mobile.actor.MobileActorRef
+import se.scalablesolutions.akka.mobile.actor.LocalMobileActor
+import se.scalablesolutions.akka.mobile.actor.RemoteMobileActor
+
+import se.scalablesolutions.akka.mobile.theater.Theater
+import se.scalablesolutions.akka.mobile.theater.TheaterNode
+import se.scalablesolutions.akka.mobile.theater.TheaterHelper
+
 import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.LocalActorRef
 import se.scalablesolutions.akka.actor.RemoteActorRef

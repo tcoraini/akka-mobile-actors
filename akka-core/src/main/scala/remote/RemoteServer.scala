@@ -27,8 +27,8 @@ import org.jboss.netty.handler.ssl.SslHandler
 import scala.collection.mutable.Map
 import scala.reflect.BeanProperty
 
-import se.scalablesolutions.akka.mobile.PipelineFactoryCreator
-import se.scalablesolutions.akka.mobile.DefaultPipelineFactoryCreator
+import se.scalablesolutions.akka.mobile.util.PipelineFactoryCreator
+import se.scalablesolutions.akka.mobile.util.DefaultPipelineFactoryCreator
 
 /**
  * Use this object if you need a single remote server on a specific node.

@@ -4,8 +4,8 @@ import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.ActorRef
 import se.scalablesolutions.akka.remote.RemoteClient
 
-import se.scalablesolutions.akka.mobile.Theater
-import se.scalablesolutions.akka.mobile.TheaterNode
+import se.scalablesolutions.akka.mobile.theater.Theater
+import se.scalablesolutions.akka.mobile.theater.TheaterNode
 
 import scala.collection.mutable.HashMap
 
