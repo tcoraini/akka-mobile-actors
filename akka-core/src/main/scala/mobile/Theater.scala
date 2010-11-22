@@ -89,17 +89,17 @@ object Theater extends Logging {
       case Some(classname) =>
         try {
           val instance = Class.forName(classname).newInstance.asInstanceOf[NameService]
-          log.info("Using the class '%s' as the name service.", instance.getClass.getSimpleName)
+          log.info("Using '%s' as the name service.", classname)
           instance
         } catch {
           case cnfe: ClassNotFoundException =>
             log.warning("The class '%s' could not be found. Using the default name service (%s) instead.", 
-                classname, defaultNameService.getClass.getSimpleName)
+                classname, defaultNameService)
             defaultNameService
           
           case cce: ClassCastException =>
             log.warning("The class '%s' does not extend the NameService trait. Using the default name service (%s) instead.", 
-                classname, defaultNameService.getClass.getSimpleName)
+                classname, defaultNameService)
             defaultNameService
         }
 
@@ -196,23 +196,4 @@ object Theater extends Logging {
 
 }
 
-class TheaterAgent extends Actor {
-  
-  def receive = {
-    case MovingActor(bytes, sender) =>
-      Theater.receiveActor(bytes, sender)
-      //val uuid = Theater.receiveActor(bytes, sender)
-      //self.reply(MobileActorRegistered(uuid))
 
-    //case StartMobileActorRequest(classname) =>
-    case StartMobileActorRequest(constructor) =>
-      val ref = Theater.startLocalActor(constructor)
-      self.reply(StartMobileActorReply(ref.uuid))
-
-    case MobileActorRegistered(uuid) =>
-      Theater.finishMigration(uuid)
-    
-    case msg =>
-      Theater.log.debug("Theater agent received an unknown message: " + msg)
-  }
-}

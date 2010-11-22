@@ -11,12 +11,13 @@ import se.scalablesolutions.akka.remote.RemoteClient
 
 import se.scalablesolutions.akka.dispatch._
 import se.scalablesolutions.akka.stm.TransactionConfig
+import se.scalablesolutions.akka.util.Logging
 
 import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicReference
 import java.util.{Map => JMap}
 
-class MobileActorRef(protected var reference: ActorRef) extends ActorRefMethodsDelegation {
+class MobileActorRef(protected var reference: ActorRef) extends ActorRefMethodsDelegation with Logging {
 
   /* DEBUG ONLY */
   def retained: java.util.concurrent.ConcurrentLinkedQueue[RetainedMessage] = 
@@ -52,8 +53,14 @@ class MobileActorRef(protected var reference: ActorRef) extends ActorRefMethodsD
     this.reference = actorRef
 
     _isLocal = actorRef match {
-      case _: LocalMobileActor => true
-      case _: RemoteMobileActor => false
+      case _: LocalMobileActor =>
+        log.debug("Switching mobile reference for actor with UUID '%s' to a local reference")
+        true
+
+      case _: RemoteMobileActor => 
+        log.debug("Switching mobile reference for actor with UUID '%s' to a remote reference")
+        false
+
       case _ => throw new RuntimeException("A MobileActorRef should be created only with a mobile reference (local or remote)")
     }
     _isLocal
@@ -83,6 +90,7 @@ class MobileActorRef(protected var reference: ActorRef) extends ActorRefMethodsD
       val remoteActorRef = Mobile.newRemoteMobileActor(uuid, destination.hostname, destination.port, reference.timeout)
       
       reference.asInstanceOf[LocalMobileActor].endMigration(remoteActorRef)
+      reference.stop
       switchActorRef(remoteActorRef)
 
       _isMigrating = false

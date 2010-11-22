@@ -227,5 +227,32 @@ object GeneralTests {
     Theater.migrate(ref.uuid) to ("localhost", 2312)
     ref ! Message("RETIDA")
 
-  } 
+  }
+  
+  val actors = new scala.collection.mutable.Queue[ActorRef]
+
+  def start(x: Int) = {
+    for (count <- 1 to x)
+      actors.enqueue(Actor.actorOf[TestActor].start)
+  }
+
+  def stop(x: Int) = {
+    for (count <- 1 to x) {
+      val ref = actors.dequeue()
+      ref stop
+    }
+  }
+
+  def stopAll() = {
+    stop(actors size)
+  }
+
 }
+
+class TestActor extends Actor {
+  def receive = {
+    case msg =>
+      println("Received: " + msg)
+  }
+}
+
