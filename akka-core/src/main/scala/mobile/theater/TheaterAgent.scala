@@ -6,18 +6,16 @@ class TheaterAgent extends Actor {
   
   def receive = {
     case MovingActor(bytes, sender) =>
-      Theater.receiveActor(bytes, sender)
-      //val uuid = Theater.receiveActor(bytes, sender)
-      //self.reply(MobileActorRegistered(uuid))
+      LocalTheater.receiveActor(bytes, sender)
 
     case StartMobileActorRequest(constructor) =>
-      val ref = Theater.startLocalActor(constructor)
+      val ref = LocalTheater.startLocalActor(constructor)
       self.reply(StartMobileActorReply(ref.uuid))
 
     case MobileActorRegistered(uuid) =>
-      Theater.finishMigration(uuid)
+      LocalTheater.finishMigration(uuid)
     
     case msg =>
-      Theater.log.debug("Theater agent received an unknown message: " + msg)
+      LocalTheater.log.debug("Theater agent received an unknown message: " + msg)
   }
 }

@@ -15,7 +15,7 @@ import scala.collection.mutable.HashMap
 object TheaterHelper extends Logging {
   // This theater comunicates with other theaters through these agents
   private lazy val agents = {
-    (new HashMap[TheaterNode, ActorRef]) += Theater.localNode -> Theater.localAgent
+    (new HashMap[TheaterNode, ActorRef]) += LocalTheater.node -> LocalTheater.agent
   }
 
   def spawnActorRemotely(constructor: Either[Class[_ <: MobileActor], () => MobileActor], node: TheaterNode): MobileActorRef = {

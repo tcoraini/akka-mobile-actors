@@ -219,13 +219,13 @@ object GeneralTests {
   }   
 
   def testMigration(): Unit = {
-    Theater.start("ubuntu-tcoraini", 1810)
+    LocalTheater.start("ubuntu-tcoraini", 1810)
 
     val ref = Mobile.spawn[MyActor]
 
     //ref ! Wait(20)
     //ref ! Message("APÓS MIGRAÇÃO")
-    Theater.migrate(ref.uuid) to ("localhost", 2312)
+    LocalTheater.migrate(ref.uuid) to ("localhost", 2312)
     ref ! Message("RETIDA")
 
   }

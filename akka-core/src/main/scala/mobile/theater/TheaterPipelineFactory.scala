@@ -15,7 +15,7 @@ import org.jboss.netty.channel.StaticChannelPipeline
 import org.jboss.netty.channel.ChannelHandler
 
 
-class TheaterPipelineFactoryCreator(mobileActors: Map[String, MobileActorRef]) extends PipelineFactoryCreator {
+class TheaterPipelineFactoryCreator(mobileActors: Map[String, MobileActorRef], theater: Theater) extends PipelineFactoryCreator {
   def createPipelineFactory(name: String,
       openChannels: ChannelGroup,
       loader: Option[ClassLoader],
@@ -23,7 +23,7 @@ class TheaterPipelineFactoryCreator(mobileActors: Map[String, MobileActorRef]) e
       typedActors: Map[String, AnyRef],
       server: RemoteServer): RemoteServerPipelineFactory = {
 
-    new TheaterPipelineFactory(name, openChannels, loader, actors, typedActors, server, mobileActors)
+    new TheaterPipelineFactory(name, openChannels, loader, actors, typedActors, server, mobileActors, theater)
   }
 }
 
@@ -34,7 +34,9 @@ class TheaterPipelineFactory(
     actors: Map[String, ActorRef],
     typedActors: Map[String, AnyRef],
     server: RemoteServer,
-    mobileActors: Map[String, MobileActorRef]) extends RemoteServerPipelineFactory(name, openChannels, loader, actors, typedActors, server) {
+    mobileActors: Map[String, MobileActorRef],
+    theater: Theater) 
+  extends RemoteServerPipelineFactory(name, openChannels, loader, actors, typedActors, server) {
 
   // This method will just get the default channel pipeline, from the RemoteServerPipelineFactory, and add
   // a specific handler for the theater purposes, just before the last handler in the chain (the RemoteServerHandler)
@@ -49,7 +51,7 @@ class TheaterPipelineFactory(
       handlers(i) = remoteServerPipeline.get(i.toString)
 
     // Put the specific theater handler in the chain, just before the remote server handler
-    handlers(numberOfHandlers - 1) = new TheaterHandler(mobileActors)
+    handlers(numberOfHandlers - 1) = new TheaterHandler(mobileActors, theater)
 
     // And finally the remote server handler
     handlers(numberOfHandlers) = remoteServerPipeline.get((numberOfHandlers - 1).toString)

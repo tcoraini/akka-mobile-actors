@@ -4,7 +4,7 @@ import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.ActorRef
 import se.scalablesolutions.akka.remote.RemoteClient
 
-import se.scalablesolutions.akka.mobile.theater.Theater
+import se.scalablesolutions.akka.mobile.theater.LocalTheater
 import se.scalablesolutions.akka.mobile.theater.TheaterNode
 
 import scala.collection.mutable.HashMap
@@ -40,9 +40,9 @@ object NameServiceAgent {
 
   private[nameservice] def startLocalAgent(): ActorRef = {
     val agent = Actor.actorOf(new NameServiceAgent)
-    val name = agentName(Theater.localNode)
-    Theater.registerAgent(name, agent)
-    agents += (Theater.localNode -> agent)
+    val name = agentName(LocalTheater.node)
+    LocalTheater.registerAgent(name, agent)
+    agents += (LocalTheater.node -> agent)
     agent
   }
 }

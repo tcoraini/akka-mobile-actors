@@ -8,7 +8,7 @@ import se.scalablesolutions.akka.mobile.actor.MobileActorRef
 import se.scalablesolutions.akka.mobile.actor.LocalMobileActor
 import se.scalablesolutions.akka.mobile.actor.RemoteMobileActor
 
-import se.scalablesolutions.akka.mobile.theater.Theater
+import se.scalablesolutions.akka.mobile.theater.LocalTheater
 import se.scalablesolutions.akka.mobile.theater.TheaterNode
 import se.scalablesolutions.akka.mobile.theater.TheaterHelper
 
@@ -49,7 +49,7 @@ object Mobile {
         case Right(factory) => new MobileActorRef(newMobileActor(factory()))
       }
       mobileRef.start
-      Theater.register(mobileRef)
+      LocalTheater.register(mobileRef)
       mobileRef
     } else {
       TheaterHelper.spawnActorRemotely(constructor, node)

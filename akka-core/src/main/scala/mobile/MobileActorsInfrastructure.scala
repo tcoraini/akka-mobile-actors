@@ -1,7 +1,7 @@
 package se.scalablesolutions.akka.mobile
 
 import se.scalablesolutions.akka.mobile.util.ClusterConfiguration
-import se.scalablesolutions.akka.mobile.theater.Theater
+import se.scalablesolutions.akka.mobile.theater.LocalTheater
 
 import se.scalablesolutions.akka.util.Logging
 
@@ -20,7 +20,7 @@ object MobileActorsInfrastructure extends Logging {
 
     ClusterConfiguration.nodes.get(myHostname) match {
       case Some(nodeInfo) =>
-        Theater.start(nodeInfo.hostname, nodeInfo.port)
+        LocalTheater.start(nodeInfo.hostname, nodeInfo.port)
 
       case None =>
         throw new RuntimeException("There is no node description for this hostname (" + myHostname + ") on your configuration file")

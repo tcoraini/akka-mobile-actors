@@ -1,5 +1,6 @@
 package se.scalablesolutions.akka.mobile.actor
 
+import se.scalablesolutions.akka.mobile.theater.Theater
 import se.scalablesolutions.akka.mobile.theater.TheaterNode
 import se.scalablesolutions.akka.mobile.serialization.DefaultActorFormat
 import se.scalablesolutions.akka.mobile.Mobile
@@ -42,12 +43,23 @@ class MobileActorRef(protected var reference: ActorRef) extends MethodDelegation
   private var _isMigrating = false
   
   private var _migratingTo: Option[TheaterNode] = None
+
+  private var _homeTheater: Theater = _
   
   def isLocal = _isLocal
 
   def isMigrating = _isMigrating
 
   def migratingTo: Option[TheaterNode] = _migratingTo
+
+  def homeTheater = _homeTheater
+
+  def homeTheater_=(theater: Theater) = {
+    if (isLocal) {
+      _homeTheater = theater
+      this.homeAddress = new InetSocketAddress(theater.hostname, theater.port)
+    }
+  }
 
   /**
    * Changes the actor reference behind this proxy.

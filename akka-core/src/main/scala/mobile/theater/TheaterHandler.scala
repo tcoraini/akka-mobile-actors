@@ -17,7 +17,7 @@ import java.util.Map
 import org.jboss.netty.channel._
 
 @ChannelHandler.Sharable // FIXME eh mesmo?
-class TheaterHandler(actors: Map[String, MobileActorRef]) extends SimpleChannelUpstreamHandler with Logging {
+class TheaterHandler(actors: Map[String, MobileActorRef], theater: Theater) extends SimpleChannelUpstreamHandler with Logging {
 
   override def messageReceived(ctx: ChannelHandlerContext, event: MessageEvent) = {
     val message = event.getMessage
@@ -45,7 +45,7 @@ class TheaterHandler(actors: Map[String, MobileActorRef]) extends SimpleChannelU
         actor.!(message)(None)
 
       case null =>
-        log.debug("Actor with uuid '%s' not found at %s:%d", uuid, Theater.hostname, Theater.port)
+        log.debug("Actor with UUID [%s] not found at theater [%s:%d]", uuid, theater.hostname, theater.port)
         handleActorNotFound(request)
     }
   }
