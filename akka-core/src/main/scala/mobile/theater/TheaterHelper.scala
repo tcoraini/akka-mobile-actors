@@ -36,11 +36,11 @@ object TheaterHelper extends Logging {
     val agent = agentFor(hostname, port)
     (agent !! StartMobileActorRequest(serializableConstructor)) match {
       case Some(StartMobileActorReply(uuid)) => 
-        log.debug("Mobile actor with UUID %s started remote theater %s:%d", uuid, hostname, port)
-        MobileActorRef(uuid, hostname, port) // TODO Timeout hard-coded?
+        log.debug("Mobile actor with UUID [%s] started in remote theater at [%s:%d].", uuid, hostname, port)
+        MobileActorRef(uuid, hostname, port) 
 
       case None =>
-        log.debug("Could not start actor at remote theater %s:%d, request timeout", hostname, port)
+        log.debug("Could not start mobile actor at remote theater [%s:%d], request timeout.", hostname, port)
         throw new RuntimeException("Remote mobile actor start failed") // devolver algo relevante pra indicar o problema
     }
   }

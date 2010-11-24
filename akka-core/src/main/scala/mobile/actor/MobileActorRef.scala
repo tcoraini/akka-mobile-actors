@@ -90,7 +90,9 @@ object MobileActorRef {
    */
   def apply(uuid: String, hostname: String, port: Int, timeout: Long = Actor.TIMEOUT): MobileActorRef = {
     ReferenceManagement.get(uuid) match {
-      case Some(reference) => reference
+      case Some(reference) => 
+        reference.updateRemoteAddress(TheaterNode(hostname, port))
+        reference
 
       case None =>
         val remoteRef = remoteMobileActor(uuid, hostname, port, timeout)

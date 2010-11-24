@@ -272,6 +272,14 @@ object GeneralTests {
     LocalTheater.migrate(uuid) to ("localhost", 2312)
   }
 
+  def testAll() {
+    val ref1 = testRefServer1
+    testRefServer2
+    val ref2 = testRefClient(ref1 uuid)
+    testRefMigrate(ref1 uuid)
+    ref1 ! Ping
+    ref2 ! ShowCount
+  }
 }
 
 class TestActor extends Actor {

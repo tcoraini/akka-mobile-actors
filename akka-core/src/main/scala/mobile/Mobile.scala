@@ -20,6 +20,9 @@ object Mobile {
   
   private var algorithm: DistributionAlgorithm = new RoundRobinAlgorithm
 
+  /**
+   * Spawn in some node chosen by the distribution algorithm
+   */
   def spawn[T <: MobileActor : Manifest]: MobileActorRef = {
     val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
     spawn(Left(clazz))
@@ -29,8 +32,38 @@ object Mobile {
     spawn(Right(() => factory))
   }
 
-  private def spawn(constructor: Either[Class[_ <: MobileActor], () => MobileActor]): MobileActorRef = {
-    val node: TheaterNode = algorithm.chooseTheater
+  /**
+    * Spawn at the local node
+    */
+  def spawnHere[T <: MobileActor : Manifest]: MobileActorRef = {
+    val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
+    spawn(Left(clazz), Some(LocalTheater.node))
+  }
+
+  def spawnHere(factory: => MobileActor): MobileActorRef = {
+    spawn(Right(() => factory), Some(LocalTheater.node))
+  }
+
+  /**
+    * Spawn at the specified node
+    */
+  def spawnAt[T <: MobileActor : Manifest](node: TheaterNode): MobileActorRef = {
+    val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
+    spawn(Left(clazz), Some(node))
+  }
+
+  def spawnAt(node: TheaterNode, factory: => MobileActor): MobileActorRef = {
+    spawn(Right(() => factory), Some(node))
+  }
+
+  private def spawn(
+      constructor: Either[Class[_ <: MobileActor], () => MobileActor], 
+      where: Option[TheaterNode] = None): MobileActorRef = {
+
+    val node: TheaterNode = where match {
+      case Some(theater) => theater
+      case None => algorithm.chooseTheater
+    }
   
     if (node.isLocal) {
       val mobileRef = constructor match {
