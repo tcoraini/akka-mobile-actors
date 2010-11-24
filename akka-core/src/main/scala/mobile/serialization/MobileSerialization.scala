@@ -17,7 +17,7 @@ object MobileSerialization {
   
   /* Adapted from SerializationProtocol just to construct a MobileActorRef */
   def mobileFromBinary[T <: Actor](bytes: Array[Byte])(implicit format: Format[T]): MobileActorRef =
-    new MobileActorRef(fromBinaryToMobileActorRef(bytes, format))
+    MobileActorRef(fromBinaryToMobileActorRef(bytes, format))
 
   private def fromBinaryToMobileActorRef[T <: Actor](bytes: Array[Byte], format: Format[T]): LocalMobileActor =
     fromProtobufToMobileActorRef(SerializedActorRefProtocol.newBuilder.mergeFrom(bytes).build, format, None)

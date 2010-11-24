@@ -1,9 +1,9 @@
 package se.scalablesolutions.akka.mobile.theater
 
 import se.scalablesolutions.akka.mobile.actor.MobileActorRef
+import se.scalablesolutions.akka.mobile.actor.MobileActor
 import se.scalablesolutions.akka.mobile.serialization.MobileSerialization
 import se.scalablesolutions.akka.mobile.serialization.DefaultActorFormat
-
 import se.scalablesolutions.akka.mobile.Mobile
 
 import se.scalablesolutions.akka.actor.ActorRef
@@ -66,7 +66,7 @@ private[mobile] trait Theater extends Logging {
     server.start(hostname, port)
 
     val agentName = "theater@" + hostname + ":" + port
-    _agent = actorOf(new TheaterAgent)
+    _agent = actorOf(new TheaterAgent(this))
     server.register(agentName, _agent)
 
     NameService.init()
@@ -82,7 +82,7 @@ private[mobile] trait Theater extends Logging {
       // Registering in the name server
       NameService.put(actor.uuid, this.node)
 
-      log.debug("Registering actor with UUID [%s] in theater at [%s:%p]", actor.uuid, hostname, port)
+      log.debug("Registering actor with UUID [%s] in theater at [%s:%d]", actor.uuid, hostname, port)
     } // TODO verificar isso, tratamento quando o theater nao estao rodando
   }
 
@@ -90,7 +90,7 @@ private[mobile] trait Theater extends Logging {
     if (_isRunning) {
       mobileActors.remove(actor.uuid)
 
-      log.debug("Unregistering actor with UUID [%s] from theater at [%s:%p]", actor.uuid, hostname, port)
+      log.debug("Unregistering actor with UUID [%s] from theater at [%s:%d]", actor.uuid, hostname, port)
     }
   }
 
@@ -117,7 +117,7 @@ private[mobile] trait Theater extends Logging {
   def startLocalActor(constructor: Either[String, Array[Byte]]): MobileActorRef = {
     val mobileRef: MobileActorRef = constructor match {
       case Left(classname) =>
-        new MobileActorRef(Mobile.newMobileActor(classname))
+        MobileActorRef(Class.forName(classname).asInstanceOf[Class[_ <: MobileActor]])
         
       case Right(bytes) =>
         MobileSerialization.mobileFromBinary(bytes)(DefaultActorFormat)
@@ -135,7 +135,7 @@ private[mobile] trait Theater extends Logging {
       if (_isRunning) {
         val (destHostname, destPort) = destination
 
-        log.info("Theater at %s:%d received a request to migrate actor with UUID '%s' to theater at %s:%d",
+        log.info("Theater at [%s:%d] received a request to migrate actor with UUID [%s] to theater at [%s:%d].",
             hostname, port, uuid, destHostname, destPort)
 
         val ref = mobileActors.get(uuid)
@@ -143,8 +143,8 @@ private[mobile] trait Theater extends Logging {
           val actorBytes = ref.startMigration(destHostname, destPort)
           sendToTheater(MovingActor(actorBytes, /* sender */ node), TheaterNode(destHostname, destPort))
         } else {
-          log.warning("Theater at %s:%d received a request to migrate actor with UUID '%s', but the actor was " +
-            "not found", hostname, port, uuid)
+          log.warning("Theater at [%s:%d] received a request to migrate actor with UUID [%s], but the actor was " +
+            "not found.", hostname, port, uuid)
         }
       }
     }

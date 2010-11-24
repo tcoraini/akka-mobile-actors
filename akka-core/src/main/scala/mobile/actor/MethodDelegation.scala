@@ -16,7 +16,7 @@ import java.util.{Map => JMap}
 
 trait MethodDelegation extends ActorRef with ScalaActorRef {
   
-  protected var reference: ActorRef
+  protected var reference: MobileReference
 
   /* 
    * ActorRef

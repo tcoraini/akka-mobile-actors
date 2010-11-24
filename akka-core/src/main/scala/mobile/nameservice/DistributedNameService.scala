@@ -18,15 +18,15 @@ object DistributedNameService extends Logging {
     case Some(classname) =>
       try {
         val instance = Class.forName(classname).newInstance.asInstanceOf[HashFunction]
-        log.info("Using '%s' as the hash function for the distributed name service.", classname)
+        log.info("Using [%s] as the hash function for the distributed name service.", classname)
         instance
       } catch {
         case cnfe: ClassNotFoundException =>
-          log.warning("The class '%s' could not be found. Using the default hash function instead.", classname)
+          log.warning("The class [%s] could not be found. Using the default hash function instead.", classname)
           defaultHashFunction
         
         case cce: ClassCastException =>
-          log.warning("The class '%s' does not extend the HashFunction trait. Using the default hash function instead.", classname)
+          log.warning("The class [%s] does not extend the HashFunction trait. Using the default hash function instead.", classname)
           defaultHashFunction
       }
 
