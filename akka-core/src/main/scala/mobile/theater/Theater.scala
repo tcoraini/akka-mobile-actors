@@ -9,6 +9,7 @@ import se.scalablesolutions.akka.mobile.Mobile
 import se.scalablesolutions.akka.mobile.util.messages._
 import se.scalablesolutions.akka.mobile.theater.protocol.TheaterProtocol
 import se.scalablesolutions.akka.mobile.theater.protocol.AgentProtobufProtocol
+import se.scalablesolutions.akka.mobile.theater.protocol.AgentProtocol
 
 import se.scalablesolutions.akka.actor.ActorRef
 import se.scalablesolutions.akka.actor.Actor
