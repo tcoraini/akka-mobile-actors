@@ -8,7 +8,7 @@ import se.scalablesolutions.akka.mobile.util.PipelineFactoryCreator
 import se.scalablesolutions.akka.mobile.Mobile
 import se.scalablesolutions.akka.mobile.util.messages._
 import se.scalablesolutions.akka.mobile.theater.protocol.TheaterProtocol
-import se.scalablesolutions.akka.mobile.theater.protocol.TheaterAgentProtocol
+import se.scalablesolutions.akka.mobile.theater.protocol.AgentProtobufProtocol
 
 import se.scalablesolutions.akka.actor.ActorRef
 import se.scalablesolutions.akka.actor.Actor
@@ -58,7 +58,7 @@ private[mobile] trait Theater extends Logging {
 
   //private var _agent: ActorRef = _
   //private[mobile] def agent = _agent // TODO privado? Mover para outra classe?
-  var protocol: TheaterProtocol = new TheaterAgentProtocol(this) // TODO Mover mais pra cima
+  var protocol: TheaterProtocol = new AgentProtobufProtocol(this) // TODO Mover mais pra cima
   
   def pipelineFactoryCreator = _pipelineFactoryCreator
 
