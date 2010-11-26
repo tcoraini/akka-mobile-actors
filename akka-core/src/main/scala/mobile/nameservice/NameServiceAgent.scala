@@ -3,19 +3,12 @@ package se.scalablesolutions.akka.mobile.nameservice
 import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.ActorRef
 import se.scalablesolutions.akka.remote.RemoteClient
+import se.scalablesolutions.akka.mobile.util.messages._
 
 import se.scalablesolutions.akka.mobile.theater.LocalTheater
 import se.scalablesolutions.akka.mobile.theater.TheaterNode
 
 import scala.collection.mutable.HashMap
-
-// Messages
-case class ActorRegistrationRequest(acturUuid: String, hostname: String, port: Int)
-case class ActorUnregistrationRequest(actorUuid: String)
-
-case class ActorLocationRequest(actorUuid: String)
-case class ActorLocationResponse(hostname: String, port: Int)
-case object ActorNotFound
 
 object NameServiceAgent {
   private val agents = new HashMap[TheaterNode, ActorRef]

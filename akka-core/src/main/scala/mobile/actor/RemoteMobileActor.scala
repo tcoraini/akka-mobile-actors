@@ -1,6 +1,7 @@
 package se.scalablesolutions.akka.mobile.actor
 
 import se.scalablesolutions.akka.mobile.theater.LocalTheater
+import se.scalablesolutions.akka.mobile.util.messages._
 
 import se.scalablesolutions.akka.actor.ActorRef
 import se.scalablesolutions.akka.actor.ScalaActorRef
@@ -8,8 +9,6 @@ import se.scalablesolutions.akka.actor.RemoteActorRef
 import se.scalablesolutions.akka.actor.RemoteActorSerialization._
 
 import se.scalablesolutions.akka.remote.protocol.RemoteProtocol._
-
-case class MobileActorMessage(senderHostname: String, senderPort: Int, message: Any)
 
 trait RemoteMobileActor extends MobileReference {
   /*
@@ -21,12 +20,6 @@ trait RemoteMobileActor extends MobileReference {
   remoteActorRef: RemoteActorRef =>
 
   abstract override def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = {
-    println("\n*** Sender: " + senderOption + " *** \n")
-    senderOption match {
-      case Some(ref) => println("\n*** Sender Home Address: " + ref.homeAddress + " ***\n")
-      case _ => ()
-    }
-
     val newMessage = MobileActorMessage(externalReference.homeTheater.hostname, externalReference.homeTheater.port, message)
 
     val requestBuilder = createRemoteRequestProtocolBuilder(this, newMessage, true, senderOption)

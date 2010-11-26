@@ -3,7 +3,7 @@ package se.scalablesolutions.akka.mobile.theater
 import se.scalablesolutions.akka.mobile.nameservice.NameService
 import se.scalablesolutions.akka.mobile.actor.MobileActorRef
 import se.scalablesolutions.akka.mobile.Mobile
-import se.scalablesolutions.akka.mobile.actor.MobileActorMessage
+import se.scalablesolutions.akka.mobile.util.messages._
 
 import se.scalablesolutions.akka.actor.ActorRef
 import se.scalablesolutions.akka.actor.Actor
@@ -17,9 +17,7 @@ import java.util.Map
 
 import org.jboss.netty.channel._
 
-case class ActorNewLocationNotification(uuid: String, hostname: String, port: Int)
-
-@ChannelHandler.Sharable // FIXME eh mesmo?
+@ChannelHandler.Sharable // TODO eh mesmo?
 class TheaterHandler(actors: Map[String, MobileActorRef], theater: Theater) extends SimpleChannelUpstreamHandler with Logging {
 
   override def messageReceived(ctx: ChannelHandlerContext, event: MessageEvent) = {
@@ -27,10 +25,13 @@ class TheaterHandler(actors: Map[String, MobileActorRef], theater: Theater) exte
     if (message.isInstanceOf[RemoteRequestProtocol]) {
       val request = message.asInstanceOf[RemoteRequestProtocol]
       if (request.getActorInfo.getActorType == ActorType.MOBILE_ACTOR)
-        handleMobileActorRequest(request)
+        theater.handleMobileActorRequest(request)
       else ctx.sendUpstream(event)
-    } 
-    else ctx.sendUpstream(event)
+    }  
+    else {
+      log.debug("Message received: " + message)
+      ctx.sendUpstream(event)
+    }
   }
 
   private def handleMobileActorRequest(request: RemoteRequestProtocol): Unit = {
@@ -46,17 +47,17 @@ class TheaterHandler(actors: Map[String, MobileActorRef], theater: Theater) exte
         /*val sender =
           // FIXME classloader sempre como None? 
           if (request.hasSender) Some(RemoteActorSerialization.fromProtobufToRemoteActorRef(request.getSender, None))
-          else None*/
+          else None */
 
         actor.!(message)(None)
 
       case null =>
         log.debug("Actor with UUID [%s] not found at theater [%s:%d].", uuid, theater.hostname, theater.port)
-        handleActorNotFound(request)
+        //handleActorNotFound(request)
     }
   }
 
-  private def handleActorNotFound(request: RemoteRequestProtocol): Unit = {
+/*  private def handleActorNotFound(request: RemoteRequestProtocol): Unit = {
     val uuid = request.getActorInfo.getUuid
     NameService.get(uuid) match {
       case Some(node) =>
@@ -77,7 +78,14 @@ class TheaterHandler(actors: Map[String, MobileActorRef], theater: Theater) exte
           // TODO Gambiarra monstro
           (new Thread() {
             override def run(): Unit = {
-              TheaterHelper.sendToTheater(ActorNewLocationNotification(uuid, node.hostname, node.port), senderNode.get)
+              //TheaterHelper.sendToTheater(ActorNewLocationNotification(uuid, node.hostname, node.port), senderNode.get)
+              //theater.protocol.sendTo(senderNode.get, ActorNewLocationNotification(uuid, node.hostname, node.port))
+              val notificationMessage = ActorNewLocationNotificationProtocol.newBuilder
+                  .setUuid(uuid)
+                  .setHostname(node.hostname)
+                  .setPort(node.port)
+                  .build
+              theater.protocol.sendTo(senderNode.get, notificationMessage)
             }
           }).start()
         }
@@ -86,8 +94,7 @@ class TheaterHandler(actors: Map[String, MobileActorRef], theater: Theater) exte
         log.debug("The actor with UUID [%s] not found in the cluster.", uuid)
         ()
     }
-    // procurar no serviço de nomes
   }
-
+*/
 }
 

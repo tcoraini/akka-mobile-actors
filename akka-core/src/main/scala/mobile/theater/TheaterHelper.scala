@@ -3,6 +3,7 @@ package se.scalablesolutions.akka.mobile.theater
 import se.scalablesolutions.akka.mobile.actor.MobileActor
 import se.scalablesolutions.akka.mobile.actor.MobileActorRef
 import se.scalablesolutions.akka.mobile.Mobile
+import se.scalablesolutions.akka.mobile.util.messages._
 
 import se.scalablesolutions.akka.actor.ActorRef
 
@@ -15,7 +16,7 @@ import scala.collection.mutable.HashMap
 object TheaterHelper extends Logging {
   // This theater comunicates with other theaters through these agents
   private lazy val agents = {
-    (new HashMap[TheaterNode, ActorRef]) += LocalTheater.node -> LocalTheater.agent
+    (new HashMap[TheaterNode, ActorRef]) //+= LocalTheater.node -> LocalTheater.agent
   }
 
   def spawnActorRemotely(constructor: Either[Class[_ <: MobileActor], () => MobileActor], node: TheaterNode): MobileActorRef = {

@@ -1,12 +1,14 @@
 package se.scalablesolutions.akka.mobile.theater
 
+import se.scalablesolutions.akka.mobile.util.messages._
+
 import se.scalablesolutions.akka.actor.Actor
 
 class TheaterAgent(theater: Theater) extends Actor {
   
   def receive = {
-    case MovingActor(bytes, sender) =>
-      theater.receiveActor(bytes, sender)
+    case msg: MovingActor =>
+      theater.receiveActor(msg.bytes, msg.sender)
 
     case StartMobileActorRequest(constructor) =>
       val ref = theater.startLocalActor(constructor)

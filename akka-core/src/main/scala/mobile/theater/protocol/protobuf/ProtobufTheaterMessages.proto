@@ -1,0 +1,61 @@
+package mobile;
+
+option java_package = "se.scalablesolutions.akka.mobile.theater.protocol.protobuf";
+
+message TheaterMessageProtocol {
+  required TheaterMessageType messageType = 1;
+  optional TheaterNodeProtocol sender = 2;
+  
+  // Possible messages
+  optional MovingActorProtocol movingActor = 3;
+  optional MobileActorRegisteredProtocol mobileActorRegistered = 4;
+  optional StartActorRequestProtocol startActorRequest = 5;
+  optional StartActorReplyProtocol startActorReply = 6;
+  optional ActorNewLocationNotificationProtocol actorNewLocationNotification = 7;
+}
+
+message MovingActorProtocol {
+  required bytes actorBytes = 1;
+}
+
+message MobileActorRegisteredProtocol {
+  required string uuid = 1;
+}
+
+message StartActorRequestProtocol {
+  required uint64 requestId = 1;
+  required ConstructorType constructorType = 2;
+  optional string classname = 3;
+  optional bytes actorBytes = 4;
+}
+
+message StartActorReplyProtocol {
+  required uint64 requestId = 1;
+  required string actorUuid = 2;
+}
+
+message ActorNewLocationNotificationProtocol {
+  required string uuid = 1;
+  required string hostname = 2;
+  required int32 port = 3;
+  //required TheaterNodeProtocol newNode = 2;
+}
+
+message TheaterNodeProtocol {
+  required string hostname = 1;
+  required int32 port = 2;
+}
+
+enum TheaterMessageType {
+  MOVING_ACTOR = 1;
+  MOBILE_ACTOR_REGISTERED = 2;
+  START_ACTOR_REQUEST = 3;
+  START_ACTOR_REPLY = 4;
+  ACTOR_NEW_LOCATION_NOTIFICATION = 5;
+} 
+
+enum ConstructorType {
+  CLASSNAME = 1;
+  BYTES = 2;
+}
+

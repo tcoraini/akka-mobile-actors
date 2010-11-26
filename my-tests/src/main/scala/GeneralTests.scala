@@ -248,11 +248,14 @@ object GeneralTests {
     stop(actors size)
   }
 
-  def testRefServer1 = {
+  def testRefServer1(migrate: Boolean) = {
     LocalTheater.start("ubuntu-tcoraini", 1810)
     val ref = Mobile.spawn[StatefulActor]
     ref ! Ping
     ref ! ShowCount
+    if (migrate) {
+      testRefMigrate(ref uuid)
+    }
     ref
   }
 
@@ -273,7 +276,7 @@ object GeneralTests {
   }
 
   def testAll() {
-    val ref1 = testRefServer1
+    val ref1 = testRefServer1(false)
     testRefServer2
     val ref2 = testRefClient(ref1 uuid)
     testRefMigrate(ref1 uuid)
