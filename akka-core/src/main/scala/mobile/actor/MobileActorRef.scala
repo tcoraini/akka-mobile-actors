@@ -152,7 +152,7 @@ class MobileActorRef private(protected var reference: MobileReference) extends M
 
   def homeTheater = _homeTheater
 
-  def homeTheater_=(theater: Theater) = {
+  protected[mobile] def homeTheater_=(theater: Theater) = {
     if (isLocal) {
       _homeTheater = theater
       this.homeAddress = new InetSocketAddress(theater.hostname, theater.port)
@@ -163,7 +163,7 @@ class MobileActorRef private(protected var reference: MobileReference) extends M
    * Changes the actor reference behind this proxy.
    * Returns true if the new actor is local, false otherwise.
    */ 
-  private def switchActorRef(newRef: MobileReference): Unit = { // TODO encerrar algumas coisas na referencia anterior?
+  protected def switchActorRef(newRef: MobileReference): Unit = { // TODO encerrar algumas coisas na referencia anterior?
     reference.stop
     reference = newRef
     reference.externalReference = this
@@ -172,7 +172,7 @@ class MobileActorRef private(protected var reference: MobileReference) extends M
     log.debug("Switching mobile reference for actor with UUID [%s] to a %s reference.", uuid, label)  
   }
 
-  private[mobile] def startMigration(hostname: String, port: Int): Array[Byte] = {
+  protected[mobile] def startMigration(hostname: String, port: Int): Array[Byte] = {
     if (!isLocal) throw new RuntimeException("The method 'migrateTo' should be call only on local actors")
     
     _isMigrating = true
@@ -190,7 +190,7 @@ class MobileActorRef private(protected var reference: MobileReference) extends M
     ActorSerialization.toBinary(reference, serializeMailbox)(DefaultActorFormat)
   }
 
-  private[mobile] def endMigration(): Unit = {
+  protected[mobile] def endMigration(): Unit = {
     if (isLocal && isMigrating) {
       val destination = migratingTo.get
       val remoteActorRef = MobileActorRef.remoteMobileActor(uuid, destination.hostname, destination.port, reference.timeout)
@@ -203,7 +203,7 @@ class MobileActorRef private(protected var reference: MobileReference) extends M
     }
   }
 
-  def updateRemoteAddress(newAddress: TheaterNode): Unit = {
+  protected[mobile] def updateRemoteAddress(newAddress: TheaterNode): Unit = {
     val newReference = 
       if (newAddress.isLocal) 
         throw new RuntimeException("THIS SHOULD NOT BE HAPPENING. THE REFERENCE SHOULD BE UPDATED AT THE MIGRATION") // TODO

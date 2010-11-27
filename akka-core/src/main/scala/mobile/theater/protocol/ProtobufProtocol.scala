@@ -36,9 +36,9 @@ abstract class ProtobufProtocol(theater: Theater) extends TheaterProtocol(theate
             .setUuid(uuid)
             .build
 
-      case StartMobileActorRequest(constructor) => 
+      case StartMobileActorRequest(requestId, constructor) => 
         val startActorRequest = StartActorRequestProtocol.newBuilder
-            .setRequestId(1) // TODO
+            .setRequestId(requestId)
         constructor match {
           case Left(classname) =>
             startActorRequest
@@ -53,9 +53,9 @@ abstract class ProtobufProtocol(theater: Theater) extends TheaterProtocol(theate
                 .build
         }
 
-      case StartMobileActorReply(uuid) =>
+      case StartMobileActorReply(requestId, uuid) =>
         StartActorReplyProtocol.newBuilder
-            .setRequestId(1) // TODO
+            .setRequestId(requestId)
             .setActorUuid(uuid)
             .build
 
@@ -134,11 +134,15 @@ abstract class ProtobufProtocol(theater: Theater) extends TheaterProtocol(theate
         val request = message.getStartActorRequest
         request.getConstructorType match {
           case ConstructorType.CLASSNAME => 
-            StartMobileActorRequest(Left(request.getClassname))
+            StartMobileActorRequest(request.getRequestId, Left(request.getClassname))
 
           case ConstructorType.BYTES =>
-            StartMobileActorRequest(Right(request.getActorBytes.toByteArray))
+            StartMobileActorRequest(request.getRequestId, Right(request.getActorBytes.toByteArray))
         }
+
+      case START_ACTOR_REPLY =>
+        val reply = message.getStartActorReply
+        StartMobileActorReply(reply.getRequestId, reply.getActorUuid)
 
       case MOBILE_ACTOR_REGISTERED =>
         MobileActorRegistered(message.getMobileActorRegistered.getUuid)

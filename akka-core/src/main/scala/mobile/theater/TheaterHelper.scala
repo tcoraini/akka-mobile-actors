@@ -14,10 +14,10 @@ import se.scalablesolutions.akka.util.Logging
 import scala.collection.mutable.HashMap
 
 object TheaterHelper extends Logging {
-  // This theater comunicates with other theaters through these agents
-  private lazy val agents = {
-    (new HashMap[TheaterNode, ActorRef]) //+= LocalTheater.node -> LocalTheater.agent
-  }
+
+  private var requestId: Long = 1
+
+  private val mobileRefs = new HashMap[Long, MobileActorRef]
 
   def spawnActorRemotely(constructor: Either[Class[_ <: MobileActor], () => MobileActor], node: TheaterNode): MobileActorRef = {
     val hostname = node.hostname
@@ -34,32 +34,24 @@ object TheaterHelper extends Logging {
         Right(bytes)
     }
 
-    val agent = agentFor(hostname, port)
-    (agent !! StartMobileActorRequest(serializableConstructor)) match {
-      case Some(StartMobileActorReply(uuid)) => 
-        log.debug("Mobile actor with UUID [%s] started in remote theater at [%s:%d].", uuid, hostname, port)
-        MobileActorRef(uuid, hostname, port) 
+    // TODO Definitivamente precisamos de um protocolo melhor para essa tarefa
+    val reqId = newRequestId
+    LocalTheater.protocol.sendTo(node, StartMobileActorRequest(reqId, serializableConstructor))
+    while (!mobileRefs.contains(reqId))
+      Thread.sleep(200)
 
-      case None =>
-        log.debug("Could not start mobile actor at remote theater [%s:%d], request timeout.", hostname, port)
-        throw new RuntimeException("Remote mobile actor start failed") // devolver algo relevante pra indicar o problema
-    }
+    mobileRefs.get(reqId).get
+
   }
 
-  def agentFor(hostname: String, port: Int): ActorRef = agentFor(TheaterNode(hostname, port))
-
-  def agentFor(node: TheaterNode): ActorRef = agents.get(node) match {
-    case Some(agent) => agent
-      
-    case None => 
-      val agentName = "theater@" + node.hostname + ":" + node.port
-      val newAgent = RemoteClient.actorFor(agentName, node.hostname, node.port)
-      agents += node -> newAgent
-      newAgent
+  def completeActorSpawn(reply: StartMobileActorReply): Unit = {
+    log.debug("Mobile actor with UUID [%s] started in remote theater at [%s:%d].", reply.uuid, reply.sender.get.hostname, reply.sender.get.port)
+    val newRef = MobileActorRef(reply.uuid, reply.sender.get.hostname, reply.sender.get.port)
+    mobileRefs.put(reply.requestId, newRef)
   }
 
-  def sendToTheater(message: Any, destination: TheaterNode): Unit = { 
-    val agent = agentFor(destination.hostname, destination.port)
-    agent ! message
-  } 
+  def newRequestId: Long = {
+    requestId += 1
+    requestId
+  }
 }

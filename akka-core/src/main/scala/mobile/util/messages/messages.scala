@@ -22,8 +22,8 @@ trait TheaterMessage {
 case class MovingActor(bytes: Array[Byte]) extends TheaterMessage
 case class MobileActorRegistered(uuid: String) extends TheaterMessage
 
-case class StartMobileActorRequest(constructor: Either[String, Array[Byte]]) extends TheaterMessage
-case class StartMobileActorReply(actorUuid: String) extends TheaterMessage
+case class StartMobileActorRequest(requestId: Long, constructor: Either[String, Array[Byte]]) extends TheaterMessage
+case class StartMobileActorReply(requestId: Long, uuid: String) extends TheaterMessage
 
 case class ActorNewLocationNotification(uuid: String, hostname: String, port: Int) extends TheaterMessage
 

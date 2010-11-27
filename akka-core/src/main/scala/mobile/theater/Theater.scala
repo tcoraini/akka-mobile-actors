@@ -247,9 +247,12 @@ private[mobile] trait Theater extends Logging {
     case MovingActor(bytes) =>
       receiveActor(bytes, message.sender)
 
-    case StartMobileActorRequest(constructor) =>
-      startLocalActor(constructor)
-      // TODO reply
+    case StartMobileActorRequest(requestId, constructor) =>
+      val ref = startLocalActor(constructor)
+      sendTo(message.sender.get, StartMobileActorReply(requestId, ref.uuid))
+
+    case reply: StartMobileActorReply =>
+      TheaterHelper.completeActorSpawn(reply)
 
     case MobileActorRegistered(uuid) =>
       finishMigration(uuid)
