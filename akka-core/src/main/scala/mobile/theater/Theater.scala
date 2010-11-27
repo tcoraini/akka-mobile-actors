@@ -10,28 +10,17 @@ import se.scalablesolutions.akka.mobile.util.messages._
 import se.scalablesolutions.akka.mobile.theater.protocol.TheaterProtocol
 import se.scalablesolutions.akka.mobile.theater.protocol.AgentProtobufProtocol
 import se.scalablesolutions.akka.mobile.theater.protocol.AgentProtocol
-
-import se.scalablesolutions.akka.actor.ActorRef
-import se.scalablesolutions.akka.actor.Actor
-import se.scalablesolutions.akka.actor.Actor._
-import se.scalablesolutions.akka.actor.RemoteActorSerialization
-
-import se.scalablesolutions.akka.remote.RemoteServer
-import se.scalablesolutions.akka.remote.RemoteClient
-import se.scalablesolutions.akka.remote.protocol.RemoteProtocol._
-import se.scalablesolutions.akka.remote.MessageSerializer
-
-import se.scalablesolutions.akka.config.Config
-import se.scalablesolutions.akka.util.Logging
-
 import se.scalablesolutions.akka.mobile.nameservice.NameService
 import se.scalablesolutions.akka.mobile.nameservice.DistributedNameService
 
+import se.scalablesolutions.akka.actor.ActorRef
+import se.scalablesolutions.akka.remote.RemoteServer
+import se.scalablesolutions.akka.remote.protocol.RemoteProtocol._
+import se.scalablesolutions.akka.remote.MessageSerializer
+import se.scalablesolutions.akka.config.Config
+import se.scalablesolutions.akka.util.Logging
+
 import java.util.concurrent.ConcurrentHashMap
-
-import com.google.protobuf.ByteString
-
-import TheaterHelper._
 
 object LocalTheater extends Theater
 
@@ -44,6 +33,8 @@ private[mobile] trait Theater extends Logging {
  
   private var _pipelineFactoryCreator: PipelineFactoryCreator = new TheaterPipelineFactoryCreator(mobileActors, this)
   
+  var _protocol: TheaterProtocol = new AgentProtobufProtocol(this)
+
   private var _hostname: String = _
   private var _port: Int = _
 
@@ -57,17 +48,6 @@ private[mobile] trait Theater extends Logging {
   private var _isRunning = false
   def isRunning = _isRunning
 
-  //private var _agent: ActorRef = _
-  //private[mobile] def agent = _agent // TODO privado? Mover para outra classe?
-  var protocol: TheaterProtocol = new AgentProtobufProtocol(this) // TODO Mover mais pra cima
-  
-  def pipelineFactoryCreator = _pipelineFactoryCreator
-
-  def pipelineFactoryCreator_=(creator: PipelineFactoryCreator): Unit = {
-    if (!_isRunning) {
-      _pipelineFactoryCreator = creator
-    }
-  }
   def start(hostname: String, port: Int) = {
     log.debug("Starting a theater at %s:%d.", hostname, port)
 
@@ -78,10 +58,7 @@ private[mobile] trait Theater extends Logging {
     server.setPipelineFactoryCreator(_pipelineFactoryCreator)
     server.start(hostname, port)
 
-    /*val agentName = "theater@" + hostname + ":" + port
-    _agent = actorOf(new TheaterAgent(this))
-    server.register(agentName, _agent)*/
-    protocol.init()
+    _protocol.init()
 
     NameService.init()
 
@@ -94,7 +71,7 @@ private[mobile] trait Theater extends Logging {
       actor.homeTheater = this
       
       // Registering in the name server
-      NameService.put(actor.uuid, this.node) // TODO deve estar aqui? Em receiveActor tb eh chamado
+      NameService.put(actor.uuid, this.node) 
  
       log.debug("Registering actor with UUID [%s] in theater at [%s:%d]", actor.uuid, hostname, port)
     } // TODO verificar isso, tratamento quando o theater nao estao rodando
@@ -172,14 +149,7 @@ private[mobile] trait Theater extends Logging {
           // TODO Gambiarra monstro
           (new Thread() {
             override def run(): Unit = {
-              //TheaterHelper.sendToTheater(ActorNewLocationNotification(uuid, node.hostname, node.port), senderNode.get)
-              protocol.sendTo(senderNode.get, ActorNewLocationNotification(uuid, node.hostname, node.port))
-              //val notificationMessage = ActorNewLocationNotificationProtocol.newBuilder
-              //    .setUuid(uuid)
-              //    .setHostname(node.hostname)
-              //    .setPort(node.port)
-              //    .build
-              //protocol.sendTo(senderNode.get, notificationMessage)
+              sendTo(senderNode.get, ActorNewLocationNotification(uuid, node.hostname, node.port))
             }
           }).start()
         }
@@ -211,8 +181,15 @@ private[mobile] trait Theater extends Logging {
     mobileRef
   } 
 
-  // Request the migration of actor with UUID to some destination
-  // Syntax: Theater migrate UUID to (host, port)
+  /**
+   * Requests the migration of the actor with UUID 'uuid' to some destination, represented
+   * by a (hostname, port) tuple.
+   *
+   * Syntax: 
+   *  theater migrate UUID to (hostname, port) 
+   * or, more verbosely:
+   *  theater.migrate(UUID) to (hostname, port)
+   */
   def migrate(uuid: String) = new {
     def to(destination: Tuple2[String, Int]): Unit = {
       if (_isRunning) {
@@ -224,13 +201,7 @@ private[mobile] trait Theater extends Logging {
         val ref = mobileActors.get(uuid)
         if (ref != null) {
           val actorBytes = ref.startMigration(destHostname, destPort)
-          //sendToTheater(MovingActor(actorBytes, /* sender */ node), TheaterNode(destHostname, destPort))
-          protocol.sendTo(TheaterNode(destHostname, destPort), MovingActor(actorBytes)) /* # */
-          //val movingActorMessage = MovingActorProtocol.newBuilder.setActorBytes(ByteString.copyFrom(actorBytes)).build
-          //val message = TheaterMessageProtocol.newBuilder
-          //    .setMessageType(TheaterMessageType.MOVING_ACTOR)
-          //    .setMovingActor(movingActorMessage)
-          //protocol.sendTo(TheaterNode(destHostname, destPort), message) /* # */
+          sendTo(TheaterNode(destHostname, destPort), MovingActor(actorBytes))
         } else {
           log.warning("Theater at [%s:%d] received a request to migrate actor with UUID [%s], but the actor was " +
             "not found.", hostname, port, uuid)
@@ -268,13 +239,7 @@ private[mobile] trait Theater extends Logging {
       NameService.put(mobileRef.uuid, this.node)
       
       // Notifying the sender that the actor is now registered in this theater
-      //sendToTheater(MobileActorRegistered(mobileRef.uuid), sender)
-      protocol.sendTo(sender.get, MobileActorRegistered(mobileRef.uuid))
-      //val actorRegisteredMessage = MobileActorRegisteredProtocol.newBuilder.setUuid(mobileRef.uuid).build
-      //val message = TheaterMessageProtocol.newBuilder
-      //    .setMessageType(TheaterMessageType.MOBILE_ACTOR_REGISTERED)
-      //    .setMobileActorRegistered(actorRegisteredMessage)
-      //protocol.sendTo(sender, message)
+      sendTo(sender.get, MobileActorRegistered(mobileRef.uuid))
     }
   }
 
@@ -302,43 +267,36 @@ private[mobile] trait Theater extends Logging {
       log.debug("Theater at [%s:%d] received an unknown message: %s. Discarding it.", hostname, port, trash)
   }
 
-//  def processProtoMessage(message: TheaterMessageProtocol): Unit = {
-//    import TheaterMessageType._
-//    
-//    message.getMessageType match {
-//      case MOVING_ACTOR =>
-//        val sender = TheaterNode(message.getSender.getHostname, message.getSender.getPort)
-//        val bytes = message.getMovingActor.getActorBytes.toByteArray
-//        receiveActor(bytes, sender)
-//
-//      case START_ACTOR_REQUEST =>
-//        val request = message.getStartActorRequest
-//        request.getConstructorType match {
-//          case ConstructorType.CLASSNAME => 
-//            startLocalActor(Left(request.getClassname))
-//
-//          case ConstructorType.BYTES =>
-//            startLocalActor(Right(request.getActorBytes.toByteArray))
-//        }
-//
-//      case MOBILE_ACTOR_REGISTERED =>
-//        finishMigration(message.getMobileActorRegistered.getUuid)
-//      
-//      case ACTOR_NEW_LOCATION_NOTIFICATION =>
-//        val notification = message.getActorNewLocationNotification
-//
-//        log.debug("Theater at [%s:%d] received a notification that actor with UUID [%s] has migrated " + 
-//          "to [%s:%d].", hostname, port, notification.getUuid, notification.getHostname, notification.getPort)
-//
-//        val reference = ReferenceManagement.get(notification.getUuid)
-//        if (reference.isDefined) {
-//          reference.get.updateRemoteAddress(TheaterNode(notification.getHostname, notification.getPort))
-//        }
-//    }
-//  }
-
   def isLocal(hostname: String, port: Int): Boolean = 
     (LocalTheater.hostname == hostname && LocalTheater.port == port)
+
+  /**
+   * PRIVATE METHODS
+   */
+  private def sendTo(node: TheaterNode, message: TheaterMessage): Unit = {
+    _protocol.sendTo(node, message)
+  }
+
+  /**
+   * SETTERS AND GETTERS 
+   */
+  
+  def protocol: TheaterProtocol = _protocol
+
+  def protocol_=(protocol: TheaterProtocol): Unit = {
+    if (!_isRunning) {
+      _protocol = protocol
+    }
+  }
+
+  def pipelineFactoryCreator = _pipelineFactoryCreator
+
+  def pipelineFactoryCreator_=(creator: PipelineFactoryCreator): Unit = {
+    if (!_isRunning) {
+      _pipelineFactoryCreator = creator
+    }
+  }
+
 }
 
 
