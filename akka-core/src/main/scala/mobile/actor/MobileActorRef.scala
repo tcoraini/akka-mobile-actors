@@ -204,10 +204,12 @@ class MobileActorRef private(protected var reference: MobileReference) extends M
   }
 
   protected[mobile] def updateRemoteAddress(newAddress: TheaterNode): Unit = {
-    val newReference = 
-      if (newAddress.isLocal) 
+    log.debug("Updating the remote address for actor with UUID [%s] to theater [%s:%d].", uuid, newAddress.hostname, newAddress.port)
+    log.debug("Local Theater: [%s:%d].", LocalTheater.hostname, LocalTheater.port)
+    val newReference =
+      if (newAddress.isLocal)
         throw new RuntimeException("THIS SHOULD NOT BE HAPPENING. THE REFERENCE SHOULD BE UPDATED AT THE MIGRATION") // TODO
-      else 
+      else
         MobileActorRef.remoteMobileActor(uuid, newAddress.hostname, newAddress.port, timeout)
 
     switchActorRef(newReference)

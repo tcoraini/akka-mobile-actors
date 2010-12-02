@@ -33,7 +33,7 @@ private[mobile] trait Theater extends Logging {
  
   private var _pipelineFactoryCreator: PipelineFactoryCreator = new TheaterPipelineFactoryCreator(mobileActors, this)
   
-  var _protocol: TheaterProtocol = new AgentProtobufProtocol(this)
+  var _protocol: TheaterProtocol = new AgentProtocol(this)
 
   private var _hostname: String = _
   private var _port: Int = _
@@ -263,7 +263,7 @@ private[mobile] trait Theater extends Logging {
 
       val reference = ReferenceManagement.get(uuid)
       if (reference.isDefined) {
-        reference.get.updateRemoteAddress(TheaterNode(hostname, port))
+        reference.get.updateRemoteAddress(TheaterNode(newHostname, newPort))
       }
 
     case trash =>
