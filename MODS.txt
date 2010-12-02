@@ -5,5 +5,3 @@ RemoteServer.scala
 
 RemoteProtocol.proto
   - Adicionado no enum ActorType o tipo MOBILE_ACTOR
-
-== TESTANDO ==
