@@ -33,7 +33,7 @@ private[mobile] trait Theater extends Logging {
  
   private var _pipelineFactoryCreator: PipelineFactoryCreator = new TheaterPipelineFactoryCreator(mobileActors, this)
   
-  var _protocol: TheaterProtocol = new AgentProtocol(this)
+  var _protocol: TheaterProtocol = new AgentProtobufProtocol(this)
 
   private var _hostname: String = _
   private var _port: Int = _
@@ -145,13 +145,8 @@ private[mobile] trait Theater extends Logging {
         if (senderNode.isDefined) {
           log.debug("Notifying the sender of the message at [%s:%d] the new location of the actor.", 
             senderNode.get.hostname, senderNode.get.port)
-            
-          // TODO Gambiarra monstro
-          (new Thread() {
-            override def run(): Unit = {
-              sendTo(senderNode.get, ActorNewLocationNotification(uuid, node.hostname, node.port))
-            }
-          }).start()
+          
+          sendTo(senderNode.get, ActorNewLocationNotification(uuid, node.hostname, node.port))
         }
 
       case None =>

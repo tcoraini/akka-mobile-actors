@@ -29,7 +29,17 @@ class AgentProtobufProtocol(theater: Theater) extends ProtobufProtocol(theater) 
   }
 
   def sendTo(node: TheaterNode, message: TheaterMessageProtocol): Unit = {
-    agentFor(node) ! message
+    try {
+      agentFor(node) ! message
+    } catch {
+      case e: IllegalStateException =>
+        //TODO Gambiarra monstro
+        (new Thread() {
+          override def run(): Unit = {
+            agentFor(node) ! message
+          }
+        }).start()
+    }
   }
     
   def agentFor(node: TheaterNode): ActorRef = agents.get(node) match {

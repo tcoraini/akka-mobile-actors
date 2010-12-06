@@ -31,7 +31,17 @@ class AgentProtocol(theater: Theater) extends TheaterProtocol(theater) {
 
   def sendTo(node: TheaterNode, message: TheaterMessage): Unit = {
     message.sender = Some(theater.node)
-    agentFor(node) ! message
+    try {
+      agentFor(node) ! message
+    } catch {
+      case e: IllegalStateException =>
+        //TODO Gambiarra monstro
+        (new Thread() {
+          override def run(): Unit = {
+            agentFor(node) ! message
+          }
+        }).start()
+    }
   }
     
   def agentFor(node: TheaterNode): ActorRef = agents.get(node) match {
