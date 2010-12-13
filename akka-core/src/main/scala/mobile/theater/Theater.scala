@@ -32,6 +32,8 @@ private[mobile] trait Theater extends Logging {
   private val mobileActors = new ConcurrentHashMap[String, MobileActorRef]
  
   private var _pipelineFactoryCreator: PipelineFactoryCreator = new TheaterPipelineFactoryCreator(mobileActors, this)
+
+  val statistics = new Statistics
   
   var _protocol: TheaterProtocol = new AgentProtobufProtocol(this)
 
@@ -108,7 +110,11 @@ private[mobile] trait Theater extends Logging {
     mobileActors.get(uuid) match {
       case actor: MobileActorRef =>
         val message = MessageSerializer.deserialize(request.getMessage) match {
-          case MobileActorMessage(_, _, msg) => msg
+          case mobileActorMsg: MobileActorMessage => { 
+            statistics.messageArrived(uuid, mobileActorMsg)
+            mobileActorMsg.message
+          }
+
           case msg => msg
         }
         // TODO ver o negocio do sender
