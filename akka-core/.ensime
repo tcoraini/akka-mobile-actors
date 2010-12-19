@@ -1,7 +1,7 @@
 (
 
  ;; Where you unpacked the ENSIME distribution.
- :server-root "/Users/jboner/config/emacs-config/lib/ensime"
+ :server-root "/home/tcoraini/desenvolvimento/ensime/ensime"
 
  ;; The command with which to invoke the ENSIME server. Change this to 
  ;; "bin/server.bat" if your're on Windows.
