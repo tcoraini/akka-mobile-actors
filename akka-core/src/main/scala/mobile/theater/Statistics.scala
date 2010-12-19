@@ -27,7 +27,7 @@ class Statistics extends Logging {
 
   private val messagesCounter = new HashMap[String, HashMap[TheaterNode, MessagesReceived]]
 
-  private val priorityQueue = new PriorityQueue[MessagesReceived]
+  //private val priorityQueue = new PriorityQueue[MessagesReceived]
 
   private var minimumInQueue: MessagesReceived = null
 
@@ -53,16 +53,16 @@ class Statistics extends Logging {
       }
     }
     messagesReceived.increment
-    updatePriorityQueue(messagesReceived)
+    //updatePriorityQueue(messagesReceived)
     
     log.debug("Registering arrival of message to actor with UUID [%s] from node [%s:%d].", 
         uuid, node.hostname, node.port)
   }
 
-  def updatePriorityQueue(messagesReceived: MessagesReceived): Unit = {
-    if (messagesReceived.count > minimumCount) {
-      biggestCounts.enqueue(messagesReceived)
-      minimumCount = messagesReceived.
+  //def updatePriorityQueue(messagesReceived: MessagesReceived): Unit = {
+  //  if (messagesReceived.count > minimumCount) {
+  //    biggestCounts.enqueue(messagesReceived)
+  //    minimumCount = messagesReceived.
 
   def getMessagesCount(uuid: String): Option[HashMap[TheaterNode, MessagesReceived]] = 
     messagesCounter.get(uuid)
