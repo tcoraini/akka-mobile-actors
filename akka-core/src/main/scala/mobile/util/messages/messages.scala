@@ -3,6 +3,11 @@ package se.scalablesolutions.akka.mobile.util.messages
 import se.scalablesolutions.akka.mobile.theater.TheaterNode
 
 /**
+ * Message that request an actor to migrate to some node
+ */
+case class MoveTo(hostname: String, port: Int)
+
+/**
  * Name Service messages:
  */
 case class ActorRegistrationRequest(acturUuid: String, hostname: String, port: Int)

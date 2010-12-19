@@ -9,23 +9,23 @@ case object Retain
 case object Proceed
 
 @serializable class HotSwapActor extends Actor {
-   val retainedMessagesQueue = new ConcurrentLinkedQueue[Any]
+  val retainedMessagesQueue = new ConcurrentLinkedQueue[Any]
 
-   val retainMessages: Receive = {
-      case msg => retainedMessagesQueue.add(msg)
-   }
+  val retainMessages: Receive = {
+    case msg => retainedMessagesQueue.add(msg)
+  }
 
-   def show(str: String): Unit = println("[" + this + "] " + str)
+  def show(str: String): Unit = println("[" + this + "] " + str)
 
-   def receive = {
-      case Ack =>
-         show("Received 'Ack'")
-      case Retain =>
-         become(Some(retainMessages))
-      case Proceed =>
-         become(None)
-      case any =>
-         //show("Mensagem desconhecida. Recolocando na caixa de mensagens: " + any)
-         self ! any
-   }
+  def receive = {
+    case Ack =>
+      show("Received 'Ack'")
+    case Retain =>
+      become(Some(retainMessages))
+    case Proceed =>
+      become(None)
+    case any =>
+      //show("Mensagem desconhecida. Recolocando na caixa de mensagens: " + any)
+      self ! any
+  }
 }

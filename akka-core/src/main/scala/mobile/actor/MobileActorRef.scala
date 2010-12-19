@@ -155,8 +155,15 @@ class MobileActorRef private(protected var reference: MobileReference) extends M
   protected[mobile] def homeTheater_=(theater: Theater) = {
     if (isLocal) {
       _homeTheater = theater
-      this.homeAddress = new InetSocketAddress(theater.hostname, theater.port)
+      // TODO verificar se isso estava sendo usado. Em caso afirmativo, tem que atualizar o homeAddress
+      // para o valor inicial de homeTheater
+      //this.homeAddress = new InetSocketAddress(theater.hostname, theater.port)
     }
+  }
+
+  // To be called by the actor when it receives a MoveTo message
+  private[mobile] def moveTo(hostname: String, port: Int): Unit = {
+    homeTheater.migrate(uuid) to (hostname, port)
   }
 
   /**

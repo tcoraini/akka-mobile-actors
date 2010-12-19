@@ -58,6 +58,7 @@ trait LocalMobileActor extends MobileReference {
   abstract override def actor: MobileActor = super.actor.asInstanceOf[MobileActor]
 
   abstract override def start(): ActorRef = {
+    actor.asInstanceOf[MobileActor].mobileSelf = Some(externalReference)
     if (isMigrating) throw new RuntimeException("Cannot start an actor that is migrating")
     else super.start()
   }

@@ -53,7 +53,7 @@ case object ShowCount
   
   private def show(str: String): Unit = println("[" + this + "] " + str)
 
-  def receive = {
+  override def receive = {
     case Wait(x) => 
       Thread.sleep(x * 1000)
       show("Just slept for " + x + " seconds.")
@@ -81,11 +81,11 @@ case object ShowCount
       show("Received unknown message: " + msg)
    }
 
-  def beforeMigration() {
+  override def beforeMigration() {
     show("MyActor starting a migration")
   }
 
-  def afterMigration() {
+  override def afterMigration() {
     show("MyActor finalizing a migration")
   }
 
@@ -118,11 +118,11 @@ class SenderActor(destination: ActorRef) extends Actor {
       show("Current count: " + count)    
   }
 
-  def beforeMigration() {
+  override def beforeMigration() {
     show("StatefulActor starting a migration")
   }
 
-  def afterMigration() {
+  override def afterMigration() {
     show("StatefulActor finalizing a migration")
   }
 }
