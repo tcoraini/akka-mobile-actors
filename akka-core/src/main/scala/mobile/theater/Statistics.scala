@@ -64,8 +64,6 @@ class Statistics extends Logging {
   //  if (messagesReceived.count > minimumCount) {
   //    biggestCounts.enqueue(messagesReceived)
   //    minimumCount = messagesReceived.
-  //  }
-  //}
 
   def getMessagesCount(uuid: String): Option[HashMap[TheaterNode, MessagesReceived]] = 
     messagesCounter.get(uuid)
