@@ -75,7 +75,7 @@ private[mobile] trait Theater extends Logging {
       // Registering in the name server
       NameService.put(actor.uuid, this.node) 
  
-      log.debug("Registering actor with UUID [%s] in theater at [%s:%d]", actor.uuid, hostname, port)
+      log.debug("Registering actor with UUID [%s] in theater at [%s:%d].", actor.uuid, hostname, port)
     } // TODO verificar isso, tratamento quando o theater nao estao rodando
   }
 
@@ -191,7 +191,8 @@ private[mobile] trait Theater extends Logging {
    * or, more verbosely:
    *  theater.migrate(UUID) to (hostname, port)
    */
-  def migrate(uuid: String) = new {
+  @deprecated("Usar migrate(actor, destination)")
+  private[this] def migrate(uuid: String) = new {
     def to(destination: Tuple2[String, Int]): Unit = {
       if (_isRunning) {
         val (destHostname, destPort) = destination
@@ -211,6 +212,20 @@ private[mobile] trait Theater extends Logging {
     }
   }
   
+  private[mobile] def migrate(actor: MobileActorRef, destination: TheaterNode): Unit = {
+    if (_isRunning) {
+      log.info("Theater at [%s:%d] received a request to migrate actor with UUID [%s] to theater at [%s:%d].",
+	       hostname, port, actor.uuid, destination.hostname, destination.port)
+      
+      if (mobileActors.get(actor.uuid) == null) {
+	throw new RuntimeException("Actor not registered in this theater, can't go on with migration")
+      }
+
+      val actorBytes = actor.startMigration(destination.hostname, destination.port)
+      sendTo(destination, MovingActor(actorBytes))
+    }
+  }
+
   /* Complete the actor migration in the sender theater */
   def finishMigration(actorUuid: String): Unit = {
     log.debug("Finishing the migration process of actor with UUID [%s]", actorUuid)

@@ -2,7 +2,7 @@ package se.scalablesolutions.akka.mobile.dispatcher
 
 import se.scalablesolutions.akka.dispatch.ExecutorBasedEventDrivenDispatcher
 
-object MobileDispatcher {
+object MobileDispatchers {
   
   object globalMobileExecutorBasedEventDrivenDispatcher extends MobileExecutorBasedEventDrivenDispatcher("global")
 

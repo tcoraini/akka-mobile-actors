@@ -1,25 +1,18 @@
-/**
- * Copyright (C) 2009-2010 Scalable Solutions AB <http://scalablesolutions.se>
- */
-
 package se.scalablesolutions.akka.mobile.dispatcher
 
-import se.scalablesolutions.akka.mobile.actor.LocalMobileActor
-
-import se.scalablesolutions.akka.dispatch.MessageDispatcher
-import se.scalablesolutions.akka.dispatch.ThreadPoolBuilder
-import se.scalablesolutions.akka.dispatch.Dispatchers
-import se.scalablesolutions.akka.dispatch.MessageInvocation
+import java.util.Deque
+import java.util.concurrent.LinkedBlockingDeque
 
 import se.scalablesolutions.akka.actor.{ActorRef, IllegalActorStateException}
+import se.scalablesolutions.akka.dispatch.{MessageInvocation, Dispatchers, ThreadPoolBuilder, MessageDispatcher}
 
-import java.util.Queue
-import java.util.concurrent.{ConcurrentLinkedQueue, LinkedBlockingQueue}
+import se.scalablesolutions.akka.mobile.actor.LocalMobileActor
+import se.scalablesolutions.akka.mobile.util.messages._
 
 class MobileExecutorBasedEventDrivenDispatcher(
   _name: String,
   throughput: Int = Dispatchers.THROUGHPUT,
-  capacity: Int = Dispatchers.MAILBOX_CAPACITY) extends MessageDispatcher with ThreadPoolBuilder {
+  capacity: Int = Dispatchers.MAILBOX_CAPACITY) extends MobileMessageDispatcher with ThreadPoolBuilder {
 
   mailboxCapacity = capacity
 
@@ -28,30 +21,43 @@ class MobileExecutorBasedEventDrivenDispatcher(
   val name = "mobile:event-driven:dispatcher:" + _name
   init
 
-  def dispatch(invocation: MessageInvocation) = invocation.receiver match {
-    case receiver: LocalMobileActor =>
-      getMailbox(invocation.receiver).add(invocation)
-      dispatch(receiver)
+  def dispatch(invocation: MessageInvocation) = dispatch(invocation, false)
+  // invocation.message match {
+  //   case moveTo: MoveTo => dispatch(invocation, true)
+    
+  //   case _ => dispatch(invocation, false)
+  //}
 
+  def dispatchWithPriority(invocation: MessageInvocation) = dispatch(invocation, true)
+  
+  private def dispatch(invocation: MessageInvocation, priority: Boolean): Unit = invocation.receiver match {
+    case receiver: LocalMobileActor => {
+      if (priority)
+	getMailbox(receiver).addFirst(invocation)
+      else
+	getMailbox(receiver).add(invocation)
+      
+      dispatch(receiver)
+    }
+    
     case _ => throw new RuntimeException("This dispatcher can only dispatch messages for mobile actors")
   }
-
 
   /**
    * @return the mailbox associated with the actor
    */
-  private def getMailbox(receiver: ActorRef) = receiver.mailbox.asInstanceOf[Queue[MessageInvocation]]
+  private def getMailbox(receiver: ActorRef) = receiver.mailbox.asInstanceOf[Deque[MessageInvocation]]
 
   override def mailboxSize(actorRef: ActorRef) = getMailbox(actorRef).size
 
   override def register(actorRef: ActorRef) = {
     if (actorRef.mailbox eq null ) {
-      if (mailboxCapacity <= 0) actorRef.mailbox = new ConcurrentLinkedQueue[MessageInvocation]
-      else actorRef.mailbox = new LinkedBlockingQueue[MessageInvocation](mailboxCapacity)
+      if (mailboxCapacity <= 0) actorRef.mailbox = new LinkedBlockingDeque[MessageInvocation]
+      else actorRef.mailbox = new LinkedBlockingDeque[MessageInvocation](mailboxCapacity)
     }
     super.register(actorRef)
   }
-
+  
   def dispatch(receiver: LocalMobileActor): Unit = if (active) {
     executor.execute(new Runnable() {
       def run = {
@@ -69,6 +75,8 @@ class MobileExecutorBasedEventDrivenDispatcher(
               finishedBeforeMailboxEmpty = processMailbox(receiver)
             } finally {
               lock.unlock
+	      // TODO: Essa chamada recursiva parece desnecessaria, já que a condição do while tb testa
+	      // isso. Remover um dos dois e testar.
               if (finishedBeforeMailboxEmpty) dispatch(receiver)
             }
           }
@@ -87,6 +95,7 @@ class MobileExecutorBasedEventDrivenDispatcher(
   def processMailbox(receiver: LocalMobileActor): Boolean = {
     var processedMessages = 0
     val mailbox = getMailbox(receiver)
+    
     // Don't dispatch if the actor is migrating, the messages should stay in the mailbox to be
     // serialized
     if (receiver.isMigrating) return false
@@ -95,10 +104,11 @@ class MobileExecutorBasedEventDrivenDispatcher(
     while (messageInvocation != null) {
       messageInvocation.invoke
       processedMessages += 1
+      // if the actor is migrating (which means the last message processed was a MoveTo message),
+      // we stop processing the messages
+      if (receiver.isMigrating) return false
       // check if we simply continue with other messages, or reached the throughput limit
-      // either way, if the actor is migrating, we don't proceed with the dispatching
-      if ((throughput <= 0 || processedMessages < throughput) && !receiver.isMigrating) messageInvocation = mailbox.poll
-      else if (receiver.isMigrating) return false
+      else if (throughput <= 0 || processedMessages < throughput) messageInvocation = mailbox.poll
       else {
         messageInvocation = null
         return !mailbox.isEmpty
@@ -122,7 +132,7 @@ class MobileExecutorBasedEventDrivenDispatcher(
   def ensureNotActive(): Unit = if (active) throw new IllegalActorStateException(
     "Can't build a new thread pool for a dispatcher that is already up and running")
 
-  override def toString = "ExecutorBasedEventDrivenDispatcher[" + name + "]"
+  override def toString = "MobileExecutorBasedEventDrivenDispatcher[" + name + "]"
 
   private def init = withNewThreadPoolWithLinkedBlockingQueueWithUnboundedCapacity.buildThreadPool
 }

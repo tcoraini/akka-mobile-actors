@@ -1,27 +1,29 @@
 package se.scalablesolutions.akka.mobile.actor
 
-import se.scalablesolutions.akka.mobile.dispatcher.MobileDispatcher
+import se.scalablesolutions.akka.mobile.dispatcher.MobileDispatchers
 
 import se.scalablesolutions.akka.actor.ActorRef
 import se.scalablesolutions.akka.actor.ScalaActorRef
-
-import se.scalablesolutions.akka.dispatch.MessageInvocation
-import se.scalablesolutions.akka.dispatch.CompletableFuture
-import se.scalablesolutions.akka.dispatch.DefaultCompletableFuture
-
-import se.scalablesolutions.akka.dispatch.ThreadBasedDispatcher
-import se.scalablesolutions.akka.dispatch.ExecutorBasedEventDrivenDispatcher
-import se.scalablesolutions.akka.dispatch.ExecutorBasedEventDrivenWorkStealingDispatcher
-
 import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.Format
 import se.scalablesolutions.akka.actor.ActorSerialization
 
+import se.scalablesolutions.akka.dispatch.MessageInvocation
+import se.scalablesolutions.akka.dispatch.MessageDispatcher
+import se.scalablesolutions.akka.dispatch.CompletableFuture
+import se.scalablesolutions.akka.dispatch.DefaultCompletableFuture
+import se.scalablesolutions.akka.dispatch.ThreadBasedDispatcher
+import se.scalablesolutions.akka.dispatch.ExecutorBasedEventDrivenDispatcher
+import se.scalablesolutions.akka.dispatch.ExecutorBasedEventDrivenWorkStealingDispatcher
+
+import se.scalablesolutions.akka.stm.TransactionManagement._
+
+import se.scalablesolutions.akka.mobile.dispatcher.MobileMessageDispatcher
+import se.scalablesolutions.akka.mobile.util.messages._
+
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.TimeUnit
 
-/* Messages */
-case object Migrate
 
 case class RetainedMessage(message: Any, sender: Option[ActorRef])
 case class RetainedMessageWithFuture(message: Any, timeout: Long, sender: Option[ActorRef], senderFuture: Option[CompletableFuture[Any]])
@@ -40,10 +42,10 @@ trait LocalMobileActor extends MobileReference {
   // Setting a specific dispatcher for mobile actors
   // TODO what if the actor is running? (like after deserialization)
   if (!isRunning)
-    dispatcher = MobileDispatcher.globalMobileExecutorBasedEventDrivenDispatcher
+    dispatcher = MobileDispatchers.globalMobileExecutorBasedEventDrivenDispatcher
 
   def serializedActor[T <: Actor](implicit format: Format[T]): Array[Byte] = {
-    if (!isMigrating) throw new RuntimeException("This actor is not migrating. You should send it a 'Migrate' message first")
+    if (!isMigrating) throw new RuntimeException("This actor is not migrating. You should send it a 'MoveTo' message first")
     else ActorSerialization.toBinary(this)
   }
 
@@ -70,14 +72,27 @@ trait LocalMobileActor extends MobileReference {
   }
 
   abstract override def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = {
-    message match {
-      case Migrate =>
-        initMigration()
-      case msg =>
-        if (isMigrating) retainedMessagesQueue.add(RetainedMessage(msg, senderOption))
-        else super.postMessageToMailbox(msg, senderOption)
+    if (isMigrating) retainedMessagesQueue.add(RetainedMessage(message, senderOption))
+    else {
+      //super.postMessageToMailbox(message, senderOption)
+      val invocation = new MessageInvocation(this, message, senderOption, None, transactionSet.get)
+      if (hasPriority(message))
+	dispatcher.asInstanceOf[MobileMessageDispatcher].dispatchWithPriority(invocation)
+      else
+	invocation.send
     }
   }
+  
+  // TODO Deve funcionar, mas antes temos que ver o que fazer com a desseriação, onde o dispatcher é sempre usado como
+  // o padrão, e não como aquele pré-existente no ator.
+  //
+  // abstract override def dispatcher: MobileMessageDispatcher = super.dispatcher.asInstanceOf[MobileMessageDispatcher]
+
+  // abstract override def dispatcher_=(md: MessageDispatcher): Unit = md match {
+  //   case mmd: MobileMessageDispatcher => super.dispatcher_=(mmd)
+
+  //     case _ => throw new RuntimeException("A mobile actor must have a MobileMessageDispatcher as its dispatcher")
+  // }
 
   abstract override def postMessageToMailboxAndCreateFutureResultWithTimeout[T](
       message: Any,
@@ -94,45 +109,32 @@ trait LocalMobileActor extends MobileReference {
       future
     } else super.postMessageToMailboxAndCreateFutureResultWithTimeout(message, timeout, senderOption, senderFuture)
   }
+  
+  // TODO: Acho que o MobileDispatcher não permite que seja chamado 'invoke' depois que um ator esteja
+  // com o campo isMigrating == true. Mas é bom ficar de olho.
+  //
+  // abstract override def invoke(messageHandle: MessageInvocation): Unit = {
+  //   // Don't process messages during migration, put them in the retained messages queue
+  //   if (isMigrating) {
+  //     messageHandle.senderFuture match {
+  //     // Message without Future
+  //     case None => 
+  //       retainedMessagesQueue.add(RetainedMessage(messageHandle.message, messageHandle.sender))
+  //     // Message with Future
+  //     case Some(future) =>
+  //       // Converting back from Nanoseconds to Milliseconds
+  //       val timeout = TimeUnit.NANOSECONDS.toMillis(future.timeoutInNanos)
+  //       retainedMessagesWithFutureQueue.add(RetainedMessageWithFuture(messageHandle.message, timeout, messageHandle.sender, messageHandle.senderFuture))
+  //     }
+  //   }
+  //   else {
+  //     super.invoke(messageHandle)
+  //   }
+  // }
 
-  abstract override def invoke(messageHandle: MessageInvocation): Unit = {
-    // Don't process messages during migration, put them in the retained messages queue
-    if (isMigrating) {
-      //println("[" + this.actorInstance + "] Processing invoke, migrating, puting in the retained messages queue...")
-      //println("\t\t\t\t Message: " + messageHandle.message)
-      messageHandle.senderFuture match {
-      // Message without Future
-      case None => 
-        retainedMessagesQueue.add(RetainedMessage(messageHandle.message, messageHandle.sender))
-      // Message with Future
-      case Some(future) =>
-        // Converting back from Nanoseconds to Milliseconds
-        val timeout = TimeUnit.NANOSECONDS.toMillis(future.timeoutInNanos)
-        retainedMessagesWithFutureQueue.add(RetainedMessageWithFuture(messageHandle.message, timeout, messageHandle.sender, messageHandle.senderFuture))
-      }
-    }
-    else {
-      //println("[" + this.actorInstance + "] Processing invoke, not migrating, calling super.invoke...")
-      //println("\t\t\t\t Message: " + messageHandle.message)
-      super.invoke(messageHandle)
-    }
-  }
-
-  private def initMigration(): Unit = {
+  protected[mobile] def initMigration(): Unit = {
     _isMigrating = true
     actor.beforeMigration()
-    // We should stop the message dispatching, so the messages won't be processed in this actor
-    // TODO What about Reactor dispatchers?
-    /*dispatcher match {
-      case _: ThreadBasedDispatcher =>
-        dispatcher.shutdown
-      
-      case _: ExecutorBasedEventDrivenDispatcher =>
-        dispatcherLock.lock
-
-      case _: ExecutorBasedEventDrivenWorkStealingDispatcher =>
-        dispatcherLock.tryLock
-    }*/
   }
 
   def endMigration(newActor: ActorRef): Unit = {
@@ -140,6 +142,12 @@ trait LocalMobileActor extends MobileReference {
       newActor.!(message)(sender)
 
     actor.afterMigration()
+  }
+  
+  private def hasPriority(message: Any): Boolean = message match {
+    case m: MoveTo => true
+
+    case _ => false
   }
 
   def isLocal = true

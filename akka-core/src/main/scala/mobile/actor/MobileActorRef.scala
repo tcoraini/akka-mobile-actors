@@ -163,7 +163,8 @@ class MobileActorRef private(protected var reference: MobileReference) extends M
 
   // To be called by the actor when it receives a MoveTo message
   private[mobile] def moveTo(hostname: String, port: Int): Unit = {
-    homeTheater.migrate(uuid) to (hostname, port)
+    //homeTheater.migrate(uuid) to (hostname, port)
+    homeTheater.migrate(this, TheaterNode(hostname, port))
   }
 
   /**
@@ -180,7 +181,7 @@ class MobileActorRef private(protected var reference: MobileReference) extends M
   }
 
   protected[mobile] def startMigration(hostname: String, port: Int): Array[Byte] = {
-    if (!isLocal) throw new RuntimeException("The method 'migrateTo' should be call only on local actors")
+    if (!isLocal) throw new RuntimeException("The method 'startMigration' should be call only on local actors")
     
     _isMigrating = true
     _migratingTo = Some(TheaterNode(hostname, port))
@@ -190,7 +191,7 @@ class MobileActorRef private(protected var reference: MobileReference) extends M
     val serializeMailbox = 
       if (isRunning) {
         // Sinalizing the start of the migration process
-        reference ! Migrate
+        reference.asInstanceOf[LocalMobileActor].initMigration()
         true
       } else false
 

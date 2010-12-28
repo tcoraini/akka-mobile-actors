@@ -14,6 +14,7 @@ import se.scalablesolutions.akka.remote.RemoteClient
 import se.scalablesolutions.akka.mobile.Mobile
 import se.scalablesolutions.akka.mobile.actor._
 import se.scalablesolutions.akka.mobile.theater._
+import se.scalablesolutions.akka.mobile.util.messages._
 
 import se.scalablesolutions.akka.dispatch.FutureTimeoutException
 
@@ -152,10 +153,10 @@ object GeneralTests {
       println("[1] Tamanho do mailbox do ator 1: " + actor1.mailboxSize)
 
       // Fazendo a seriacao
-      println("* * * Start of serialization * * *")
-      actor1 ! Migrate
+      //println("* * * Start of serialization * * *")
+      //actor1 ! Migrate
       //val bytes = actor1.serializedActor
-      actor1 ! Message("Após seriação")
+      //actor1 ! Message("Após seriação")
       
       //val actor2 = fromBinary(bytes)
       //val actor2 = mobileFromBinary(bytes)
@@ -225,7 +226,8 @@ object GeneralTests {
 
     //ref ! Wait(20)
     //ref ! Message("APÓS MIGRAÇÃO")
-    LocalTheater.migrate(ref.uuid) to ("localhost", 2312)
+    //LocalTheater.migrate(ref.uuid) to ("localhost", 2312)
+    ref ! MoveTo("localhost", 2312)
     ref ! Message("RETIDA")
 
   }
@@ -272,7 +274,7 @@ object GeneralTests {
   }
 
   def testMigrate(uuid: String) = {
-    LocalTheater.migrate(uuid) to ("localhost", 2312)
+    //LocalTheater.migrate(uuid) to ("localhost", 2312)
   }
 
   def testAll() {
@@ -282,6 +284,16 @@ object GeneralTests {
     testMigrate(ref1 uuid)
     ref1 ! Ping
     ref2 ! ShowCount
+  }
+
+  def testDelayedMigration() {
+    LocalTheater.start("ubuntu-tcoraini", 1810)
+    val ref = Mobile.spawn[MyActor]
+    ref ! Wait(3)
+    ref ! Wait(3)
+    ref ! Wait(3)
+    ref ! MoveTo("localhost", 2312)
+    ref ! Message("Migration done!")
   }
 }
 
