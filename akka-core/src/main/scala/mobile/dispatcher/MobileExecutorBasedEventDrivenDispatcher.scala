@@ -134,5 +134,5 @@ class MobileExecutorBasedEventDrivenDispatcher(
 
   override def toString = "MobileExecutorBasedEventDrivenDispatcher[" + name + "]"
 
-  private def init = withNewThreadPoolWithLinkedBlockingQueueWithUnboundedCapacity.buildThreadPool
+  private[mobile] def init = withNewThreadPoolWithLinkedBlockingQueueWithUnboundedCapacity.buildThreadPool
 }
