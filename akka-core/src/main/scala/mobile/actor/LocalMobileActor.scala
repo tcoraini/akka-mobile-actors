@@ -36,7 +36,9 @@ trait LocalMobileActor extends MobileReference {
   private var _isMigrating = false
   def isMigrating = _isMigrating
   
-  dispatcher = MobileDispatchers.globalMobileExecutorBasedEventDrivenDispatcher
+  if (!isRunning) {
+    dispatcher = MobileDispatchers.globalMobileExecutorBasedEventDrivenDispatcher
+  }
 
   if (!actor.isInstanceOf[MobileActor])
     throw new RuntimeException("MobileActorRef should be used only with a MobileActor")
