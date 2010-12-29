@@ -286,7 +286,7 @@ object GeneralTests {
     ref2 ! ShowCount
   }
 
-  def testDelayedMigration() {
+  def testDelayedMigration() =  {
     LocalTheater.start("ubuntu-tcoraini", 1810)
     val ref = Mobile.spawn[MyActor]
     ref ! Wait(3)
@@ -294,6 +294,7 @@ object GeneralTests {
     ref ! Wait(3)
     ref ! MoveTo("localhost", 2312)
     ref ! Message("Migration done!")
+    ref
   }
 }
 

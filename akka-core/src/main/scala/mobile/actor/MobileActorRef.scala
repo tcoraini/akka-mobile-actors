@@ -41,6 +41,7 @@ object MobileActorRef {
         mobileRef
 
       case None =>
+	println("Registering new mobile actor ref")
         register(new MobileActorRef(reference))
     }
   }
@@ -122,6 +123,7 @@ object MobileActorRef {
 
 class MobileActorRef private(protected var reference: MobileReference) extends MethodDelegation with Logging {
   
+  println("Setting the externalReference field " + reference.uuid)
   reference.externalReference = this
 
   /* DEBUG ONLY */

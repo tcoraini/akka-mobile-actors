@@ -23,8 +23,9 @@ trait MobileActor extends Actor {
 
   private val specialBehavior: Receive = {
     case MoveTo(hostname, port) => {
+      println("\n\n** Mobile Self: " + mobileSelf + " **\n\n")
       if (mobileSelf.isDefined) {
-        mobileSelf.get.moveTo(hostname, port)
+	mobileSelf.get.moveTo(hostname, port)
       }
     }
   }
