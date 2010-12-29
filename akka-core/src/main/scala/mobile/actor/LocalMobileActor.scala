@@ -29,20 +29,21 @@ case class RetainedMessage(message: Any, sender: Option[ActorRef])
 case class RetainedMessageWithFuture(message: Any, timeout: Long, sender: Option[ActorRef], senderFuture: Option[CompletableFuture[Any]])
 
 // TODO Estender LocalActorRef diretamente nao seria melhor?
-trait LocalMobileActor extends MobileReference {
+trait LocalMobileActor extends InnerReference {
   val retainedMessagesQueue = new ConcurrentLinkedQueue[RetainedMessage]
   val retainedMessagesWithFutureQueue = new ConcurrentLinkedQueue[RetainedMessageWithFuture]
 
   private var _isMigrating = false
   def isMigrating = _isMigrating
   
-  if (!isRunning) {
-    dispatcher = MobileDispatchers.globalMobileExecutorBasedEventDrivenDispatcher
+  // Check some conditions that must hold for the proper instantiation of the actor
+  checkConditions()
+
+  override protected[mobile] def outerRef_=(ref: MobileActorRef) = {
+    actor.asInstanceOf[MobileActor].optionMobileRef = Some(ref)
+    super.outerRef = ref
   }
 
-  if (!actor.isInstanceOf[MobileActor])
-    throw new RuntimeException("MobileActorRef should be used only with a MobileActor")
-  
   // TODO: APAGAR
   private[this] def serializedActor[T <: Actor](implicit format: Format[T]): Array[Byte] = {
     if (!isMigrating) throw new RuntimeException("This actor is not migrating. You should send it a 'MoveTo' message first")
@@ -60,7 +61,6 @@ trait LocalMobileActor extends MobileReference {
   abstract override def actor: MobileActor = super.actor.asInstanceOf[MobileActor]
 
   abstract override def start(): ActorRef = {
-    actor.asInstanceOf[MobileActor].mobileSelf = Some(externalReference)
     ensureDispatcherIsMobile()
     super.start()
   }
@@ -144,6 +144,16 @@ trait LocalMobileActor extends MobileReference {
     actor.afterMigration()
   }
   
+  private def checkConditions(): Unit = {
+    if (!isRunning) {
+      dispatcher = MobileDispatchers.globalMobileExecutorBasedEventDrivenDispatcher
+    }
+
+    if (!actor.isInstanceOf[MobileActor]) {
+      throw new RuntimeException("MobileActorRef should be used only with a MobileActor")
+    }
+  }
+
   private def hasPriority(message: Any): Boolean = message match {
     case m: MoveTo => true
 

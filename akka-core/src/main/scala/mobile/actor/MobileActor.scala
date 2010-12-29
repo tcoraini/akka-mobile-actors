@@ -9,10 +9,9 @@ import java.net.InetSocketAddress
 
 trait MobileActor extends Actor {
   
-  @transient protected[mobile] var mobileSelf: Option[MobileActorRef] = None
+  @transient protected[mobile] var optionMobileRef: Option[MobileActorRef] = None
 
   self.id = self.uuid
-
 
   // TODO so' funciona pq o codigo esta dentro do pacote akka.
   // Na trait Actor o metodo apply() e' privated[akka]
@@ -23,9 +22,9 @@ trait MobileActor extends Actor {
 
   private val specialBehavior: Receive = {
     case MoveTo(hostname, port) => {
-      println("\n\n** Mobile Self: " + mobileSelf + " **\n\n")
-      if (mobileSelf.isDefined) {
-	mobileSelf.get.moveTo(hostname, port)
+      println("\n\n** Mobile Self: " + optionMobileRef + " **\n\n")
+      if (optionMobileRef.isDefined) {
+	optionMobileRef.get.moveTo(hostname, port)
       }
     }
   }

@@ -5,12 +5,12 @@ import se.scalablesolutions.akka.util.Logging
 import se.scalablesolutions.akka.actor.ActorRef
 import se.scalablesolutions.akka.actor.ScalaActorRef
 
-trait MobileReference extends ActorRef with ScalaActorRef with Logging {
-  private var _externalReference: MobileActorRef = _
+trait InnerReference extends ActorRef with ScalaActorRef with Logging {
+  private var _outerRef: MobileActorRef = _
 
-  protected[mobile] def externalReference: MobileActorRef = _externalReference
+  protected[mobile] def outerRef: MobileActorRef = _outerRef
 
-  protected[mobile] def externalReference_=(ref: MobileActorRef) = { _externalReference = ref }
+  protected[mobile] def outerRef_=(ref: MobileActorRef) = { _outerRef = ref }
   
   def isLocal: Boolean
 

@@ -16,7 +16,7 @@ import java.util.{Map => JMap}
 
 trait MethodDelegation extends ActorRef with ScalaActorRef {
   
-  protected var reference: MobileReference
+  protected var innerRef: InnerReference
 
   /* 
    * ActorRef
@@ -24,63 +24,63 @@ trait MethodDelegation extends ActorRef with ScalaActorRef {
   
   // Implemented methods from ActorRef that depends on attributes of the class
   // Should then forward the call to the actual reference, with the correct attribute values
-  override def setReceiveTimeout(timeout: Long) = reference.setReceiveTimeout(timeout) 
-  override def getReceiveTimeout(): Option[Long] = reference.receiveTimeout
-  override def setTrapExit(exceptions: Array[Class[_ <: Throwable]]) = reference.setTrapExit(exceptions) 
-  override def getTrapExit(): Array[Class[_ <: Throwable]] = reference.getTrapExit
-  override def setFaultHandler(handler: FaultHandlingStrategy) = reference.setFaultHandler(handler)
-  override def getFaultHandler(): Option[FaultHandlingStrategy] = reference.getFaultHandler
-  override def setLifeCycle(lifeCycle: LifeCycle) = reference.setLifeCycle(lifeCycle)
-  override def getLifeCycle(): Option[LifeCycle] = reference.getLifeCycle
-  override def setDispatcher(dispatcher: MessageDispatcher) = reference.setDispatcher(dispatcher)
-  override def getDispatcher(): MessageDispatcher = reference.getDispatcher
-  override def compareTo(other: ActorRef) = reference.compareTo(other)
-  override def getUuid() = reference.getUuid
-  override def uuid = reference.uuid
-  override def isBeingRestarted: Boolean = reference.isBeingRestarted
-  override def isRunning: Boolean = reference.isRunning
-  override def isShutdown: Boolean = reference.isShutdown
-  override def isDefinedAt(message: Any): Boolean = reference.isDefinedAt(message)
-  override def homeAddress: InetSocketAddress = reference.homeAddress
-  override def mailboxSize = reference.mailboxSize
+  override def setReceiveTimeout(timeout: Long) = innerRef.setReceiveTimeout(timeout) 
+  override def getReceiveTimeout(): Option[Long] = innerRef.receiveTimeout
+  override def setTrapExit(exceptions: Array[Class[_ <: Throwable]]) = innerRef.setTrapExit(exceptions) 
+  override def getTrapExit(): Array[Class[_ <: Throwable]] = innerRef.getTrapExit
+  override def setFaultHandler(handler: FaultHandlingStrategy) = innerRef.setFaultHandler(handler)
+  override def getFaultHandler(): Option[FaultHandlingStrategy] = innerRef.getFaultHandler
+  override def setLifeCycle(lifeCycle: LifeCycle) = innerRef.setLifeCycle(lifeCycle)
+  override def getLifeCycle(): Option[LifeCycle] = innerRef.getLifeCycle
+  override def setDispatcher(dispatcher: MessageDispatcher) = innerRef.setDispatcher(dispatcher)
+  override def getDispatcher(): MessageDispatcher = innerRef.getDispatcher
+  override def compareTo(other: ActorRef) = innerRef.compareTo(other)
+  override def getUuid() = innerRef.getUuid
+  override def uuid = innerRef.uuid
+  override def isBeingRestarted: Boolean = innerRef.isBeingRestarted
+  override def isRunning: Boolean = innerRef.isRunning
+  override def isShutdown: Boolean = innerRef.isShutdown
+  override def isDefinedAt(message: Any): Boolean = innerRef.isDefinedAt(message)
+  override def homeAddress: InetSocketAddress = innerRef.homeAddress
+  override def mailboxSize = innerRef.mailboxSize
 
   // These methods are used to get and set the 'id' and 'timeout' fields in the actual reference,
   // since this fields are var's that cannot be overriden
-  override def getId = reference.id
-  override def setId(id: String) = { reference.id = id }
-  override def getTimeout = reference.timeout
-  override def setTimeout(timeout: Long) = { reference.timeout = timeout }
+  override def getId = innerRef.id
+  override def setId(id: String) = { innerRef.id = id }
+  override def getTimeout = innerRef.timeout
+  override def setTimeout(timeout: Long) = { innerRef.timeout = timeout }
 
   // Overrided methods from AnyRef
   // Should be overrided to forward to the reference
-  override def hashCode: Int = reference.hashCode
-  override def equals(that: Any): Boolean = reference.equals(that)
-  override def toString = reference.toString
+  override def hashCode: Int = innerRef.hashCode
+  override def equals(that: Any): Boolean = innerRef.equals(that)
+  override def toString = innerRef.toString
 
   // Abstract methods from ActorRef
   // Should only forward the call to the actual reference
-  def actorClass: Class[_ <: Actor] = reference.actorClass
-  def actorClassName: String = reference.actorClassName
-  def dispatcher_=(md: MessageDispatcher): Unit = reference.dispatcher_=(md)
-  def dispatcher: MessageDispatcher = reference.dispatcher
-  def makeRemote(hostname: String, port: Int): Unit = reference.makeRemote(hostname, port)
-  def makeRemote(address: InetSocketAddress): Unit = reference.makeRemote(address)
-  def makeTransactionRequired: Unit = reference.makeTransactionRequired
-  def transactionConfig_=(config: TransactionConfig): Unit = reference.transactionConfig_=(config)
-  def transactionConfig: TransactionConfig = reference.transactionConfig
-  def homeAddress_=(address: InetSocketAddress): Unit = reference.homeAddress_=(address)
-  def remoteAddress: Option[InetSocketAddress] = reference.remoteAddress
-  def start: ActorRef = reference.start
-  def stop: Unit = reference.stop
-  def link(reference: ActorRef): Unit = reference.link(reference)
-  def unlink(reference: ActorRef): Unit = reference.unlink(reference)
-  def startLink(reference: ActorRef): Unit = reference.startLink(reference)
-  def startLinkRemote(reference: ActorRef, hostname: String, port: Int): Unit = reference.startLinkRemote(reference, hostname, port)
-  def spawn(clazz: Class[_ <: Actor]): ActorRef = reference.spawn(clazz)
-  def spawnRemote(clazz: Class[_ <: Actor], hostname: String, port: Int): ActorRef = reference.spawnRemote(clazz, hostname, port)
-  def spawnLink(clazz: Class[_ <: Actor]): ActorRef = reference.spawnLink(clazz)
-  def spawnLinkRemote(clazz: Class[_ <: Actor], hostname: String, port: Int): ActorRef = reference.spawnLinkRemote(clazz, hostname, port)
-  def supervisor: Option[ActorRef] = reference.supervisor
+  def actorClass: Class[_ <: Actor] = innerRef.actorClass
+  def actorClassName: String = innerRef.actorClassName
+  def dispatcher_=(md: MessageDispatcher): Unit = innerRef.dispatcher_=(md)
+  def dispatcher: MessageDispatcher = innerRef.dispatcher
+  def makeRemote(hostname: String, port: Int): Unit = innerRef.makeRemote(hostname, port)
+  def makeRemote(address: InetSocketAddress): Unit = innerRef.makeRemote(address)
+  def makeTransactionRequired: Unit = innerRef.makeTransactionRequired
+  def transactionConfig_=(config: TransactionConfig): Unit = innerRef.transactionConfig_=(config)
+  def transactionConfig: TransactionConfig = innerRef.transactionConfig
+  def homeAddress_=(address: InetSocketAddress): Unit = innerRef.homeAddress_=(address)
+  def remoteAddress: Option[InetSocketAddress] = innerRef.remoteAddress
+  def start: ActorRef = innerRef.start
+  def stop: Unit = innerRef.stop
+  def link(reference: ActorRef): Unit = innerRef.link(reference)
+  def unlink(reference: ActorRef): Unit = innerRef.unlink(reference)
+  def startLink(reference: ActorRef): Unit = innerRef.startLink(reference)
+  def startLinkRemote(reference: ActorRef, hostname: String, port: Int): Unit = innerRef.startLinkRemote(reference, hostname, port)
+  def spawn(clazz: Class[_ <: Actor]): ActorRef = innerRef.spawn(clazz)
+  def spawnRemote(clazz: Class[_ <: Actor], hostname: String, port: Int): ActorRef = innerRef.spawnRemote(clazz, hostname, port)
+  def spawnLink(clazz: Class[_ <: Actor]): ActorRef = innerRef.spawnLink(clazz)
+  def spawnLinkRemote(clazz: Class[_ <: Actor], hostname: String, port: Int): ActorRef = innerRef.spawnLinkRemote(clazz, hostname, port)
+  def supervisor: Option[ActorRef] = innerRef.supervisor
 
   // Protected methdos from ActorRef
   // These SHOULD NOT be invoked in a MobileActorRef, because there is no way we can forward the call
@@ -111,7 +111,7 @@ trait MethodDelegation extends ActorRef with ScalaActorRef {
    */
 
   // Abstract method from ActorRefShared
-  def shutdownLinkedActors: Unit = reference.shutdownLinkedActors
+  def shutdownLinkedActors: Unit = innerRef.shutdownLinkedActors
 
   /*
    * ScalaActorRef
@@ -119,16 +119,16 @@ trait MethodDelegation extends ActorRef with ScalaActorRef {
   
   // Implemented methods from ScalaActorRef
   // Should forward to the actual reference
-  override def sender: Option[ActorRef] = reference.sender
-  override def senderFuture(): Option[CompletableFuture[Any]] = reference.senderFuture
+  override def sender: Option[ActorRef] = innerRef.sender
+  override def senderFuture(): Option[CompletableFuture[Any]] = innerRef.senderFuture
   
   override def !(message: Any)(implicit sender: Option[ActorRef] = None): Unit = 
-    reference.!(message)(sender)
+    innerRef.!(message)(sender)
   override def !!(message: Any, timeout: Long = this.timeout)(implicit sender: Option[ActorRef] = None): Option[Any] = 
-    reference.!!(message, timeout)(sender)
+    innerRef.!!(message, timeout)(sender)
   override def !!![T](message: Any, timeout: Long = this.timeout)(implicit sender: Option[ActorRef] = None): Future[T] = 
-    reference.!!!(message, timeout)(sender)
+    innerRef.!!!(message, timeout)(sender)
   override def forward(message: Any)(implicit sender: Some[ActorRef]) = 
-    reference.forward(message)(sender)
+    innerRef.forward(message)(sender)
 
 }

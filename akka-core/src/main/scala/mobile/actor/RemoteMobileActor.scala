@@ -10,7 +10,7 @@ import se.scalablesolutions.akka.actor.RemoteActorSerialization._
 
 import se.scalablesolutions.akka.remote.protocol.RemoteProtocol._
 
-trait RemoteMobileActor extends MobileReference {
+trait RemoteMobileActor extends InnerReference {
   /*
    * Só funciona pq estamos dentro do pacote Akka. Quando não for o caso, como resolver?
    *
@@ -20,7 +20,7 @@ trait RemoteMobileActor extends MobileReference {
   remoteActorRef: RemoteActorRef =>
 
   abstract override def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = {
-    val newMessage = MobileActorMessage(externalReference.homeTheater.hostname, externalReference.homeTheater.port, message)
+    val newMessage = MobileActorMessage(outerRef.homeTheater.hostname, outerRef.homeTheater.port, message)
 
     val requestBuilder = createRemoteRequestProtocolBuilder(this, newMessage, true, senderOption)
     val actorInfo = requestBuilder.getActorInfo.toBuilder

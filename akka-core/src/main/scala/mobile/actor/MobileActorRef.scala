@@ -34,7 +34,7 @@ object MobileActorRef {
    * reference already exists for this actor (which would be a proxy for a remote mobile
    * actor), then it is updated with this new reference.
    */
-  def apply(reference: MobileReference): MobileActorRef = {
+  def apply(reference: InnerReference): MobileActorRef = {
     ReferenceManagement.get(reference.uuid) match {
       case Some(mobileRef) =>
         mobileRef.switchActorRef(reference)
@@ -121,21 +121,20 @@ object MobileActorRef {
   }
 }
 
-class MobileActorRef private(protected var reference: MobileReference) extends MethodDelegation with Logging {
+class MobileActorRef private(protected var innerRef: InnerReference) extends MethodDelegation with Logging {
   
-  println("Setting the externalReference field " + reference.uuid)
-  reference.externalReference = this
+  innerRef.outerRef = this
 
   /* DEBUG ONLY */
   def retained: java.util.concurrent.ConcurrentLinkedQueue[RetainedMessage] = 
     if (isLocal) 
-      reference.asInstanceOf[LocalMobileActor].retainedMessagesQueue
+      innerRef.asInstanceOf[LocalMobileActor].retainedMessagesQueue
     else
       throw new RuntimeException("Não existem mensagens retidas para atores remotos")
 
   def mb: java.util.Queue[se.scalablesolutions.akka.dispatch.MessageInvocation] =
     if (isLocal)
-      reference.mailbox.asInstanceOf[java.util.Queue[se.scalablesolutions.akka.dispatch.MessageInvocation]]
+      innerRef.mailbox.asInstanceOf[java.util.Queue[se.scalablesolutions.akka.dispatch.MessageInvocation]]
     else
       throw new RuntimeException("Não existe mailbox para atores remotos")
   /* * * * * */
@@ -146,7 +145,7 @@ class MobileActorRef private(protected var reference: MobileReference) extends M
 
   private var _homeTheater: Theater = LocalTheater
   
-  def isLocal = reference.isLocal
+  def isLocal = innerRef.isLocal
 
   def isMigrating = _isMigrating
 
@@ -173,12 +172,12 @@ class MobileActorRef private(protected var reference: MobileReference) extends M
    * Changes the actor reference behind this proxy.
    * Returns true if the new actor is local, false otherwise.
    */ 
-  protected def switchActorRef(newRef: MobileReference): Unit = { // TODO encerrar algumas coisas na referencia anterior?
-    reference.stop
-    reference = newRef
-    reference.externalReference = this
+  protected def switchActorRef(newRef: InnerReference): Unit = { // TODO encerrar algumas coisas na referencia anterior?
+    innerRef.stop
+    innerRef = newRef
+    innerRef.outerRef = this
 
-    val label = if (reference.isLocal) "local" else "remote"
+    val label = if (innerRef.isLocal) "local" else "remote"
     log.debug("Switching mobile reference for actor with UUID [%s] to a %s reference.", uuid, label)  
   }
 
@@ -193,19 +192,19 @@ class MobileActorRef private(protected var reference: MobileReference) extends M
     val serializeMailbox = 
       if (isRunning) {
         // Sinalizing the start of the migration process
-        reference.asInstanceOf[LocalMobileActor].initMigration()
+        innerRef.asInstanceOf[LocalMobileActor].initMigration()
         true
       } else false
 
-    ActorSerialization.toBinary(reference, serializeMailbox)(DefaultActorFormat)
+    ActorSerialization.toBinary(innerRef, serializeMailbox)(DefaultActorFormat)
   }
 
   protected[mobile] def endMigration(): Unit = {
     if (isLocal && isMigrating) {
       val destination = migratingTo.get
-      val remoteActorRef = MobileActorRef.remoteMobileActor(uuid, destination.hostname, destination.port, reference.timeout)
+      val remoteActorRef = MobileActorRef.remoteMobileActor(uuid, destination.hostname, destination.port, innerRef.timeout)
       
-      reference.asInstanceOf[LocalMobileActor].endMigration(remoteActorRef)
+      innerRef.asInstanceOf[LocalMobileActor].endMigration(remoteActorRef)
       switchActorRef(remoteActorRef)
 
       _isMigrating = false
