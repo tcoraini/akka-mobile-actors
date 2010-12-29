@@ -12,6 +12,10 @@ trait InnerReference extends ActorRef with ScalaActorRef with Logging {
 
   protected[mobile] def outerRef_=(ref: MobileActorRef) = { _outerRef = ref }
   
+  def isMigrating = _outerRef.isMigrating
+
+  def homeTheater = _outerRef.homeTheater
+
   def isLocal: Boolean
 
 }

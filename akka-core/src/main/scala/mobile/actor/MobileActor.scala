@@ -28,29 +28,7 @@ trait MobileActor extends Actor {
       }
     }
   }
-//  become(Some(receive))
-//
-//  override def become(behavior: Option[Receive]) {
-//    super.become(adaptBehavior(behavior))
-//  }
-//
-//  protected def adaptBehavior(behavior: Option[Receive]): Option[Receive] = behavior match {
-//    case Some(behav) => Some(specialBehaviour(behav))
-//
-//    case None => None
-//  }
-//
-//  protected def specialBehaviour(behavior: Receive): Receive = {
-//    case MoveTo(hostname, port) => {
-//      if (mobileSelf.isDefined) {
-//        mobileSelf.get.moveTo(hostname, port)
-//      }
-//    }
-//    
-//    case anyMsg =>
-//      behavior(anyMsg)
-//  }
-  
+
   /**
    * Callbacks
    */

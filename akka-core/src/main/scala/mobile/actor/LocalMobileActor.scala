@@ -33,21 +33,12 @@ trait LocalMobileActor extends InnerReference {
   val retainedMessagesQueue = new ConcurrentLinkedQueue[RetainedMessage]
   val retainedMessagesWithFutureQueue = new ConcurrentLinkedQueue[RetainedMessageWithFuture]
 
-  private var _isMigrating = false
-  def isMigrating = _isMigrating
-  
   // Check some conditions that must hold for the proper instantiation of the actor
   checkConditions()
 
   override protected[mobile] def outerRef_=(ref: MobileActorRef) = {
     actor.asInstanceOf[MobileActor].optionMobileRef = Some(ref)
     super.outerRef = ref
-  }
-
-  // TODO: APAGAR
-  private[this] def serializedActor[T <: Actor](implicit format: Format[T]): Array[Byte] = {
-    if (!isMigrating) throw new RuntimeException("This actor is not migrating. You should send it a 'MoveTo' message first")
-    else ActorSerialization.toBinary(this)
   }
 
   def forwardRetainedMessages(to: ActorRef): Unit = {
@@ -110,30 +101,12 @@ trait LocalMobileActor extends InnerReference {
     } else super.postMessageToMailboxAndCreateFutureResultWithTimeout(message, timeout, senderOption, senderFuture)
   }
   
+
   // TODO: Acho que o MobileDispatcher não permite que seja chamado 'invoke' depois que um ator esteja
   // com o campo isMigrating == true. Mas é bom ficar de olho.
-  //
-  // abstract override def invoke(messageHandle: MessageInvocation): Unit = {
-  //   // Don't process messages during migration, put them in the retained messages queue
-  //   if (isMigrating) {
-  //     messageHandle.senderFuture match {
-  //     // Message without Future
-  //     case None => 
-  //       retainedMessagesQueue.add(RetainedMessage(messageHandle.message, messageHandle.sender))
-  //     // Message with Future
-  //     case Some(future) =>
-  //       // Converting back from Nanoseconds to Milliseconds
-  //       val timeout = TimeUnit.NANOSECONDS.toMillis(future.timeoutInNanos)
-  //       retainedMessagesWithFutureQueue.add(RetainedMessageWithFuture(messageHandle.message, timeout, messageHandle.sender, messageHandle.senderFuture))
-  //     }
-  //   }
-  //   else {
-  //     super.invoke(messageHandle)
-  //   }
-  // }
+
 
   protected[mobile] def initMigration(): Unit = {
-    _isMigrating = true
     actor.beforeMigration()
   }
 
