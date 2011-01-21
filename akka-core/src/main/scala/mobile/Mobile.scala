@@ -55,6 +55,12 @@ object Mobile {
   def spawnAt(node: TheaterNode, factory: => MobileActor): MobileActorRef = {
     spawn(Right(() => factory), Some(node))
   }
+  
+  /**
+   * Spawn multiple co-located actors
+   */
+  //def spawnMultiple[T <: MobileActor : Manifest](number: Int): List[MobileActorRef] = {
+  //}    
 
   private def spawn(
       constructor: Either[Class[_ <: MobileActor], () => MobileActor], 

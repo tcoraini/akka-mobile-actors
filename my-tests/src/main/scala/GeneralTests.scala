@@ -250,9 +250,9 @@ object GeneralTests {
     stop(actors size)
   }
 
-  def testServer1(migrate: Boolean) = {
-    LocalTheater.start("ubuntu-tcoraini", 1810)
-    val ref = Mobile.spawn[StatefulActor]
+  def testServer1(migrate: Boolean = false) = {
+    LocalTheater.start("localhost", 2312)
+    val ref = Mobile.spawnHere[StatefulActor]
     ref ! Ping
     ref ! ShowCount
     if (migrate) {
@@ -262,12 +262,13 @@ object GeneralTests {
   }
 
   def testServer2 = {
-    LocalTheater.start("localhost", 2312)
+    LocalTheater.start("ubuntu-tcoraini", 1810)
   }
 
   def testClient(uuid: String) = {
     LocalTheater.start("localhost", 2222)
-    val ref = MobileActorRef(uuid, "ubuntu-tcoraini", 1810)
+    val ref = MobileActorRef(uuid, "localhost", 2312)
+//    val ref = MobileActorRef(uuid, "ubuntu-tcoraini", 1810)
     ref ! Ping
     ref ! ShowCount
     ref

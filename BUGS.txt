@@ -1,5 +1,6 @@
 - Em RemoteClient, o valor default para READ_TIMEOUT no código (1) não bate com o do arquivo de configuração (10)
 - Em RemoteClient, na definição dos Handlers, o ReadTimeoutHandler parece receber o argumento em milissegundos, onde deveria ser segundos.
+- Em RemoteClient, o tempo para a tentativa de reconectar e o tempo total que ele tentará reconectar estão em segundos. Assim, por default ele tenta reconectar a cada 5 segundos durante 600 segundos (10 minutos). Não ficou claro se era essa a ideia mesmo, mas em uma das mensagens de informação (log.info) ele diz que tentará reconectar por mais X milissegundos, o que parece indicar que talvez a ideia fosse usar os tempos em milissegundos.
 
 - Em ActorRef.scala, no método postMessageToMailboxAndCreateFutureResultWithTimeout, tanto da classe RemoteActorRef quanto da classe LocalActorRef quando o ator é remoto, o valor de timeout recebido como parâmetro não é usado. Isso significa que será usado o valor de timeout do ator, e caso o cliente tenha passado um timeout da forma:
 	ref.!!(msg,customTimeout)

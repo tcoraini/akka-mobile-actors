@@ -3,42 +3,31 @@ package se.scalablesolutions.akka.mobile.theater
 import se.scalablesolutions.akka.mobile.util.messages._
 
 import se.scalablesolutions.akka.util.Logging
+import se.scalablesolutions.akka.config.Config
 
 import scala.collection.mutable.HashMap
-import scala.collection.mutable.PriorityQueue
+import java.util.PriorityQueue
 
-case class MessagesReceived(uuid: String, from: TheaterNode) {
-  var count: Int = 0
-
-  def increment(): Unit = 
-    count = count + 1
-
-  override def toString = "MessagesReceived(To [" + uuid + "] from " + from + " -> " + count + ")"
-
-  override def equals(that: Any): Boolean = that match {
-    case mr: MessagesReceived => 
-      mr.uuid == this.uuid && mr.from == this.from
-
-    case _ => false
-  }
+object Statistics {
+  val MESSAGES_RECEIVED_THRESHOLD: Int = 5
 }
-
 
 class Statistics extends Logging {
 
-  private val messagesCounter = new HashMap[String, HashMap[TheaterNode, MessagesReceived]]
+  /*private*/ val incomingMessagesRecord = new HashMap[String, HashMap[TheaterNode, MessagesReceived]]
+  
+  private val messagesReceivedThreshold = 
+    Config.config.getInt("cluster.statistics.messages-received-threshold", Statistics.MESSAGES_RECEIVED_THRESHOLD)
 
-  //private val priorityQueue = new PriorityQueue[MessagesReceived]
-
-  private var minimumInQueue: MessagesReceived = null
+  /*private*/ val priorityQueue = new PriorityQueue[MessagesReceived]
 
   def messageArrived(uuid: String, message: MobileActorMessage): Unit = {  
-    val innerMap = messagesCounter.get(uuid) match {
+    val innerMap: HashMap[TheaterNode, MessagesReceived] = incomingMessagesRecord.get(uuid) match {
       case Some(map) => map
 
       case None => {
         val map = new HashMap[TheaterNode, MessagesReceived]
-        messagesCounter.put(uuid, map)
+        incomingMessagesRecord.put(uuid, map)
         map
       }
     }
@@ -54,18 +43,25 @@ class Statistics extends Logging {
       }
     }
     messagesReceived.increment
-    //updatePriorityQueue(messagesReceived)
-    
+
+    updatePriorityQueue(messagesReceived)
+
     log.debug("Registering arrival of message to actor with UUID [%s] from node [%s:%d].", 
         uuid, node.hostname, node.port)
   }
 
-  //def updatePriorityQueue(messagesReceived: MessagesReceived): Unit = {
-  //  if (messagesReceived.count > minimumCount) {
-  //    biggestCounts.enqueue(messagesReceived)
-  //    minimumCount = messagesReceived.
+  private def updatePriorityQueue(messagesReceived: MessagesReceived): Unit = {
+    if (messagesReceived.count == messagesReceivedThreshold) {
+      priorityQueue.add(messagesReceived)
+    } else if (messagesReceived.count > messagesReceivedThreshold) {
+      if (priorityQueue.remove(messagesReceived) == false)
+        println("\n\n** DEU FALSO NA REMOÇÃO DE " + messagesReceived + " **\n\n")
+      priorityQueue.add(messagesReceived)
+    }
+  }
+  
+  def getFirstInQueue: MessagesReceived = priorityQueue.peek
 
-  def getMessagesCount(uuid: String): Option[HashMap[TheaterNode, MessagesReceived]] = 
-    messagesCounter.get(uuid)
+  def getMessagesCount(uuid: String): Option[HashMap[TheaterNode, MessagesReceived]] = incomingMessagesRecord.get(uuid)
 
 }
