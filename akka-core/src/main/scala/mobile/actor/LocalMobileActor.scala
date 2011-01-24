@@ -56,6 +56,24 @@ trait LocalMobileActor extends InnerReference {
     super.start()
   }
 
+  abstract override def !(message: Any)(implicit sender: Option[ActorRef] = None): Unit = {
+    // All messages received (local and remote) are registered
+    val statistics = outerRef.homeTheater.statistics
+    val msg = message match {
+      // Message from remote actor received and forwarded by local theater
+      case remoteMsg: MobileActorMessage =>
+	statistics.remoteMessageArrived(uuid, remoteMsg)
+	remoteMsg.message
+      
+      case localMsg =>
+	statistics.localMessageArrived(uuid)
+	localMsg
+    }
+
+    super.!(msg)
+  }
+	
+
   abstract override def !!(message: Any, timeout: Long = this.timeout)(implicit sender: Option[ActorRef] = None): Option[Any] = {
     // TODO Verificar como fica isso. O próprio ActorRef será responsável por esperar pelo Futuro ser completado com o
     // resultado e então devolver a resposta. Mas o ActorRef será serializado e depois, talvez inutilizado. Vai dar certo?

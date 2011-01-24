@@ -33,7 +33,7 @@ private[mobile] trait Theater extends Logging {
  
   private var _pipelineFactoryCreator: PipelineFactoryCreator = new TheaterPipelineFactoryCreator(mobileActors, this)
 
-  val statistics = new Statistics
+  private var _statistics: Statistics = _
   
   var _protocol: TheaterProtocol = new AgentProtobufProtocol(this)
 
@@ -50,6 +50,8 @@ private[mobile] trait Theater extends Logging {
   private var _isRunning = false
   def isRunning = _isRunning
 
+  def statistics = _statistics
+
   def start(hostname: String, port: Int) = {
     log.debug("Starting a theater at %s:%d.", hostname, port)
 
@@ -63,6 +65,8 @@ private[mobile] trait Theater extends Logging {
     _protocol.init()
 
     NameService.init()
+
+    _statistics = new Statistics(this.node)
 
     _isRunning = true
   }
@@ -109,14 +113,14 @@ private[mobile] trait Theater extends Logging {
 
     mobileActors.get(uuid) match {
       case actor: MobileActorRef =>
-        val message = MessageSerializer.deserialize(request.getMessage) match {
-          case mobileActorMsg: MobileActorMessage => { 
-            statistics.messageArrived(uuid, mobileActorMsg)
-            mobileActorMsg.message
-          }
+        val message = MessageSerializer.deserialize(request.getMessage) //match {
+//          case mobileActorMsg: MobileActorMessage => { 
+//            _statistics.remoteMessageArrived(uuid, mobileActorMsg)
+//            mobileActorMsg.message
+//          }
 
-          case msg => msg
-        }
+//          case msg => msg
+//        }
         // TODO ver o negocio do sender
         actor.!(message)(None)
 
