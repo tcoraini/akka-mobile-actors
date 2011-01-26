@@ -11,6 +11,7 @@ import se.scalablesolutions.akka.mobile.actor.RemoteMobileActor
 import se.scalablesolutions.akka.mobile.theater.LocalTheater
 import se.scalablesolutions.akka.mobile.theater.TheaterNode
 import se.scalablesolutions.akka.mobile.theater.TheaterHelper
+import se.scalablesolutions.akka.mobile.theater.GroupManagement
 
 import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.LocalActorRef
@@ -57,14 +58,35 @@ object Mobile {
   }
   
   /**
-   * Spawn multiple co-located actors
+   * Co-located actors
    */
-  //def spawnMultiple[T <: MobileActor : Manifest](number: Int): List[MobileActorRef] = {
-  //}    
+  def spawnTogetherHere[T <: MobileActor : Manifest](number: Int): List[MobileActorRef] = {
+    val groupId = GroupManagement.newGroupId
+    val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
+    (for (i <- 1 to number)
+      yield spawn(Left(clazz), Some(LocalTheater.node), Some(groupId))).toList
+  }
 
+  def spawnTogetherHere(factories: (() => MobileActor)*): List[MobileActorRef] = {
+    val groupId = GroupManagement.newGroupId
+    (for (factory <- factories)
+      yield spawn(Right(factory), Some(LocalTheater.node), Some(groupId))).toList
+  }
+
+  def spawnTogetherAt[T <: MobileActor : Manifest](node: TheaterNode, number: Int): List[MobileActorRef] = {
+    val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
+    TheaterHelper.spawnActorsGroupRemotely(Left((clazz, number)), node)
+  }
+  
+  def spawnTogetherAt(node: TheaterNode)(factories: (() => MobileActor)*): List[MobileActorRef] = {
+    TheaterHelper.spawnActorsGroupRemotely(Right(factories.toList), node)
+  }
+
+  // TODO tem como unificar os metodos de spawn normal e co-locados?
   private def spawn(
       constructor: Either[Class[_ <: MobileActor], () => MobileActor], 
-      where: Option[TheaterNode] = None): MobileActorRef = {
+      where: Option[TheaterNode] = None,
+      groupId: Option[String] = None): MobileActorRef = {
 
     val node: TheaterNode = where match {
       case Some(theater) => theater
@@ -77,6 +99,7 @@ object Mobile {
 
         case Right(factory) => MobileActorRef(factory())
       }
+      mobileRef.groupId = groupId
       mobileRef.start
       LocalTheater.register(mobileRef)
       mobileRef
@@ -84,21 +107,6 @@ object Mobile {
       TheaterHelper.spawnActorRemotely(constructor, node)
     }
   }
-
-  /*private[this] def newMobileActor(factory: => MobileActor): LocalMobileActor = 
-    new LocalActorRef(() => factory) with LocalMobileActor
-
-  private[this] def newMobileActor(clazz: Class[_ <: MobileActor]): LocalMobileActor = 
-    new LocalActorRef(clazz) with LocalMobileActor
-
-  private[this] def newMobileActor(classname: String): LocalMobileActor = {
-    val clazz = Class.forName(classname).asInstanceOf[Class[_ <: MobileActor]]
-    newMobileActor(clazz)
-  }*/
-
-  // For remote actors
-  /*def newRemoteMobileActor(actorId: String, hostname: String, port: Int, timeout: Long): RemoteMobileActor = 
-    new RemoteActorRef(actorId, actorId, hostname, port, timeout, None) with RemoteMobileActor*/
 
 }
 

@@ -35,7 +35,8 @@ private[mobile] trait Theater extends Logging {
 
   private var _statistics: Statistics = _
   
-  var _protocol: TheaterProtocol = new AgentProtobufProtocol(this)
+//  var _protocol: TheaterProtocol = new AgentProtobufProtocol(this)
+  var _protocol: TheaterProtocol = new AgentProtocol(this)
 
   private var _hostname: String = _
   private var _port: Int = _
@@ -113,14 +114,7 @@ private[mobile] trait Theater extends Logging {
 
     mobileActors.get(uuid) match {
       case actor: MobileActorRef =>
-        val message = MessageSerializer.deserialize(request.getMessage) //match {
-//          case mobileActorMsg: MobileActorMessage => { 
-//            _statistics.remoteMessageArrived(uuid, mobileActorMsg)
-//            mobileActorMsg.message
-//          }
-
-//          case msg => msg
-//        }
+        val message = MessageSerializer.deserialize(request.getMessage)
         // TODO ver o negocio do sender
         actor.!(message)(None)
 
@@ -185,6 +179,24 @@ private[mobile] trait Theater extends Logging {
     this.register(mobileRef)
     mobileRef
   } 
+
+  def startLocalActorsGroup(constructor: Either[Tuple2[String, Int], List[Array[Byte]]]): List[MobileActorRef] = {
+    val listOfMobileRefs = constructor match {
+      case Left((classname, n)) =>
+	(for (i <- 1 to n) yield MobileActorRef(Class.forName(classname).asInstanceOf[Class[_ <: MobileActor]])).toList
+      
+      case Right(list) =>
+	(for (bytes <- list) yield MobileSerialization.mobileFromBinary(bytes)(DefaultActorFormat)).toList
+    }
+    
+    val groupId = GroupManagement.newGroupId
+    listOfMobileRefs.foreach(ref => {
+      ref.groupId = Some(groupId)
+      ref.start
+      this.register(ref)
+    })
+    listOfMobileRefs
+  }
 
   /**
    * Requests the migration of the actor with UUID 'uuid' to some destination, represented
@@ -274,6 +286,14 @@ private[mobile] trait Theater extends Logging {
     case reply: StartMobileActorReply =>
       TheaterHelper.completeActorSpawn(reply)
 
+    case StartMobileActorsGroupRequest(requestId, constructor) =>
+      val refs = startLocalActorsGroup(constructor)
+      val uuids = refs.map(ref => ref.uuid)
+      sendTo(message.sender.get, StartMobileActorsGroupReply(requestId, uuids))
+
+    case reply: StartMobileActorsGroupReply =>
+      TheaterHelper.completeActorsGroupSpawn(reply)
+    
     case MobileActorRegistered(uuid) =>
       finishMigration(uuid)
 

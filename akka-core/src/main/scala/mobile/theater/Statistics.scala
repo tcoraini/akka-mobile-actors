@@ -63,7 +63,6 @@ class Statistics(private val localNode: TheaterNode) extends Logging {
       log.debug("Registering arrival of remote message to actor with UUID [%s] from node [%s:%d].",
 		uuid, from.hostname, from.port)
     }
-
   }
 
   private def updatePriorityQueue(messagesReceived: MessagesReceived): Unit = {
