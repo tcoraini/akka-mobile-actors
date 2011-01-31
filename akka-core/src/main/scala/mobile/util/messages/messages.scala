@@ -35,6 +35,11 @@ case class StartMobileActorsGroupReply(requestId: Long, uuids: List[String]) ext
 
 case class ActorNewLocationNotification(uuid: String, hostname: String, port: Int) extends TheaterMessage
 
+// Messages for the tracking system
+case class MobTrackMigrate(uuid: String, from: TheaterNode, to: TheaterNode) extends TheaterMessage
+case class MobTrackArrive(uuid: String, node: TheaterNode) extends TheaterMessage
+case class MobTrackDepart(uuid: String, node: TheaterNode) extends TheaterMessage
+
 /**
  * Message that wraps a request for a remote mobile actor
  */

@@ -11,3 +11,7 @@
 4 - O que fazer quando um ator remoto não pode ser encontrado pela referência? Por exemplo, quando o nó em que ele estava cai, e o ator não tinha sido migrado.
 
 5 - A comunicação toda baseada em netty requer alguns cuidados. No tratamento de eventos, não é possível tentar abrir uma nova conexão chamando "await". Isso causa problema por exemplo na seguinte situação: a mensagem chega num nó, mas o ator não está lá. O nó verifica no serviço de nomes e encontra o ator em outro nó, com quem ele ainda não possui uma conexão. Ao tentar abrir essa conexão, ele lança uma exceção, por chamar 'await' dentro de um método de tratamento de eventos (messageReceived). Uma solução seria executar ações como essa do encaminhamento de mensagens em novas threads.
+
+6 - Como tratar a migração de um ator co-locado com outros? Possibilidades:
+  - Um dos atores recebe um MoveTo, mover todos
+  - MoveTo move apenas o ator (tirando-o do grupo), adicionar mensagem MoveGroupTo para explicitamente solicitar a migração de todos

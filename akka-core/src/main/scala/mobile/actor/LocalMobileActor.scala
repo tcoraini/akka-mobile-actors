@@ -56,6 +56,11 @@ trait LocalMobileActor extends InnerReference {
     super.start()
   }
 
+  abstract override def stop(): Unit = {
+    homeTheater.unregister(outerRef)
+    super.stop()
+  }
+
   abstract override def !(message: Any)(implicit sender: Option[ActorRef] = None): Unit = {
     // All messages received (local and remote) are registered
     val statistics = outerRef.homeTheater.statistics

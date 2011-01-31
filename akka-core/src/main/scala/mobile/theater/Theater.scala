@@ -12,6 +12,7 @@ import se.scalablesolutions.akka.mobile.theater.protocol.AgentProtobufProtocol
 import se.scalablesolutions.akka.mobile.theater.protocol.AgentProtocol
 import se.scalablesolutions.akka.mobile.nameservice.NameService
 import se.scalablesolutions.akka.mobile.nameservice.DistributedNameService
+import se.scalablesolutions.akka.mobile.tools.mobtrack.MobTrackGUI
 
 import se.scalablesolutions.akka.actor.ActorRef
 import se.scalablesolutions.akka.remote.RemoteServer
@@ -37,6 +38,9 @@ private[mobile] trait Theater extends Logging {
   
 //  var _protocol: TheaterProtocol = new AgentProtobufProtocol(this)
   var _protocol: TheaterProtocol = new AgentProtocol(this)
+
+  private var mobTrack = false
+  private var mobTrackNode: Option[TheaterNode] = None
 
   private var _hostname: String = _
   private var _port: Int = _
@@ -69,24 +73,40 @@ private[mobile] trait Theater extends Logging {
 
     _statistics = new Statistics(this.node)
 
+    
+    if (Config.config.getString("cluster.mob-track.node").isDefined) {
+      configureMobTrack()
+    }
+
     _isRunning = true
   }
-
-  def register(actor: MobileActorRef): Unit = {
+  
+  def register(actor: MobileActorRef, fromMigration: Boolean = false): Unit = {
     if (_isRunning) {
       mobileActors.put(actor.uuid, actor)
       actor.homeTheater = this
       
       // Registering in the name server
-      NameService.put(actor.uuid, this.node) 
+      NameService.put(actor.uuid, this.node)
+      if (!fromMigration) {
+	if (mobTrack) {
+	  sendTo(mobTrackNode.get, MobTrackArrive(actor.uuid, this.node))
+	}
+      }
  
       log.debug("Registering actor with UUID [%s] in theater at [%s:%d].", actor.uuid, hostname, port)
     } // TODO verificar isso, tratamento quando o theater nao estao rodando
   }
 
-  def unregister(actor: MobileActorRef): Unit = {
+  def unregister(actor: MobileActorRef, afterMigration: Boolean = false): Unit = {
     if (_isRunning) {
       mobileActors.remove(actor.uuid)
+      NameService.remove(actor.uuid)
+      if (!afterMigration) {
+	if (mobTrack) {
+	  sendTo(mobTrackNode.get, MobTrackDepart(actor.uuid, this.node))
+	}
+      }
 
       log.debug("Unregistering actor with UUID [%s] from theater at [%s:%d]", actor.uuid, hostname, port)
     }
@@ -250,7 +270,7 @@ private[mobile] trait Theater extends Logging {
       //println("RETAINED MESSAGES: " + actor.retained)
       //println("MAILBOX: " + actor.mb)
       actor.endMigration()
-      this.unregister(actor)
+      this.unregister(actor, true)
       // TODO destruir instancia
     }
   }
@@ -267,9 +287,12 @@ private[mobile] trait Theater extends Logging {
         hostname, port, sender.get.hostname, sender.get.port)
 
       val mobileRef = MobileSerialization.mobileFromBinary(bytes)(DefaultActorFormat)
-      register(mobileRef)
+      register(mobileRef, true)
       NameService.put(mobileRef.uuid, this.node)
-      
+      if (mobTrack) {
+	sendTo(mobTrackNode.get, MobTrackMigrate(mobileRef.uuid, sender.get, this.node))
+      }
+
       // Notifying the sender that the actor is now registered in this theater
       sendTo(sender.get, MobileActorRegistered(mobileRef.uuid))
     }
@@ -306,6 +329,15 @@ private[mobile] trait Theater extends Logging {
         reference.get.updateRemoteAddress(TheaterNode(newHostname, newPort))
       }
 
+    case MobTrackMigrate(uuid, from, to) =>
+      MobTrackGUI.migrate(uuid, from, to)
+
+    case MobTrackArrive(uuid, node) =>
+      MobTrackGUI.arrive(uuid, node)
+
+    case MobTrackDepart(uuid, node) =>
+      MobTrackGUI.depart(uuid, node)
+
     case trash =>
       log.debug("Theater at [%s:%d] received an unknown message: %s. Discarding it.", hostname, port, trash)
   }
@@ -318,6 +350,26 @@ private[mobile] trait Theater extends Logging {
    */
   private def sendTo(node: TheaterNode, message: TheaterMessage): Unit = {
     _protocol.sendTo(node, message)
+  }
+
+  /*
+   * Configuration of the mobile actors tracking system
+   */
+  private def configureMobTrack(): Unit = {
+    val nodeName = Config.config.getString("cluster.mob-track.node").get
+    val hostname = Config.config.getString("cluster." + nodeName + ".hostname")
+    val port = Config.config.getInt("cluster." + nodeName + ".port")
+    
+    (hostname, port) match {
+      case (Some(_hostname), Some(_port)) =>
+	mobTrack = true
+	mobTrackNode = Some(TheaterNode(_hostname, _port))
+        log.debug("MobTrack activated and running at node [%s:%d]", _hostname, _port)
+      
+      case _ =>
+	log.debug("MobTrack not running.")
+        ()
+    }
   }
 
   /**

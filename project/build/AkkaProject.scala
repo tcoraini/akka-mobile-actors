@@ -1,6 +1,7 @@
  /*---------------------------------------------------------------------------\
 | Copyright (C) 2009-2010 Scalable Solutions AB <http://scalablesolutions.se> |
-\---------------------------------------------------------------------------*/
+\---------------------------------------------------------------------------
+* */
 
 import com.weiglewilczek.bnd4sbt.BNDPlugin
 import java.io.File
@@ -199,6 +200,8 @@ class AkkaParentProject(info: ProjectInfo) extends DefaultProject(info) {
     lazy val werkz      = "org.codehaus.aspectwerkz" % "aspectwerkz-nodeps-jdk5" % ASPECTWERKZ_VERSION % "compile"
     lazy val werkz_core = "org.codehaus.aspectwerkz" % "aspectwerkz-jdk5"        % ASPECTWERKZ_VERSION % "compile"
 
+    lazy val scala_swing = "org.scala-lang" % "scala-swing" % buildScalaVersion % "compile"
+
     // Test
 
     lazy val camel_spring   = "org.apache.camel"       % "camel-spring"        % CAMEL_VERSION     % "test"
@@ -355,6 +358,9 @@ class AkkaParentProject(info: ProjectInfo) extends DefaultProject(info) {
     val slf4j         = Dependencies.slf4j
     val logback       = Dependencies.logback
     val logback_core  = Dependencies.logback_core
+
+    // Swing
+    val scala_swing = Dependencies.scala_swing
 
     // testing
     val junit     = Dependencies.junit

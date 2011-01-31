@@ -14,6 +14,7 @@ import se.scalablesolutions.akka.remote.RemoteClient
 import se.scalablesolutions.akka.mobile.Mobile
 import se.scalablesolutions.akka.mobile.actor._
 import se.scalablesolutions.akka.mobile.theater._
+import se.scalablesolutions.akka.mobile.tools.mobtrack.MobTrackGUI
 import se.scalablesolutions.akka.mobile.util.messages._
 
 import se.scalablesolutions.akka.dispatch.FutureTimeoutException
@@ -296,6 +297,26 @@ object GeneralTests {
     ref ! MoveTo("localhost", 2312)
     ref ! Message("Migration done!")
     ref
+  }
+  
+  def testGUI() = {
+    new Thread {
+      override def run() {
+	MobTrackGUI.main(new Array[String](0))
+      }
+    } start
+
+    val node1 = TheaterNode("ubuntu-tcoraini", 1810)
+    val node2 = TheaterNode("localhost", 2312)
+
+    Thread.sleep(3000)
+    MobTrackGUI.arrive("MIGRATE_1", node1)
+    Thread.sleep(1000)
+    MobTrackGUI.arrive("B_00000", node1)
+    Thread.sleep(1000)
+    MobTrackGUI.migrate("MIGRATE_1", node1, node2)
+    Thread.sleep(1000)
+    MobTrackGUI.migrate("A_12345", node2, node1)
   }
 }
 

@@ -22,7 +22,7 @@ object NameService extends Logging {
   }
 
   def put(uuid: String, node: TheaterNode): Unit = ifRunning {
-      service.put(uuid, node)
+    service.put(uuid, node)
   }
     
   def get(actor: MobileActorRef): Option[TheaterNode] = {
