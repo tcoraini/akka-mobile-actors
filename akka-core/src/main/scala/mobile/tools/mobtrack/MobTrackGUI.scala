@@ -22,21 +22,23 @@ object MobTrackGUI extends SimpleSwingApplication {
 
     val mainPanel = new FlowPanel(FlowPanel.Alignment.Left)() {
       for (node <- nodes) {
-	val newNodePanel = createNodePanel(node)
+	val newNodePanel = createNodePanel(node, nodePanelSize(ClusterConfiguration.numberOfNodes))
 	nodePanels += ((node, newNodePanel))
 	contents += newNodePanel
       }
+      preferredSize = 
+	if (ClusterConfiguration.numberOfNodes <= 9)
+	  new Dimension(1000, 615)
+	else {
+	  val rows = (ClusterConfiguration.numberOfNodes / 3d).ceil.toInt
+	  new Dimension(1000, 205 * rows)
+	}
     }
     
-/*
-    nodePanels.get(TheaterNode("localhost", 2312)).get.arrive("A_12345")
-    nodePanels.get(TheaterNode("localhost", 2312)).get.arrive("A_67890")
-    nodePanels.get(TheaterNode("ubuntu-tcoraini", 1810)).get.arrive("B_99999")
-*/
-    contents = mainPanel
+    contents = new ScrollPane(mainPanel)
     title = "MobTrack - Mobile Actors Tracking System"
-//    preferredSize = new Dimension(1000, 600)
-    size = new Dimension(1000, 600)
+    size = new Dimension(1030, 650)
+//    preferredSize = new Dimension(1100, 615)
     location = new Point(100, 100)
   }
 
@@ -60,8 +62,19 @@ object MobTrackGUI extends SimpleSwingApplication {
     arrive(uuid, to, true)
   }
 
-  private def createNodePanel(node: NodeInformation): NodePanel = {
-    new NodePanel(node, new Dimension(500, 600))
+  private def createNodePanel(node: NodeInformation, size: Dimension): NodePanel = {
+    new NodePanel(node, size)
+  }
+
+  private def nodePanelSize(numberOfNodes: Int): Dimension = {
+    if (numberOfNodes <= 3)
+      new Dimension((1000 / numberOfNodes).toInt, 600)
+    else if (numberOfNodes == 4)
+      new Dimension(500, 300)
+    else if (numberOfNodes <= 6)
+      new Dimension(333 /* 1000 / 3 */, 300 /* 600 / 2 */)
+    else
+      new Dimension(333, 200)
   }
 }
 
@@ -105,8 +118,6 @@ class NodePanel(node: NodeInformation, size: Dimension) extends BoxPanel(Orienta
 	drawActorArrived(component, actorsPanel)
       else
 	drawActorStarted(component, actorsPanel)
-//      actorsPanel.peer.add(component.peer)
-//      actorsPanel.revalidate()
     }
   }
 
@@ -119,11 +130,6 @@ class NodePanel(node: NodeInformation, size: Dimension) extends BoxPanel(Orienta
 	  drawActorLeft(component, actorsPanel)
         else
 	  drawActorStopped(component, actorsPanel)
-//        actorsPanel.peer.remove(component.peer)
-//        if (actorsPanel.peer.getComponentCount == 0) {
-//	  actorsPanel.peer.updateUI()
-//	}
-//        actorsPanel.revalidate()
 	true
       
       case None => false
