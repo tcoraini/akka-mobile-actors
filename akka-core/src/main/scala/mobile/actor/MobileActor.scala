@@ -9,7 +9,7 @@ import java.net.InetSocketAddress
 
 trait MobileActor extends Actor {
   
-  @transient protected[mobile] var optionMobileRef: Option[MobileActorRef] = None
+  @transient protected[mobile] var optionMobileRef: Option[MobileActorRef] = None // TODO o 'self' com cast pra MobileActorRef nao da na mesma?
 
   self.id = self.uuid
 

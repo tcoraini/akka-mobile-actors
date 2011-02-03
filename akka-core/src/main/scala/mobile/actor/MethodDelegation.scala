@@ -84,7 +84,7 @@ trait MethodDelegation extends ActorRef with ScalaActorRef {
 
   // Protected methdos from ActorRef
   // These SHOULD NOT be invoked in a MobileActorRef, because there is no way we can forward the call
-  // to the actual reference (unless this class goes on the 'akka' package.
+  // to the actual reference (unless this class goes on the 'akka' package).
   def remoteAddress_=(addr: Option[InetSocketAddress]): Unit = unsupported
   def invoke(messageHandle: MessageInvocation): Unit = unsupported
   def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = unsupported
