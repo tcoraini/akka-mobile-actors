@@ -5,7 +5,7 @@ import se.scalablesolutions.akka.mobile.examples.s4.ProcessingElement
 import scala.util.Random
 
 //@serializable class WordCountPE(eventPrototype: WordEvent) extends ProcessingElement(eventPrototype) {
-@serializable class WordCountPE extends ProcessingElement[WordEvent] {
+@serializable class WordCountPE(val eventPrototype: WordEvent) extends ProcessingElement[WordEvent] {
 
   private val sortPEKey = Random.nextInt(WordCounter.numberOfSortPEs)
 
@@ -16,14 +16,14 @@ import scala.util.Random
   def process(event: WordEvent) {
     // This should ALWAYS be true
     if (event.key == word) {
-      count = count + 1
+      count = count + event.attribute
       emit(UpdateCountEvent(sortPEKey, (word, count)))
     } else // Should NEVER happen, exception just to make sure it doesn't
       throw new RuntimeException("WordCountPE for word '" + word + "' received a WordEvent with word '" + event.key + "'.")
   }
   
-  protected override def start(prototype: WordEvent) = {
-    super.start(prototype)
+  override def init = {
+    super.init
     word = key.asInstanceOf[String]
   }
 }

@@ -4,11 +4,11 @@ import se.scalablesolutions.akka.mobile.examples.s4.ProcessingElement
 
 import scala.collection.mutable.HashMap
 
-@serializable class SortPE extends ProcessingElement[UpdateCountEvent] with Runnable {
+@serializable class SortPE(val eventPrototype: UpdateCountEvent) extends ProcessingElement[UpdateCountEvent] with Runnable {
   private val words = new HashMap[String, Int]
   
-  protected override def start(prototype: UpdateCountEvent) = {
-    super.start(prototype)
+  override def init = {
+    super.init
     // Starts this as a new Thread
     new Thread(this).start()
   }

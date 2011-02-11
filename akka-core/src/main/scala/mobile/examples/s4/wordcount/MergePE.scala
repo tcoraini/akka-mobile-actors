@@ -5,13 +5,13 @@ import se.scalablesolutions.akka.mobile.examples.s4.ProcessingElement
 import java.io.FileWriter
 import scala.collection.mutable.HashMap
 
-@serializable class MergePE extends ProcessingElement[PartialTopKEvent] with Runnable {
+@serializable class MergePE(val eventPrototype: PartialTopKEvent) extends ProcessingElement[PartialTopKEvent] with Runnable {
   val words = new HashMap[String, Int]
 
   private var writer: FileWriter = _
   
-  protected override def start(prototype: PartialTopKEvent) = {
-    super.start(prototype)
+  override def init = {
+    super.init
     writer = new FileWriter(WordCounter.partialResultsFile)
     // Starts this as a new Thread
     new Thread(this).start()
@@ -40,13 +40,14 @@ import scala.collection.mutable.HashMap
   }
 
   private def printPartialResult(listOfWords: List[Tuple2[String, Int]]): Unit = {
-    println("-" * 100)
-    println("Date: " + new java.util.Date)
-    println("Number of words: " + listOfWords.size + "\n")
+    writer.write("-" * 100)
+    writer.write("\nDate: " + new java.util.Date + "\n")
+    writer.write("Number of words: " + listOfWords.size + "\n\n")
     for ((word, count) <- listOfWords) {
       writer.write(word + ": " + count + "\n")
     }
-    println("-" * 100)
-    println()
+    writer.write("-" * 100)
+    writer.write("\n\n")
+    writer.flush()
   }
 }

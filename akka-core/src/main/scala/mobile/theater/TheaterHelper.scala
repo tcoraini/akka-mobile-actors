@@ -40,7 +40,7 @@ object TheaterHelper extends Logging {
     val reqId = newRequestId
     LocalTheater.protocol.sendTo(node, StartMobileActorRequest(reqId, serializableConstructor))
     while (!mobileRefs.contains(reqId))
-      Thread.sleep(200)
+      Thread.sleep(100)
 
     val ref = mobileRefs.get(reqId).get
     mobileRefs.remove(reqId)

@@ -4,7 +4,7 @@ import se.scalablesolutions.akka.mobile.examples.s4.ProcessingElement
 
 import scala.collection.mutable.HashMap
 
-class QuoteSplitterPE extends ProcessingElement[QuoteEvent] {
+class QuoteSplitterPE(val eventPrototype: QuoteEvent) extends ProcessingElement[QuoteEvent] {
   def process(event: QuoteEvent) = {
     val quote = event.attribute.toLowerCase
     val words = quote.split(' ')

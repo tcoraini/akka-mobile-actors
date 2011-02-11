@@ -6,6 +6,8 @@
 	ref.!!(msg,customTimeout)
 esse novo timeout será desconsiderado.
 
+- Em ActorRef.scala, no método !!, caso seja interceptada a exceção FutureTimeoutException, se a condição 'isTypedActor' for falsa, o bloco 'try..catch' devolve como valor None, mas esse valor é desconsiderado. Acaba funcionando, no entanto, já que future.result (o valor a ser devolvido) é, por padrão, None.
+
 - Em RemoteServer.scala, na função createRemoteRequestProtocolBuilder, o ator é registrado pelo UUID no servidor para seu HomeAddress, e então a função toRemoteActorRefProtocol é chamada, e nessa função novamente esse ator é registrado no servidor pelo UUID.
 
 - A geração de UUID é feita na verdade pelo AspectWerkz. Notei 2 coisas:
