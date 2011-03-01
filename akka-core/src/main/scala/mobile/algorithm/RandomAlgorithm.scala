@@ -14,9 +14,9 @@ class RandomAlgorithm extends DistributionAlgorithm {
   def chooseTheater: TheaterNode = {
     val index = Random.nextInt(numberOfTheaters)
 
-    // indexedTheaters(currentTheater) is a Tuple2[String, NodeInformation]
+    // indexedTheaters(index) is a Tuple2[String, TheaterNodeInformation]
     val nodeInfo = indexedTheaters(index)._2
 
-    TheaterNode(nodeInfo.hostname, nodeInfo.port)
+    nodeInfo.node
   }
 }

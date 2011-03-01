@@ -1,7 +1,7 @@
 package se.scalablesolutions.akka.mobile.tools.mobtrack
 
 import se.scalablesolutions.akka.mobile.util.ClusterConfiguration
-import se.scalablesolutions.akka.mobile.util.NodeInformation
+import se.scalablesolutions.akka.mobile.theater.TheaterNodeInformation
 import se.scalablesolutions.akka.mobile.theater.TheaterNode
 
 import collection.mutable.HashMap
@@ -21,9 +21,9 @@ object MobTrackGUI extends SimpleSwingApplication {
     val nodes = ClusterConfiguration.nodes.values
 
     val mainPanel = new FlowPanel(FlowPanel.Alignment.Left)() {
-      for (node <- nodes) {
-	val newNodePanel = createNodePanel(node, nodePanelSize(ClusterConfiguration.numberOfNodes))
-	nodePanels += ((node, newNodePanel))
+      for (nodeInfo <- nodes) {
+	val newNodePanel = createNodePanel(nodeInfo, nodePanelSize(ClusterConfiguration.numberOfNodes))
+	nodePanels += ((nodeInfo.node, newNodePanel))
 	contents += newNodePanel
       }
       preferredSize = 
@@ -62,8 +62,8 @@ object MobTrackGUI extends SimpleSwingApplication {
     arrive(uuid, to, true)
   }
 
-  private def createNodePanel(node: NodeInformation, size: Dimension): NodePanel = {
-    new NodePanel(node, size)
+  private def createNodePanel(nodeInfo: TheaterNodeInformation, size: Dimension): NodePanel = {
+    new NodePanel(nodeInfo, size)
   }
 
   private def nodePanelSize(numberOfNodes: Int): Dimension = {
@@ -78,8 +78,10 @@ object MobTrackGUI extends SimpleSwingApplication {
   }
 }
 
-class NodePanel(node: NodeInformation, size: Dimension) extends BoxPanel(Orientation.Vertical) {
+class NodePanel(nodeInfo: TheaterNodeInformation, size: Dimension) extends BoxPanel(Orientation.Vertical) {
   val actorComponents = new HashMap[String, ActorComponent]
+  
+  val node = nodeInfo.node
   
   val label = new Label { 
     val baseText = "[" + node.hostname + ":" + node.port + "]" 
@@ -97,7 +99,7 @@ class NodePanel(node: NodeInformation, size: Dimension) extends BoxPanel(Orienta
 
     xLayoutAlignment = 0.5
     font = new Font(Font.SANS_SERIF, Font.BOLD, 16)
-    if (node.hasNameServer)
+    if (nodeInfo.hasNameServer)
       foreground = Color.blue
   }
 

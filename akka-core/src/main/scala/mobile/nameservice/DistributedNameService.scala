@@ -39,9 +39,9 @@ object DistributedNameService extends Logging {
 
   private def findNameServiceNodes: Array[TheaterNode] = {
     val nodesWithNameService = ClusterConfiguration.nodes.values.filter {
-      node => node.hasNameServer
+      nodeInfo => nodeInfo.hasNameServer
     } map {
-      node => TheaterNode(node.hostname, node.port)
+      nodeInfo => nodeInfo.node
     }
   
     nodesWithNameService.toArray

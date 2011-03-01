@@ -12,11 +12,11 @@ class RoundRobinAlgorithm extends DistributionAlgorithm {
   private var currentTheater = 0
 
   def chooseTheater: TheaterNode = {
-    // indexedTheaters(currentTheater) is a Tuple2[String, NodeInformation]
+    // indexedTheaters(currentTheater) is a Tuple2[String, TheaterNodeInformation]
     val nodeInfo = indexedTheaters(currentTheater)._2
 
     currentTheater = (currentTheater + 1) % numberOfTheaters
     
-    TheaterNode(nodeInfo.hostname, nodeInfo.port)
+    nodeInfo.node
   }
 }

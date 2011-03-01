@@ -1,7 +1,5 @@
 package se.scalablesolutions.akka.mobile.theater
 
-import se.scalablesolutions.akka.mobile.util.NodeInformation
-
 case class TheaterNode(hostname: String, port: Int) {
   def isLocal: Boolean = LocalTheater.isLocal(hostname, port)
 }
@@ -14,6 +12,6 @@ object TheaterNode {
     (node.hostname, node.port)
   }
 
-  // From NodeInformation to TheaterNode
-  implicit def nodeInformationToTheaterNode(nodeInfo: NodeInformation) = TheaterNode(nodeInfo.hostname, nodeInfo.port)
 }
+
+case class TheaterNodeInformation(name: String, node: TheaterNode, hasNameServer: Boolean)
