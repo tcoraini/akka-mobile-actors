@@ -1,30 +1,57 @@
 package se.scalablesolutions.akka.mobile.theater
 
-case class MessagesReceived(uuid: String, from: TheaterNode) extends Comparable[MessagesReceived] {
+import java.util.Comparator
+
+/**
+ * IMRecord is a record for incoming messages for each actor. The value 'count' stands for how many
+ * messages the actor with UUID 'uuid' received from any actor in the node 'from'.
+ */
+ 
+case class IMRecord(uuid: String, from: TheaterNode) {
   private var _count: Int = 0
 
-  def increment(): Unit = 
+  private[mobile] def increment(): Unit = 
     _count = _count + 1
   
   def count = _count
+  private[mobile] def count_=(value: Int) = { _count = value }
 
-  override def toString = "MessagesReceived(To [" + uuid + "] from " + from + " -> " + count + ")"
+  private[mobile] def reset = { _count = 0 }
 
-  override def hashCode = uuid.hashCode * from.hashCode
-
+  override def toString = "IMRecord{ UUID: " + uuid + "   FROM: " + from + "   COUNT: " + count + " }"
+  
+  /**
+   * Two IMRecord's are equal if their 'uuid' and 'from' fields are equal, regardless
+   * of the 'count' field.
+   */
   override def equals(that: Any): Boolean = that match {
-    case mr: MessagesReceived => 
-      mr.uuid == this.uuid && mr.from == this.from
+    case imr: IMRecord => 
+      imr.uuid == this.uuid && imr.from == this.from
 
     case _ => false
   }
 
-  // Comparable interface, needed to insert in the PriorityQueue
-  def compareTo(o: MessagesReceived): Int = o.count - _count
+  override def hashCode = uuid.hashCode * from.hashCode
 }
 
-/*object MessagesReceived {
-  implicit val ordering = new Ordering[MessagesReceived] {
-    def compare(x: MessagesReceived, y: MessagesReceived): Int = x.count - y.count
+object IMRecord {
+
+  /**
+   * This comparator is used for putting IMRecord's instances in a Priority Queue.
+   * What is intended here is: the least record is the one with the biggest 'count' value,
+   * so it will be in the head of the queue.
+   * 
+   * Note that the ordering imposed by this comparator *is not consistent with equals* for IMRecord
+   * objects. This means that if 'compare(imr1, imr2) == 0' is TRUE, not necessarily 'imr1.equals(imr2)'
+   * will be TRUE too. Actually, the 'equals' method in the IMRecord class doesn't even take the 'count'
+   * field into account.
+   *
+   * This is OK for the use in the Priority Queue in the Statistics class, though.
+   */
+  @serializable class IMRecordComparator extends Comparator[IMRecord] {
+    def compare(o1: IMRecord, o2: IMRecord) = o2.count - o1.count
   }
-}*/
+
+  def comparator = new IMRecordComparator
+    
+}

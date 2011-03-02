@@ -265,6 +265,7 @@ private[mobile] trait Theater extends Logging {
   /* Complete the actor migration in the sender theater */
   def finishMigration(actorUuid: String): Unit = {
     log.debug("Finishing the migration process of actor with UUID [%s]", actorUuid)
+    statistics.remove(actorUuid)
     val actor = mobileActors.get(actorUuid)
     if (actor != null) {
       //println("RETAINED MESSAGES: " + actor.retained)
