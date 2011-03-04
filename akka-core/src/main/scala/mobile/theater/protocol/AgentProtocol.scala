@@ -23,7 +23,7 @@ class AgentProtocol(theater: Theater) extends TheaterProtocol(theater) {
       case message => 
         println("\n\nMESSAGE RECEIVED BY THEATER AGENT UNKNOWN: " + message + "\n\n")
     }
-    val name = "theaterAgent@" + theater.hostname + ":" + theater.port
+    val name = "theaterAgent@" + theater.node.hostname + ":" + theater.node.port
 
     theater.registerAgent(name, agent)
     agents += theater.node -> agent

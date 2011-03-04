@@ -48,7 +48,9 @@ object TheaterHelper extends Logging {
   }
 
   def completeActorSpawn(reply: StartMobileActorReply): Unit = {
-    log.debug("Mobile actor with UUID [%s] started in remote theater at [%s:%d].", reply.uuid, reply.sender.get.hostname, reply.sender.get.port)
+    log.debug("Mobile actor with UUID [%s] started in remote theater at %s.", 
+	      reply.uuid, 
+	      TheaterNode(reply.sender.get.hostname, reply.sender.get.port).format)
     val newRef = MobileActorRef(reply.uuid, reply.sender.get.hostname, reply.sender.get.port)
     mobileRefs.put(reply.requestId, newRef)
   }
@@ -87,7 +89,7 @@ object TheaterHelper extends Logging {
   }
 
   def completeActorsGroupSpawn(reply: StartMobileActorsGroupReply): Unit = {
-    log.debug("Mobile co-located actors started in remote theater at [%s:%d].", reply.sender.get.hostname, reply.sender.get.port)
+    log.debug("Mobile co-located actors started in remote theater at %s.", TheaterNode(reply.sender.get.hostname, reply.sender.get.port).format)
     val newRefs = 
       (for {
 	uuid <- reply.uuids

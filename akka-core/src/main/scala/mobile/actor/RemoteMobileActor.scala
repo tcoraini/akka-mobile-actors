@@ -32,7 +32,7 @@ trait RemoteMobileActor extends InnerReference {
   
 
   abstract override def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = {
-    val newMessage = MobileActorMessage(homeTheater.hostname, homeTheater.port, message)
+    val newMessage = MobileActorMessage(homeTheater.node.hostname, homeTheater.node.port, message)
 
     val requestBuilder = createRemoteRequestProtocolBuilder(this, newMessage, true, senderOption)
     val actorInfo = requestBuilder.getActorInfo.toBuilder
@@ -62,14 +62,17 @@ trait RemoteMobileActor extends InnerReference {
 
   private def tryToUpdateReference(): Unit = NameService.get(uuid) match {
     case Some(TheaterNode(remoteActorRef.hostname, remoteActorRef.port)) => 
-      log.debug("Lost connection to remote node [%s:%d]. Actor with UUID [%s] was there and did not migrate.", 
-		remoteActorRef.hostname, remoteActorRef.port, uuid)
+      log.debug("Lost connection to remote node %s. Actor with UUID [%s] was there and did not migrate.", 
+		TheaterNode(remoteActorRef.hostname, remoteActorRef.port).format, uuid)
       () // Actor did not migrate TODO O que fazer?
 
-    case Some(newAddress) => 
-      log.debug("Lost connection to remote node [%s:%d]. Actor with UUID [%s] was there and migrated to [%s:%d]. Updating the reference.", 
-		remoteActorRef.hostname, remoteActorRef.port, uuid, newAddress.hostname, newAddress.port)
+    case Some(newAddress) => {
+      log.debug("Lost connection to remote node %s. Actor with UUID [%s] was there and migrated to %s. Updating the reference.", 
+		TheaterNode(remoteActorRef.hostname, remoteActorRef.port).format, 
+		uuid, 
+		TheaterNode(newAddress.hostname, newAddress.port).format)
       outerRef.updateRemoteAddress(newAddress)
+    }
 
     case None => ()
   }

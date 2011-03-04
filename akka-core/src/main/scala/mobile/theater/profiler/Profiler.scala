@@ -6,31 +6,51 @@ import se.scalablesolutions.akka.util.Logging
 import se.scalablesolutions.akka.config.Config
 
 import scala.collection.mutable.HashMap
+import scala.collection.mutable.SynchronizedMap
 
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concorrent.PriorityBlockingQueue
+import java.util.concurrent.PriorityBlockingQueue
 
-object Statistics {
+object ResetMode extends Enumeration {
+  val MANUAL = Value
+  val AUTOMATIC = Value
+}
+
+object Profiler {
   // Default value for the minimum amount of messages that an actor should receive from a node before
   // entering in the priority queue. Can be set in the configuration file.
   val MESSAGES_RECEIVED_THRESHOLD: Int = 5
 
+  val DEFAULT_RESET_INTERVAL = 60 // In Minutes
 }
 
-class Statistics(val localNode: TheaterNode, automaticReset: Boolean = false) extends Logging {
-
+class Profiler(val localNode: TheaterNode) extends Logging {
   // TODO privates
   /*private*/ val incomingMessages = new ConcurrentHashMap[String, HashMap[TheaterNode, IMRecord]]
-  
-  private val messagesReceivedThreshold = 
-    Config.config.getInt("cluster.statistics.messages-received-threshold", Statistics.MESSAGES_RECEIVED_THRESHOLD)
 
   // 11 is the default initial capacity for the PriorityQueue Java class
   /*private*/ val priorityQueue = new PriorityBlockingQueue[IMRecord](11, IMRecord.comparator)
+  
+  private val messagesReceivedThreshold = 
+    Config.config.getInt("cluster.profiling.messages-received-threshold", Profiler.MESSAGES_RECEIVED_THRESHOLD)
+  
+  private var _resetMode: ResetMode.Value = parseResetModeFromConfigurationFile
+  
 
-  if (automaticReset) {
-    initializeAutomaticResetService()
+  def resetMode: ResetMode.Value = _resetMode
+  
+  def resetMode_=(mode: ResetMode.Value) = {
+    _resetMode = mode
+    if (mode == ResetMode.AUTOMATIC) {
+      initializeResetService()
+    }
   }
+  
+  private var _resetInterval = Config.config.getInt("cluster.profiling.reset-interval", Profiler.DEFAULT_RESET_INTERVAL)
+  
+  def resetInterval = _resetInterval
+
+  def resetInterval_=(interval: Int) = { _resetInterval = interval }
 
   private[mobile] def localMessageArrived(uuid: String): Unit = {
     messageArrived(uuid, localNode, false)
@@ -41,33 +61,24 @@ class Statistics(val localNode: TheaterNode, automaticReset: Boolean = false) ex
   }
 
   private def messageArrived(uuid: String, from: TheaterNode, usePriorityQueue: Boolean): Unit = {  
-    val newMap = new HashMap[TheaterNode, IMRecord])
+    val newMap = new HashMap[TheaterNode, IMRecord] with SynchronizedMap[TheaterNode, IMRecord]
     var innerMap: HashMap[TheaterNode, IMRecord] = incomingMessages.putIfAbsent(uuid, newMap)
     if (innerMap == null)
       innerMap = newMap
-    
-    synchronized(innerMap) {
-      val imRecord = innerMap.get(from) match {
-	case Some(record) => record
-	
-	case None => {
-          val record = IMRecord(uuid, from)
-          innerMap.put(from, record)
-          record
-	}
-      }
-      record.increment
-    }
+
+    val imRecord = innerMap.getOrElseUpdate(from, IMRecord(uuid, from))
+
+    imRecord.increment()
     
     if (usePriorityQueue) {
-      updatePriorityQueue(record)
+      updatePriorityQueue(imRecord)
     }
     
     if (from == localNode) {
       log.debug("Registering arrival of local message to actor with UUID [%s].", uuid)
     } else {
-      log.debug("Registering arrival of remote message to actor with UUID [%s] from node [%s:%d].",
-		uuid, from.hostname, from.port)
+      log.debug("Registering arrival of remote message to actor with UUID [%s] from node %s.",
+		uuid, TheaterNode(from.hostname, from.port).format)
     }
   }
 
@@ -79,7 +90,17 @@ class Statistics(val localNode: TheaterNode, automaticReset: Boolean = false) ex
       priorityQueue.add(imRecord)
     }
   }
-
+  
+  private def parseResetModeFromConfigurationFile: ResetMode.Value =
+    Config.config.getString("cluster.profiling.reset-mode", "MANUAL").toUpperCase match {
+      case "MANUAL" => ResetMode.MANUAL
+      case "AUTOMATIC" => ResetMode.AUTOMATIC
+      case _ => { // Manual is default
+	log.warning("Invalid value for profiling reset mode in the configuration file. Using 'MANUAL' as default.")
+	ResetMode.MANUAL
+      }
+  }
+       
   // Removes all the records regarding the actor with UUID 'uuid', from both the Hash Map and 
   // the Priority Queue
 
@@ -92,30 +113,37 @@ class Statistics(val localNode: TheaterNode, automaticReset: Boolean = false) ex
     }
   }
 
-  private[mobile] def reset: Unit = {
+  private[mobile] def reset(): Unit = {
     incomingMessages.clear()
     priorityQueue.clear()
   }
 
-  private initializeAutomaticResetService(): Unit = {
+  private def initializeResetService(): Unit = {
     val resetInterval = 60 // In Minutes
     new Thread {
       override def run() {
-	while(true) {
+	while(_resetMode == ResetMode.AUTOMATIC) {
 	  Thread.sleep(resetInterval * 60 * 1000)
-	  log.debug("Resetting all statistics now...")
-	  this.reset
+	  log.debug("Resetting all profiling data now...")
+	  reset()
 	}
       }
     } start()
   }
   
+  /**
+   * API for obtaining data collected by the profiler
+   */
+
+  // Gets the first record in the priority queue, i.e., the actor who has received more messages
+  // from remote nodes
   def firstInQueue: Option[IMRecord] = {
     val first = priorityQueue.peek
     if (first != null) Some(first)
     else None
   }
 
+  // Gets the number of local messages the actor with UUID 'uuid' received
   def localMessagesCount(uuid: String): Int = incomingMessages.get(uuid) match {
     case null => 0
     
@@ -126,6 +154,8 @@ class Statistics(val localNode: TheaterNode, automaticReset: Boolean = false) ex
       else 0
   }
 
+  // Gets the complete table of IMRecord's for the actor with UUID 'uuid'. This table contains, for
+  // each node, a IMRecord with the number of messages that actor received from that node
   def incomingMessagesRecords(uuid: String): HashMap[TheaterNode, IMRecord] = incomingMessages.get(uuid)
 
 }

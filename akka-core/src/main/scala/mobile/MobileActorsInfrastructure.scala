@@ -10,20 +10,38 @@ import java.net.InetAddress
 object MobileActorsInfrastructure extends Logging {
   
   def main(args: Array[String]) {
-    log.info("Starting the mobile actors infrastructure...Deploying the local Theater")
+    var hostname: Option[String] = None
+    var port: Option[Int] = None
+    var nodeName: Option[String] = None
+    
+    for (i <- 0 to args.size - 2) {
+      if (args(i) == "-h")
+	hostname = Some(args(i + 1))
+      else if (args(i) == "-p")
+	port = Some(args(i + 1).toInt)
+      else if (args(i) == "-n")
+	nodeName = Some(args(i + 1))
+    }
 
-    val myHostname = // TODO gambiarra temporaria
-      if (args.size > 0)
-        args(0)
-      else
-        InetAddress.getLocalHost.getHostName
-
-    ClusterConfiguration.nodes.get(myHostname) match {
-      case Some(nodeInfo) =>
-        LocalTheater.start(nodeInfo.node.hostname, nodeInfo.node.port)
-
-      case None =>
-        throw new RuntimeException("There is no node description for this hostname (" + myHostname + ") on your configuration file")
+    if (hostname.isDefined && port.isDefined)
+      LocalTheater.start(hostname.get, port.get)
+    else if (nodeName.isDefined)
+      LocalTheater.start(nodeName.get)
+    else {
+      // Try to guess based on hostname
+      val localHostname = InetAddress.getLocalHost.getHostName
+      val iterable = ClusterConfiguration.nodes.values.filter {
+	description => description.node.hostname == localHostname
+      } map {
+	description => description.name
+      }
+      if (iterable.size > 0) {
+	LocalTheater.start(iterable.head)
+      } else {
+	log.warning("Impossible to figure it out which node is supposed to run on this machine. Please use one of the following:\n" +
+		    "\t -h HOSTNAME -p PORT\n" +
+		    "\t -n NODE_NAME")
+      }
     }
   }
 }

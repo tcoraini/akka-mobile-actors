@@ -63,15 +63,15 @@ trait LocalMobileActor extends InnerReference {
 
   abstract override def !(message: Any)(implicit sender: Option[ActorRef] = None): Unit = {
     // All messages received (local and remote) are registered
-    val statistics = outerRef.homeTheater.statistics
+    val profiler = outerRef.homeTheater.profiler
     val msg = message match {
       // Message from remote actor received and forwarded by local theater
       case remoteMsg: MobileActorMessage =>
-	statistics.remoteMessageArrived(uuid, remoteMsg)
+	profiler.remoteMessageArrived(uuid, remoteMsg)
 	remoteMsg.message
       
       case localMsg =>
-	statistics.localMessageArrived(uuid)
+	profiler.localMessageArrived(uuid)
 	localMsg
     }
 

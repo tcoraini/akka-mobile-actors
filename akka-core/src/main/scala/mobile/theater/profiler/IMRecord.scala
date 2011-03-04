@@ -10,11 +10,10 @@ import java.util.Comparator
 case class IMRecord(uuid: String, from: TheaterNode) {
   private var _count: Int = 0
 
-  private[mobile] def increment(): Unit = 
-    _count = _count + 1
-  
   def count = _count
-  private[mobile] def count_=(value: Int) = { _count = value }
+  private[mobile] def count_=(value: Int) = this.synchronized { _count = value }
+
+  private[mobile] def increment(): Unit = this.synchronized { _count = _count + 1 }
 
   private[mobile] def reset = { _count = 0 }
 
@@ -46,7 +45,7 @@ object IMRecord {
    * will be TRUE too. Actually, the 'equals' method in the IMRecord class doesn't even take the 'count'
    * field into account.
    *
-   * This is OK for the use in the Priority Queue in the Statistics class, though.
+   * This is OK for the use in the Priority Queue in the Profiler class, though.
    */
   @serializable class IMRecordComparator extends Comparator[IMRecord] {
     def compare(o1: IMRecord, o2: IMRecord) = o2.count - o1.count

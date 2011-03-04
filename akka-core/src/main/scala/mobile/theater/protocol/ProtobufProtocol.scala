@@ -78,8 +78,8 @@ abstract class ProtobufProtocol(theater: Theater) extends TheaterProtocol(theate
    */
   private def constructProtobufMessage(message: Message): TheaterMessageProtocol = {
     val sender = TheaterNodeProtocol.newBuilder
-        .setHostname(theater.hostname)
-        .setPort(theater.port)
+        .setHostname(theater.node.hostname)
+        .setPort(theater.node.port)
         .build
     val builder = TheaterMessageProtocol.newBuilder
         .setSender(sender)

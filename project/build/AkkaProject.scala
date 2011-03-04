@@ -237,7 +237,8 @@ class AkkaParentProject(info: ProjectInfo) extends DefaultProject(info) {
   // Miscellaneous
   // -------------------------------------------------------------------------------------------------------------------
 
-  override def mainClass = Some("se.scalablesolutions.akka.kernel.Main")
+  //  override def mainClass = Some("se.scalablesolutions.akka.kernel.Main")
+  override def mainClass = Some("se.scalablesolutions.akka.mobile.MobileActorsInfrastructure")
 
   override def packageOptions =
     manifestClassPath.map(cp => ManifestAttributes(

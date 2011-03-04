@@ -5,6 +5,7 @@ import se.scalablesolutions.akka.mobile.actor.MobileActor
 import se.scalablesolutions.akka.mobile.serialization.MobileSerialization
 import se.scalablesolutions.akka.mobile.serialization.DefaultActorFormat
 import se.scalablesolutions.akka.mobile.util.PipelineFactoryCreator
+import se.scalablesolutions.akka.mobile.util.ClusterConfiguration
 import se.scalablesolutions.akka.mobile.Mobile
 import se.scalablesolutions.akka.mobile.util.messages._
 import se.scalablesolutions.akka.mobile.theater.protocol.TheaterProtocol
@@ -34,19 +35,13 @@ private[mobile] trait Theater extends Logging {
  
   private var _pipelineFactoryCreator: PipelineFactoryCreator = new TheaterPipelineFactoryCreator(mobileActors, this)
 
-  private var _statistics: Statistics = _
+  private var _profiler: Profiler = _
   
 //  var _protocol: TheaterProtocol = new AgentProtobufProtocol(this)
   var _protocol: TheaterProtocol = new AgentProtocol(this)
 
   private var mobTrack = false
   private var mobTrackNode: Option[TheaterNode] = None
-
-  private var _hostname: String = _
-  private var _port: Int = _
-
-  def hostname: String = _hostname
-  def port: Int = _port
 
   // The address of this Theater
   private var _node: TheaterNode = _
@@ -55,30 +50,59 @@ private[mobile] trait Theater extends Logging {
   private var _isRunning = false
   def isRunning = _isRunning
 
-  def statistics = _statistics
+  def profiler = _profiler
 
-  def start(hostname: String, port: Int) = {
-    log.debug("Starting a theater at %s:%d.", hostname, port)
+  def start(nodeName: String): Boolean = ClusterConfiguration.nodes.get(nodeName) match {
+    case Some(description) => start(description)
 
-    _hostname = hostname
-    _port = port
-    _node = TheaterNode(hostname, port)
+    case None => 
+      log.warning("There is no description for a node with name '%s' in the configuration file", nodeName)
+      false
+  }
+
+  def start(hostname: String, port: Int): Boolean = {
+    val nodeDescription = ClusterConfiguration.nodes.values.filter {
+      desc => desc.node.hostname == hostname && desc.node.port == port
+    }
+    
+    if (nodeDescription.size == 0) {
+      log.warning("There is no description for a node at %s in the configuration file.", TheaterNode(hostname, port).format)
+      false
+    } else {
+      // 'nodeDescription' is an Iterable[TheaterDescription], so we take the first (and hopefully only) element
+      start(nodeDescription.head) 
+    }
+  }
+  
+  private def start(description: TheaterDescription): Boolean = {
+    import description.{node => descriptionNode, name, profiling, hasNameServer}
+
+    val profilingLabel = if (profiling) "Enabled" else "Disabled"
+    val nameServerLabel = if (hasNameServer) "Enabled" else "Disabled"
+    log.info("Starting theater at %s with...\n" + 
+	     "\t name: %s\n" + 
+	     "\t name server: %s\n" + 
+	     "\t profiling: %s", descriptionNode.format, name, profilingLabel, nameServerLabel)
+
+    _node = descriptionNode
 
     server.setPipelineFactoryCreator(_pipelineFactoryCreator)
-    server.start(hostname, port)
+    server.start(node.hostname, node.port)
 
+    // TODO configurar por arquivo de conf
     _protocol.init()
 
     NameService.init()
 
-    _statistics = new Statistics(this.node)
-
+    _profiler = new Profiler(this.node)
     
     if (Config.config.getString("cluster.mob-track.node").isDefined) {
       configureMobTrack()
     }
 
-    _isRunning = true
+    _isRunning = server.isRunning
+    // Returns true if the theater has been started properly
+    _isRunning
   }
   
   def register(actor: MobileActorRef, fromMigration: Boolean = false): Unit = {
@@ -94,7 +118,7 @@ private[mobile] trait Theater extends Logging {
 	}
       }
  
-      log.debug("Registering actor with UUID [%s] in theater at [%s:%d].", actor.uuid, hostname, port)
+      log.debug("Registering actor with UUID [%s] in theater at %s.", actor.uuid, node.format)
     } // TODO verificar isso, tratamento quando o theater nao estao rodando
   }
 
@@ -108,7 +132,7 @@ private[mobile] trait Theater extends Logging {
 	}
       }
 
-      log.debug("Unregistering actor with UUID [%s] from theater at [%s:%d]", actor.uuid, hostname, port)
+      log.debug("Unregistering actor with UUID [%s] from theater at %s", actor.uuid, node.format)
     }
   }
 
@@ -140,7 +164,7 @@ private[mobile] trait Theater extends Logging {
 
       // The actor is not here. Possibly it has been migrated to some other theater.
       case null =>
-        log.debug("Actor with UUID [%s] not found at theater [%s:%d].", uuid, hostname, port)
+        log.debug("Actor with UUID [%s] not found at theater %s.", uuid, node.format)
         handleActorNotFound(request)
     }
   }
@@ -155,7 +179,7 @@ private[mobile] trait Theater extends Logging {
     val uuid = request.getActorInfo.getUuid
     NameService.get(uuid) match {
       case Some(node) =>
-        log.debug("Actor with UUID [%s] found at [%s:%d]. The message will be redirected to it.", uuid, node.hostname, node.port)
+        log.debug("Actor with UUID [%s] found at %s. The message will be redirected to it.", uuid, node.format)
 
         val actorRef = MobileActorRef(uuid, node.hostname, node.port)
         val (senderNode, message) = MessageSerializer.deserialize(request.getMessage) match {
@@ -167,8 +191,8 @@ private[mobile] trait Theater extends Logging {
 
         // Notifying the sender theater about the address change
         if (senderNode.isDefined) {
-          log.debug("Notifying the sender of the message at [%s:%d] the new location of the actor.", 
-            senderNode.get.hostname, senderNode.get.port)
+          log.debug("Notifying the sender of the message at %s the new location of the actor.", 
+            senderNode.get.format)
           
           sendTo(senderNode.get, ActorNewLocationNotification(uuid, node.hostname, node.port))
         }
@@ -233,16 +257,16 @@ private[mobile] trait Theater extends Logging {
       if (_isRunning) {
         val (destHostname, destPort) = destination
 
-        log.info("Theater at [%s:%d] received a request to migrate actor with UUID [%s] to theater at [%s:%d].",
-            hostname, port, uuid, destHostname, destPort)
+        log.info("Theater at %s received a request to migrate actor with UUID [%s] to theater at %s.",
+            node.format, uuid, TheaterNode(destHostname, destPort).format)
 
         val ref = mobileActors.get(uuid)
         if (ref != null) {
           val actorBytes = ref.startMigration(destHostname, destPort)
           sendTo(TheaterNode(destHostname, destPort), MovingActor(actorBytes))
         } else {
-          log.warning("Theater at [%s:%d] received a request to migrate actor with UUID [%s], but the actor was " +
-            "not found.", hostname, port, uuid)
+          log.warning("Theater at %s received a request to migrate actor with UUID [%s], but the actor was " +
+            "not found.", node.format, uuid)
         }
       }
     }
@@ -250,8 +274,8 @@ private[mobile] trait Theater extends Logging {
   
   private[mobile] def migrate(actor: MobileActorRef, destination: TheaterNode): Unit = {
     if (_isRunning) {
-      log.info("Theater at [%s:%d] received a request to migrate actor with UUID [%s] to theater at [%s:%d].",
-	       hostname, port, actor.uuid, destination.hostname, destination.port)
+      log.info("Theater at %s received a request to migrate actor with UUID [%s] to theater at %s.",
+	       node.format, actor.uuid, TheaterNode(destination.hostname, destination.port).format)
       
       if (mobileActors.get(actor.uuid) == null) {
 	throw new RuntimeException("Actor not registered in this theater, can't go on with migration")
@@ -265,7 +289,7 @@ private[mobile] trait Theater extends Logging {
   /* Complete the actor migration in the sender theater */
   def finishMigration(actorUuid: String): Unit = {
     log.debug("Finishing the migration process of actor with UUID [%s]", actorUuid)
-    statistics.remove(actorUuid)
+    profiler.remove(actorUuid)
     val actor = mobileActors.get(actorUuid)
     if (actor != null) {
       //println("RETAINED MESSAGES: " + actor.retained)
@@ -284,8 +308,8 @@ private[mobile] trait Theater extends Logging {
       if (!sender.isDefined)
         throw new RuntimeException("Can't perform a migration without knowing the original node of the actor.")
 
-      log.debug("Theater at [%s:%d] just received a migrating actor from [%s:%d].", 
-        hostname, port, sender.get.hostname, sender.get.port)
+      log.debug("Theater at %s just received a migrating actor from %s.", 
+        node.format, TheaterNode(sender.get.hostname, sender.get.port).format)
 
       val mobileRef = MobileSerialization.mobileFromBinary(bytes)(DefaultActorFormat)
       register(mobileRef, true)
@@ -322,8 +346,8 @@ private[mobile] trait Theater extends Logging {
       finishMigration(uuid)
 
     case ActorNewLocationNotification(uuid, newHostname, newPort) =>
-      log.debug("Theater at [%s:%d] received a notification that actor with UUID [%s] has migrated " + 
-        "to [%s:%d].", hostname, port, uuid, newHostname, newPort)
+      log.debug("Theater at %s received a notification that actor with UUID [%s] has migrated " + 
+        "to %s.", node.format, uuid, TheaterNode(newHostname, newPort).format)
 
       val reference = ReferenceManagement.get(uuid)
       if (reference.isDefined) {
@@ -340,11 +364,11 @@ private[mobile] trait Theater extends Logging {
       MobTrackGUI.depart(uuid, node)
 
     case trash =>
-      log.debug("Theater at [%s:%d] received an unknown message: %s. Discarding it.", hostname, port, trash)
+      log.debug("Theater at %s received an unknown message: %s. Discarding it.", node.format, trash)
   }
 
   def isLocal(hostname: String, port: Int): Boolean = 
-    (LocalTheater.hostname == hostname && LocalTheater.port == port)
+    (LocalTheater.node.hostname == hostname && LocalTheater.node.port == port)
 
   /**
    * PRIVATE METHODS
@@ -365,10 +389,9 @@ private[mobile] trait Theater extends Logging {
       case (Some(_hostname), Some(_port)) =>
 	mobTrack = true
 	mobTrackNode = Some(TheaterNode(_hostname, _port))
-        log.debug("MobTrack activated and running at node [%s:%d]", _hostname, _port)
-      
+        log.debug("MobTrack is activated and running at node %s", mobTrackNode.get.format)
       case _ =>
-	log.debug("MobTrack not running.")
+	log.debug("MobTrack is not running.")
         ()
     }
   }

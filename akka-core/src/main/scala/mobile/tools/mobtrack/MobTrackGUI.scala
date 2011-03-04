@@ -1,7 +1,7 @@
 package se.scalablesolutions.akka.mobile.tools.mobtrack
 
 import se.scalablesolutions.akka.mobile.util.ClusterConfiguration
-import se.scalablesolutions.akka.mobile.theater.TheaterNodeInformation
+import se.scalablesolutions.akka.mobile.theater.TheaterDescription
 import se.scalablesolutions.akka.mobile.theater.TheaterNode
 
 import collection.mutable.HashMap
@@ -62,7 +62,7 @@ object MobTrackGUI extends SimpleSwingApplication {
     arrive(uuid, to, true)
   }
 
-  private def createNodePanel(nodeInfo: TheaterNodeInformation, size: Dimension): NodePanel = {
+  private def createNodePanel(nodeInfo: TheaterDescription, size: Dimension): NodePanel = {
     new NodePanel(nodeInfo, size)
   }
 
@@ -78,7 +78,7 @@ object MobTrackGUI extends SimpleSwingApplication {
   }
 }
 
-class NodePanel(nodeInfo: TheaterNodeInformation, size: Dimension) extends BoxPanel(Orientation.Vertical) {
+class NodePanel(nodeInfo: TheaterDescription, size: Dimension) extends BoxPanel(Orientation.Vertical) {
   val actorComponents = new HashMap[String, ActorComponent]
   
   val node = nodeInfo.node
