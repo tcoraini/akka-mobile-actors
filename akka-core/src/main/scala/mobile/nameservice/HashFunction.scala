@@ -7,7 +7,7 @@ trait HashFunction {
 class DefaultHashFunction extends HashFunction {
 
   def hash(key: String, nodes: Int): Int = {
-    // We expect UUID's to be Long
+    // We expect UUID's to be of type Long converted to String
     val result = 
       try {
         key.toLong

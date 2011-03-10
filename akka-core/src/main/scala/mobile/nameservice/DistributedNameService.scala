@@ -15,24 +15,17 @@ object DistributedNameService extends Logging {
 
   private lazy val defaultHashFunction = new DefaultHashFunction
 
-  private val hashFunction: HashFunction = Config.config.getString("cluster.name-service.hash-function") match {
-    case Some(classname) =>
-      try {
-        val instance = Class.forName(classname).newInstance.asInstanceOf[HashFunction]
-        log.info("Using [%s] as the hash function for the distributed name service.", classname)
-        instance
-      } catch {
-        case cnfe: ClassNotFoundException =>
-          log.warning("The class [%s] could not be found. Using the default hash function instead.", classname)
-          defaultHashFunction
-        
-        case cce: ClassCastException =>
-          log.warning("The class [%s] does not extend the HashFunction trait. Using the default hash function instead.", classname)
-          defaultHashFunction
-      }
-
-    case None =>
-      defaultHashFunction
+  private val hashFunction: HashFunction = {
+    lazy val defaultHashFunction = new DefaultHashFunction
+    try {
+      ClusterConfiguration.instanceOf[HashFunction, DefaultHashFunction]("cluster.name-service.hash-function")
+    } catch {
+      case cce: ClassCastException =>
+	val classname = Config.config.getString("cluster.name-service.hash-function", "")
+        log.warning("The class [%s] does not extend the HashFunction trait. Using the default hash function [%s] instead.", 
+                    classname, defaultHashFunction.getClass.getName)
+	defaultHashFunction
+    }
   }
 
   private def hash(key: String): Int = hashFunction.hash(key, numberOfNodes)

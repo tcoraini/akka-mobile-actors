@@ -2,24 +2,34 @@ package se.scalablesolutions.akka.mobile
 
 import se.scalablesolutions.akka.mobile.algorithm.DistributionAlgorithm
 import se.scalablesolutions.akka.mobile.algorithm.RoundRobinAlgorithm
-
 import se.scalablesolutions.akka.mobile.actor.MobileActor
 import se.scalablesolutions.akka.mobile.actor.MobileActorRef
-import se.scalablesolutions.akka.mobile.actor.LocalMobileActor
-import se.scalablesolutions.akka.mobile.actor.RemoteMobileActor
-
 import se.scalablesolutions.akka.mobile.theater.LocalTheater
 import se.scalablesolutions.akka.mobile.theater.TheaterNode
 import se.scalablesolutions.akka.mobile.theater.TheaterHelper
 import se.scalablesolutions.akka.mobile.theater.GroupManagement
+import se.scalablesolutions.akka.mobile.util.ClusterConfiguration
 
-import se.scalablesolutions.akka.actor.Actor
-import se.scalablesolutions.akka.actor.LocalActorRef
-import se.scalablesolutions.akka.actor.RemoteActorRef
+import se.scalablesolutions.akka.util.Logging
+import se.scalablesolutions.akka.config.Config
 
-object Mobile {
+import java.net.InetAddress
+
+object Mobile extends Logging {
   
-  private var algorithm: DistributionAlgorithm = new RoundRobinAlgorithm
+  // TODO configurar via arquivo de conf
+  private lazy val algorithm: DistributionAlgorithm = {
+    lazy val defaultAlgorithm = new RoundRobinAlgorithm
+    try {
+      ClusterConfiguration.instanceOf[DistributionAlgorithm, RoundRobinAlgorithm]("cluster.distribution-algorithm")
+    } catch {
+      case cce: ClassCastException =>
+	val classname = Config.config.getString("cluster.distribution-algorithm", "")
+	log.warning("The class [%s] does not extend the DistributionAlgorithm trait. Using the default algorithm [%s] instead.", 
+                    classname, defaultAlgorithm.getClass.getName)
+	defaultAlgorithm
+    }
+  }
 
   /**
    * Spawn in some node chosen by the distribution algorithm
@@ -108,6 +118,28 @@ object Mobile {
     }
   }
 
+  def startTheater(nodeName: String): Boolean = LocalTheater.start(nodeName)
+
+  def startTheater(hostname: String, port: Int): Boolean = LocalTheater.start(hostname, port)
+  
+  // In this case, the system will try to guess which node should run, based on the machine's hostname
+  def startTheater(): Boolean = {
+    val localHostname = InetAddress.getLocalHost.getHostName
+    val iterable = ClusterConfiguration.nodes.values.filter {
+      description => description.node.hostname == localHostname
+    } map {
+      description => description.name
+    }
+    if (iterable.size > 0) {
+      LocalTheater.start(iterable.head)
+    } else {
+      log.warning("Impossible to figure it out which node is supposed to run on this machine. Please use one of the following:\n" +
+		  "\t Mobile.startTheater(nodeName: String)\n" + 
+		  "\t Mobile.startTheater(hostname: String, port: Int)")
+      
+      false
+    }
+  }
 }
 
 
