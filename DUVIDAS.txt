@@ -15,3 +15,12 @@
 6 - Como tratar a migração de um ator co-locado com outros? Possibilidades:
   - Um dos atores recebe um MoveTo, mover todos
   - MoveTo move apenas o ator (tirando-o do grupo), adicionar mensagem MoveGroupTo para explicitamente solicitar a migração de todos
+
+7 - Na hora de um spawn:
+  - Criar o ator já no nó remoto.
+     Prós: Migra apenas os bytes do ator, não cria uma referência local para depois ser atualizada.
+     Contras: Não tem um jeito fácil de fazer para atores criados com 'factory' arbitrária (construtor não-   padrão), o método spawn tem que ficar esperando uma resposta do nó onde o ator vai ser iniciado para indicar a conclusão do processo.
+
+  - Criar o ator localmente e migrá-lo.
+   Prós: Metodologia genérica para qualquer tipo de ator (criado por nome da classe ou factory), além disso dispensa tratamentos específicos de inicialização, já que tudo não passará de uma migração normal. O método spawn espera apenas a criação da instância local.
+   Contras: Cria todos os atores localmente, com referências que deverão ser atualizadas. As mensagens de migração são bem maiores do que, por exemplo, o caso de uma inicialização apenas por nome da classe.

@@ -20,7 +20,10 @@ object GroupManagement {
   def remove(ref: MobileActorRef, groupId: String): Unit = {
     val group = groups.get(groupId)
     if (group != null) {
-      groups.put(groupId, group.filter(_ != ref))
+      val newGroup = group.filter(_ != ref)
+      if (newGroup.size > 0) {
+	groups.put(groupId, newGroup)
+      }
     }
   }
 }
