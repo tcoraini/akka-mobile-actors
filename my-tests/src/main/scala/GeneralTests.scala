@@ -16,6 +16,10 @@ import se.scalablesolutions.akka.mobile.actor._
 import se.scalablesolutions.akka.mobile.theater._
 import se.scalablesolutions.akka.mobile.tools.mobtrack.MobTrackGUI
 import se.scalablesolutions.akka.mobile.util.messages._
+import se.scalablesolutions.akka.mobile.serialization.DefaultActorFormat
+import se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages._
+
+import com.google.protobuf.ByteString
 
 import se.scalablesolutions.akka.dispatch.FutureTimeoutException
 
@@ -49,6 +53,25 @@ case object Identify
 case class MsgFunction(func: Function0[String])
 
 case object ShowCount
+
+@serializable class HeavyActor extends MobileActor {
+  var load = Array[Char]()
+
+  private def show(str: String): Unit = println("[" + this + "] " + str)
+  
+  def this(n: Int) = {
+    this()
+    load = (for (i <- 1 to n) yield 't').toArray
+  }
+
+  def receive = {
+    case s: String if s == "Size" =>
+      show("Load size: " + load.size)
+    
+    case msg => show("Received something: " + msg)
+  }
+}
+     
 
 @serializable class MyActor extends MobileActor {
   //self.makeRemote("localhost", 9999)
@@ -317,6 +340,33 @@ object GeneralTests {
     MobTrackGUI.migrate("MIGRATE_1", node1, node2)
     Thread.sleep(1000)
     MobTrackGUI.migrate("A_12345", node2, node1)
+  }
+
+  def compareSerializations() {
+    Mobile.startTheater("node_1")
+    val sizes = List(0, 1024, 10240, 102400, 1048576, 10485760)
+    
+    println("ARRAY SIZE\t\tWITH REF\t\tWITHOUT REF\t\tDIFFERENCE")
+    for (size <- sizes) {
+      val (size1, size2) = createAndSerializeActor(size)
+      println(size + "\t\t\t" + size1 + "\t\t\t" + size2 + "\t\t\t" + (size1 - size2))
+    }
+  }
+
+  def createAndSerializeActor(size: Int): Tuple2[Int, Int] = {
+    val format = DefaultActorFormat
+
+    lazy val actor = new HeavyActor(size)
+    val ref = Mobile.spawnHere(actor)
+
+    val bytes_1 = ref.startMigration("", 0000)
+    
+    val builder = MovingActorProtocol.newBuilder
+      .setActorBytes(ByteString.copyFrom(format.toBinary(actor)))
+      .build
+    val bytes_2 = builder.toByteArray
+
+    (bytes_1.size, bytes_2.size)
   }
 }
 

@@ -10,8 +10,6 @@ import java.net.InetSocketAddress
 @serializable 
 trait MobileActor extends Actor {
 
-  @transient protected[mobile] var optionMobileRef: Option[MobileActorRef] = None // TODO o 'self' com cast pra MobileActorRef nao da na mesma?
-
   self.id = self.uuid
 
   // TODO so' funciona pq o codigo esta dentro do pacote akka.
@@ -22,11 +20,17 @@ trait MobileActor extends Actor {
   }
 
   private val specialBehavior: Receive = {
-    case MoveTo(hostname, port) => {
-      if (optionMobileRef.isDefined) {
-	optionMobileRef.get.moveTo(hostname, port)
-      }
+    case MoveTo(hostname, port) =>
+	outerRef.foreach(_.moveTo(hostname, port))
+  }
+
+  private def outerRef: Option[MobileActorRef] = self match {
+    case mobile: InnerReference => mobile.outerRef match {
+      case null => None
+      case ref => Some(ref)
     }
+    
+    case _ => None
   }
 
   /**

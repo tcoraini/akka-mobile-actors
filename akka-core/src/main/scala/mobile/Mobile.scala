@@ -111,7 +111,7 @@ object Mobile extends Logging {
       }
       mobileRef.groupId = groupId
       mobileRef.start
-      LocalTheater.register(mobileRef)
+//      LocalTheater.register(mobileRef)
       mobileRef
     } else {
       TheaterHelper.spawnActorRemotely(constructor, node)

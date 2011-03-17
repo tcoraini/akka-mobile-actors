@@ -18,6 +18,7 @@ import se.scalablesolutions.akka.dispatch.ExecutorBasedEventDrivenWorkStealingDi
 
 import se.scalablesolutions.akka.stm.TransactionManagement._
 
+import se.scalablesolutions.akka.mobile.theater.LocalTheater
 import se.scalablesolutions.akka.mobile.dispatcher.MobileMessageDispatcher
 import se.scalablesolutions.akka.mobile.util.messages._
 
@@ -36,11 +37,6 @@ trait LocalMobileActor extends InnerReference {
   // Check some conditions that must hold for the proper instantiation of the actor
   checkConditions()
 
-  override protected[mobile] def outerRef_=(ref: MobileActorRef) = {
-    actor.asInstanceOf[MobileActor].optionMobileRef = Some(ref)
-    super.outerRef = ref
-  }
-
   def forwardRetainedMessages(to: ActorRef): Unit = {
     for (RetainedMessage(message, sender) <- retainedMessagesQueue.toArray)
       to.!(message)(sender)
@@ -52,18 +48,19 @@ trait LocalMobileActor extends InnerReference {
   abstract override def actor: MobileActor = super.actor.asInstanceOf[MobileActor]
 
   abstract override def start(): ActorRef = {
+    // Needed during deserialization
     ensureDispatcherIsMobile()
     super.start()
   }
-
+  
   abstract override def stop(): Unit = {
-    homeTheater.unregister(outerRef)
+    LocalTheater.unregister(outerRef)
     super.stop()
   }
 
   abstract override def !(message: Any)(implicit sender: Option[ActorRef] = None): Unit = {
     // All messages received (local and remote) are registered
-    val profiler = outerRef.homeTheater.profiler
+    val profiler = LocalTheater.profiler
     val msg = message match {
       // Message from remote actor received and forwarded by local theater
       case remoteMsg: MobileActorMessage =>
@@ -141,9 +138,11 @@ trait LocalMobileActor extends InnerReference {
   }
   
   private def checkConditions(): Unit = {
-    if (!isRunning) {
-      dispatcher = MobileDispatchers.globalMobileExecutorBasedEventDrivenDispatcher
-    }
+  // TODO comentei essas linhas por causa do metodo ensureDispatcherIsMobile, chamado sempre no start.
+  // Creio que nao havera problemas
+//    if (!isRunning) {
+//      dispatcher = MobileDispatchers.globalMobileExecutorBasedEventDrivenDispatcher
+//    }
 
     if (!actor.isInstanceOf[MobileActor]) {
       throw new RuntimeException("MobileActorRef should be used only with a MobileActor")
@@ -166,5 +165,7 @@ trait LocalMobileActor extends InnerReference {
     case _ => dispatcher = MobileDispatchers.globalMobileExecutorBasedEventDrivenDispatcher
   }
 
-  def isLocal = true
+  protected[actor] def isLocal = true
+  
+  protected[actor] def node = LocalTheater.node
 }

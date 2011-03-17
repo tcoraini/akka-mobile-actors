@@ -29,10 +29,9 @@ trait RemoteMobileActor extends InnerReference {
    * 2 - Reescrever a classe RemoteActorRef toda
    */
   remoteActorRef: RemoteActorRef =>
-  
 
   abstract override def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = {
-    val newMessage = MobileActorMessage(homeTheater.node.hostname, homeTheater.node.port, message)
+    val newMessage = MobileActorMessage(LocalTheater.node.hostname, LocalTheater.node.port, message)
 
     val requestBuilder = createRemoteRequestProtocolBuilder(this, newMessage, true, senderOption)
     val actorInfo = requestBuilder.getActorInfo.toBuilder
@@ -77,5 +76,7 @@ trait RemoteMobileActor extends InnerReference {
     case None => ()
   }
 
-  def isLocal = false
+  protected[actor] def isLocal = false
+  
+  protected[actor] def node = TheaterNode(remoteActorRef.hostname, remoteActorRef.port)
 }

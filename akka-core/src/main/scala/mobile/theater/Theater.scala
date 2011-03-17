@@ -106,9 +106,8 @@ private[mobile] trait Theater extends Logging {
   }
   
   def register(actor: MobileActorRef, fromMigration: Boolean = false): Unit = {
-    if (_isRunning) {
+    if (_isRunning && actor != null) {
       mobileActors.put(actor.uuid, actor)
-      actor.homeTheater = this
       
       // Registering in the name server
       NameService.put(actor.uuid, this.node)
@@ -123,7 +122,7 @@ private[mobile] trait Theater extends Logging {
   }
 
   def unregister(actor: MobileActorRef, afterMigration: Boolean = false): Unit = {
-    if (_isRunning) {
+    if (_isRunning && actor != null) {
       mobileActors.remove(actor.uuid)
       NameService.remove(actor.uuid)
       if (!afterMigration) {
@@ -220,7 +219,7 @@ private[mobile] trait Theater extends Logging {
     }
     
     mobileRef.start
-    this.register(mobileRef)
+//    this.register(mobileRef)
     mobileRef
   } 
 
@@ -237,7 +236,7 @@ private[mobile] trait Theater extends Logging {
     listOfMobileRefs.foreach(ref => {
       ref.groupId = Some(groupId)
       ref.start
-      this.register(ref)
+//      this.register(ref)
     })
     listOfMobileRefs
   }
@@ -295,7 +294,7 @@ private[mobile] trait Theater extends Logging {
       //println("RETAINED MESSAGES: " + actor.retained)
       //println("MAILBOX: " + actor.mb)
       actor.endMigration()
-      this.unregister(actor, true)
+//      this.unregister(actor, true)
       // TODO destruir instancia
     }
   }
@@ -312,7 +311,7 @@ private[mobile] trait Theater extends Logging {
         node.format, TheaterNode(sender.get.hostname, sender.get.port).format)
 
       val mobileRef = MobileSerialization.mobileFromBinary(bytes)(DefaultActorFormat)
-      register(mobileRef, true)
+//      register(mobileRef, true)
       NameService.put(mobileRef.uuid, this.node)
       if (mobTrack) {
 	sendTo(mobTrackNode.get, MobTrackMigrate(mobileRef.uuid, sender.get, this.node))

@@ -38,10 +38,10 @@ object MobileActorRef {
     ReferenceManagement.get(reference.uuid) match {
       case Some(mobileRef) =>
         mobileRef.switchActorRef(reference)
+	LocalTheater.register(mobileRef)
         mobileRef
 
       case None =>
-	println("Registering new mobile actor ref")
         register(new MobileActorRef(reference))
     }
   }
@@ -117,6 +117,9 @@ object MobileActorRef {
   /* Registers the mobile reference in the ReferenceManagement */
   private def register(reference: MobileActorRef): MobileActorRef = {
     ReferenceManagement.put(reference.uuid, reference)
+    if (reference.isLocal) {
+      LocalTheater.register(reference)
+    }
     reference
   }
 }
@@ -146,24 +149,12 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
   private var _homeTheater: Theater = LocalTheater
   
   private var _groupId: Option[String] = None
-  
-  def isLocal = innerRef.isLocal
 
   def isMigrating = _isMigrating
 
   def migratingTo: Option[TheaterNode] = _migratingTo
-
-  def homeTheater = _homeTheater
   
-  def groupId = _groupId
-  def groupId_=(id: Option[String]) {
-    // Removes this actor from the old group id, if it is not None
-    groupId.foreach(GroupManagement.remove(this, _))
-    // Inserts this actor in the new group id, if it is not None
-    id.foreach(GroupManagement.insert(this, _))
-    _groupId = id
-  }
-
+  private def homeTheater = _homeTheater
   protected[mobile] def homeTheater_=(theater: Theater) = {
     if (isLocal) {
       _homeTheater = theater
@@ -173,10 +164,22 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
     }
   }
 
+  def groupId = _groupId
+  def groupId_=(id: Option[String]) {
+    // Removes this actor from the old group id, if it is not None
+    groupId.foreach(GroupManagement.remove(this, _))
+    // Inserts this actor in the new group id, if it is not None
+    id.foreach(GroupManagement.insert(this, _))
+    _groupId = id
+  }
+
+  def node: TheaterNode = innerRef.node
+  
+  def isLocal = innerRef.isLocal
+
   // To be called by the actor when it receives a MoveTo message
   private[mobile] def moveTo(hostname: String, port: Int): Unit = {
-    //homeTheater.migrate(uuid) to (hostname, port)
-    homeTheater.migrate(this, TheaterNode(hostname, port))
+    LocalTheater.migrate(this, TheaterNode(hostname, port))
   }
 
   /**

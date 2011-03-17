@@ -6,9 +6,10 @@ import se.scalablesolutions.akka.actor.ActorRef
 import se.scalablesolutions.akka.actor.ScalaActorRef
 
 import se.scalablesolutions.akka.mobile.theater.LocalTheater
+import se.scalablesolutions.akka.mobile.theater.TheaterNode
 
 trait InnerReference extends ActorRef with ScalaActorRef with Logging {
-  private var _outerRef: MobileActorRef = _
+  private var _outerRef: MobileActorRef = null
 
   protected[mobile] def outerRef: MobileActorRef = _outerRef
 
@@ -18,10 +19,8 @@ trait InnerReference extends ActorRef with ScalaActorRef with Logging {
     if (_outerRef != null) _outerRef.isMigrating 
     else false
 
-  def homeTheater = 
-    if (_outerRef != null) _outerRef.homeTheater
-    else LocalTheater
+  protected[actor] def isLocal: Boolean
 
-  def isLocal: Boolean
+  protected[actor] def node: TheaterNode
 
 }
