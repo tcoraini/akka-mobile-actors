@@ -25,25 +25,14 @@ import se.scalablesolutions.akka.mobile.util.messages._
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.TimeUnit
 
-
-case class RetainedMessage(message: Any, sender: Option[ActorRef])
 case class RetainedMessageWithFuture(message: Any, timeout: Long, sender: Option[ActorRef], senderFuture: Option[CompletableFuture[Any]])
 
 // TODO Estender LocalActorRef diretamente nao seria melhor?
-trait LocalMobileActor extends InnerReference {
-  val retainedMessagesQueue = new ConcurrentLinkedQueue[RetainedMessage]
+trait LocalMobileActor extends InnerReference with MessageHolder {
   val retainedMessagesWithFutureQueue = new ConcurrentLinkedQueue[RetainedMessageWithFuture]
 
   // Check some conditions that must hold for the proper instantiation of the actor
   checkConditions()
-
-  def forwardRetainedMessages(to: ActorRef): Unit = {
-    for (RetainedMessage(message, sender) <- retainedMessagesQueue.toArray)
-      to.!(message)(sender)
-    // TODO PROBLEMA: preciso encaminhar a mensagem, mas preciso que a resposta seja colocada no future que eu já tenho.
-    // Como fazer?
-    //for (RetainedMessageWithFuture(message, timeout, sender, senderFuture)
-  }
 
   abstract override def actor: MobileActor = super.actor.asInstanceOf[MobileActor]
 
@@ -83,7 +72,9 @@ trait LocalMobileActor extends InnerReference {
   }
 
   abstract override def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = {
-    if (isMigrating) retainedMessagesQueue.add(RetainedMessage(message, senderOption))
+    if (isMigrating) {
+      holdMessage(message, senderOption)
+    }
     else {
       //super.postMessageToMailbox(message, senderOption)
       val invocation = new MessageInvocation(this, message, senderOption, None, transactionSet.get)
@@ -131,10 +122,10 @@ trait LocalMobileActor extends InnerReference {
   }
 
   def endMigration(newActor: ActorRef): Unit = {
-    for (RetainedMessage(message, sender) <- retainedMessagesQueue.toArray)
-      newActor.!(message)(sender)
+    forwardHeldMessages(newActor)
 
-    actor.afterMigration()
+    // TODO isso deve ser chamado no nó de destino
+//    actor.afterMigration()
   }
   
   private def checkConditions(): Unit = {

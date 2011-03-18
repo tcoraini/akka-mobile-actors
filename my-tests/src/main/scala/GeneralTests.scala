@@ -313,11 +313,13 @@ object GeneralTests {
 
   def testDelayedMigration() =  {
     LocalTheater.start("ubuntu-tcoraini", 1810)
-    val ref = Mobile.spawn[MyActor]
-    ref ! Wait(3)
-    ref ! Wait(3)
-    ref ! Wait(3)
+    val ref = Mobile.spawnHere[MyActor]
+//    ref ! Wait(3)
+//    ref ! Wait(3)
     ref ! MoveTo("localhost", 2312)
+    Thread.sleep(2000)
+    println("[" + Thread.currentThread.getName + "] ###### ENVIANDO MENSAGENS 'WAIT' E 'MIGRATION DONE' ######")
+    ref ! Wait(3)
     ref ! Message("Migration done!")
     ref
   }

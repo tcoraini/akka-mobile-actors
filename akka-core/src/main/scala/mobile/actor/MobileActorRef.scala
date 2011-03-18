@@ -129,12 +129,12 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
   innerRef.outerRef = this
 
   /* DEBUG ONLY */
-  def retained: java.util.concurrent.ConcurrentLinkedQueue[RetainedMessage] = 
+/*  def retained: java.util.concurrent.ConcurrentLinkedQueue[RetainedMessage] = 
     if (isLocal) 
       innerRef.asInstanceOf[LocalMobileActor].retainedMessagesQueue
     else
       throw new RuntimeException("Não existem mensagens retidas para atores remotos")
-
+*/
   def mb: java.util.Queue[se.scalablesolutions.akka.dispatch.MessageInvocation] =
     if (isLocal)
       innerRef.mailbox.asInstanceOf[java.util.Queue[se.scalablesolutions.akka.dispatch.MessageInvocation]]
@@ -195,10 +195,13 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
     log.debug("Switching mobile reference for actor with UUID [%s] to a %s reference.", uuid, label)  
   }
 
-  protected[mobile] def startMigration(hostname: String, port: Int): Array[Byte] = {
+  /* TODO protected[mobile]*/ def startMigration(hostname: String, port: Int): Array[Byte] = {
     if (!isLocal) throw new RuntimeException("The method 'startMigration' should be call only on local actors")
     
     _isMigrating = true
+//    innerRef.asInstanceOf[LocalMobileActor].holdMessages()
+    Thread.sleep(3000)
+    println("[" + Thread.currentThread.getName + "] ##### DORMIU 3 SEGUNDOS, CONTINUANDO COM MIGRAÇÃO ######")
     _migratingTo = Some(TheaterNode(hostname, port))
     
     // The mailbox won't be serialized if the actor has not been started yet. In this case, we're migrating

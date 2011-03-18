@@ -21,7 +21,7 @@ trait MobileActor extends Actor {
 
   private val specialBehavior: Receive = {
     case MoveTo(hostname, port) =>
-	outerRef.foreach(_.moveTo(hostname, port))
+      outerRef.foreach(_.moveTo(hostname, port))
   }
 
   private def outerRef: Option[MobileActorRef] = self match {
