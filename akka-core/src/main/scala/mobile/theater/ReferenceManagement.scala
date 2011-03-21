@@ -2,6 +2,7 @@ package se.scalablesolutions.akka.mobile.theater
 
 import se.scalablesolutions.akka.mobile.actor.MobileActorRef
 import se.scalablesolutions.akka.mobile.actor.RemoteMobileActor
+import se.scalablesolutions.akka.mobile.actor.AttachRefToActor
 import se.scalablesolutions.akka.mobile.util.ClusterConfiguration
 
 import se.scalablesolutions.akka.actor.Actor
@@ -14,22 +15,41 @@ import java.util.concurrent.ConcurrentHashMap
 object ReferenceManagement {
   
   val references = new ConcurrentHashMap[String, MobileActorRef]
+  val detachedReferences = new ConcurrentHashMap[String, MobileActorRef]
   val remoteClients = new ConcurrentHashMap[TheaterNode, ActorRef](ClusterConfiguration.numberOfNodes)
 
-  private[mobile] def put(uuid: String, reference: MobileActorRef): Unit = {
-    references.put(uuid, reference)
+  private[mobile] def put(uuid: String, reference: MobileActorRef, detached: Boolean = false): Unit = {
+    if (!detached) 
+      references.put(uuid, reference)
+    else
+      detachedReferences.put(uuid, reference)
   }
 
-  def get(uuid: String): Option[MobileActorRef] = {
-    references.get(uuid) match {
+  def get(uuid: String, detached: Boolean = false): Option[MobileActorRef] = {
+    val map = 
+      if (detached) detachedReferences
+      else references
+
+    map.get(uuid) match {
       case null => None
 
       case reference => Some(reference)
     }
   }
 
-  private[mobile] def remove(uuid: String): Unit = {
-    references.remove(uuid)
+  private[mobile] def remove(uuid: String, detached: Boolean = false): Unit = {
+    if (!detached)
+      references.remove(uuid)
+    else
+      detachedReferences.remove(uuid)
+  }
+
+  private[mobile] def attachRefToActor(temporaryId: String, actorUuid: String): Unit = {
+    get(temporaryId, true).foreach { ref => 
+      ref ! AttachRefToActor(actorUuid)
+      remove(temporaryId, true)
+      put(actorUuid, ref)
+    }
   }
 
   private[mobile] def registerForRemoteClientEvents(reference: RemoteMobileActor, client: RemoteClient): Unit = {

@@ -203,21 +203,16 @@ private[mobile] trait Theater extends Logging {
   }
   
   /**
-   * Starts a local actor within this theater. This method will be called whenever
-   * an actor is spawned somewhere and the system decides that it should be run
+   * Starts a local actor by its class name in this theater. This method will be called whenever
+   * an actor is spawned somewhere using its class name, and the system decides that it should be run
    * in this theater.
+   *
+   * @param className the class name of the actor that should be spawned
    *
    * @return the reference of the new actor started
    */
-  def startLocalActor(constructor: Either[String, Array[Byte]]): MobileActorRef = {
-    val mobileRef: MobileActorRef = constructor match {
-      case Left(classname) =>
-        MobileActorRef(Class.forName(classname).asInstanceOf[Class[_ <: MobileActor]])
-        
-      case Right(bytes) =>
-        MobileSerialization.mobileFromBinary(bytes)(DefaultActorFormat)
-    }
-    
+  def startActorByClassName(className: String): MobileActorRef = {
+    val mobileRef = MobileActorRef(Class.forName(className).asInstanceOf[Class[_ <: MobileActor]])
     mobileRef.start
 //    this.register(mobileRef)
     mobileRef
@@ -312,7 +307,7 @@ private[mobile] trait Theater extends Logging {
 
       val mobileRef = MobileSerialization.mobileFromBinary(bytes)(DefaultActorFormat)
 //      register(mobileRef, true)
-      NameService.put(mobileRef.uuid, this.node)
+//      NameService.put(mobileRef.uuid, this.node)
       if (mobTrack) {
 	sendTo(mobTrackNode.get, MobTrackMigrate(mobileRef.uuid, sender.get, this.node))
       }
@@ -326,8 +321,8 @@ private[mobile] trait Theater extends Logging {
     case MovingActor(bytes) =>
       receiveActor(bytes, message.sender)
 
-    case StartMobileActorRequest(requestId, constructor) =>
-      val ref = startLocalActor(constructor)
+    case StartMobileActorRequest(requestId, className) =>
+      val ref = startActorByClassName(className)
       sendTo(message.sender.get, StartMobileActorReply(requestId, ref.uuid))
 
     case reply: StartMobileActorReply =>

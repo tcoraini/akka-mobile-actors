@@ -38,7 +38,9 @@ object MobileActorRef {
     ReferenceManagement.get(reference.uuid) match {
       case Some(mobileRef) =>
         mobileRef.switchActorRef(reference)
-	LocalTheater.register(mobileRef)
+	if (reference.isLocal) {
+	  LocalTheater.register(mobileRef)
+	}
         mobileRef
 
       case None =>
@@ -89,15 +91,21 @@ object MobileActorRef {
   /**
    * Creates a remote reference for the actor with the specified UUID running in the Theater at hostname:port.
    */
-  def apply(uuid: String, hostname: String, port: Int, timeout: Long = Actor.TIMEOUT): MobileActorRef = {
+  def apply(
+      uuid: String, 
+      hostname: String, 
+      port: Int, 
+      detached: Boolean = false,
+      timeout: Long = Actor.TIMEOUT): MobileActorRef = {
+    
     ReferenceManagement.get(uuid) match {
       case Some(reference) => 
         reference.updateRemoteAddress(TheaterNode(hostname, port))
         reference
 
       case None =>
-        val remoteRef = remoteMobileActor(uuid, hostname, port, timeout)
-        register(new MobileActorRef(remoteRef))
+        val remoteRef = remoteMobileActor(uuid, hostname, port, timeout, detached)
+        register(new MobileActorRef(remoteRef), detached)
     }
   }
   
@@ -109,14 +117,18 @@ object MobileActorRef {
       uuid: String, 
       hostname: String, 
       port: Int, 
-      timeout: Long = Actor.TIMEOUT): RemoteMobileActor = {
+      timeout: Long = Actor.TIMEOUT,
+      detached: Boolean = false): RemoteMobileActor = {
 
-    new RemoteActorRef(uuid, uuid, hostname, port, timeout, None) with RemoteMobileActor
+    if (!detached) 
+      new RemoteActorRef(uuid, uuid, hostname, port, timeout, None) with RemoteMobileActor
+    else 
+      new RemoteActorRef(uuid, uuid, hostname, port, timeout, None) with RemoteMobileActor with DetachedRemoteActor
   }
-  
+
   /* Registers the mobile reference in the ReferenceManagement */
-  private def register(reference: MobileActorRef): MobileActorRef = {
-    ReferenceManagement.put(reference.uuid, reference)
+  private def register(reference: MobileActorRef, detached: Boolean = false): MobileActorRef = {
+    ReferenceManagement.put(reference.uuid, reference, detached)
     if (reference.isLocal) {
       LocalTheater.register(reference)
     }
@@ -199,13 +211,11 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
     if (!isLocal) throw new RuntimeException("The method 'startMigration' should be call only on local actors")
     
     _isMigrating = true
-//    innerRef.asInstanceOf[LocalMobileActor].holdMessages()
-    Thread.sleep(3000)
-    println("[" + Thread.currentThread.getName + "] ##### DORMIU 3 SEGUNDOS, CONTINUANDO COM MIGRAÇÃO ######")
     _migratingTo = Some(TheaterNode(hostname, port))
     
-    // The mailbox won't be serialized if the actor has not been started yet. In this case, we're migrating
-    // a 'new' actor, that has been instantiated through a '() => MobileActor' factory
+    // The mailbox won't be serialized if the actor has not been started yet. In this case, there will be
+    // no messages in it's mailbox. This was used in a previous form of actor remote spawn, where the actor
+    // was no started before being serialized. But still makes sense, and maybe will be used in the future.
     val serializeMailbox = 
       if (isRunning) {
         // Sinalizing the start of the migration process

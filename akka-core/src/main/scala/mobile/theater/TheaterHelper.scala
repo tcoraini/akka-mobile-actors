@@ -24,35 +24,26 @@ object TheaterHelper extends Logging {
     val hostname = node.hostname
     val port = node.port
 
-    // The function literal is not serializable
-    val serializableConstructor: Either[String, Array[Byte]] = constructor match {
+    constructor match {
       case Left(clazz) => 
-        Left(clazz.getName)
+	val requestId = newRequestId
+	LocalTheater.protocol.sendTo(node, StartMobileActorRequest(requestId, clazz.getName))
+	MobileActorRef(requestId.toString, node.hostname, node.port, true)
 
       case Right(factory) =>
-        val mobileRef = MobileActorRef(factory()) // TODO pra onde vai? ali embaixo criamos outra! O ideal e' evitar essa criação.
-						  // Como serializar sem ter que criar um MobileActorRef?
-        val bytes = mobileRef.startMigration(hostname, port)
-        Right(bytes)
+	// We create a local mobile ref and migrate it right away to the proper node
+	val mobileRef = MobileActorRef(factory()) 
+	mobileRef.start
+	mobileRef ! MoveTo(hostname, port)
+	mobileRef
     }
-
-    // TODO Definitivamente precisamos de um protocolo melhor para essa tarefa
-    val reqId = newRequestId
-    LocalTheater.protocol.sendTo(node, StartMobileActorRequest(reqId, serializableConstructor))
-    while (!mobileRefs.contains(reqId))
-      Thread.sleep(100)
-
-    val ref = mobileRefs.get(reqId).get
-    mobileRefs.remove(reqId)
-    ref
   }
 
   def completeActorSpawn(reply: StartMobileActorReply): Unit = {
     log.debug("Mobile actor with UUID [%s] started in remote theater at %s.", 
 	      reply.uuid, 
 	      TheaterNode(reply.sender.get.hostname, reply.sender.get.port).format)
-    val newRef = MobileActorRef(reply.uuid, reply.sender.get.hostname, reply.sender.get.port)
-    mobileRefs.put(reply.requestId, newRef)
+    ReferenceManagement.attachRefToActor(reply.requestId.toString, reply.uuid)
   }
 
   def spawnActorsGroupRemotely(

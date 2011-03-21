@@ -297,6 +297,15 @@ object GeneralTests {
     ref ! ShowCount
     ref
   }
+  
+  def testRemoteSpawn(): MobileActorRef = {
+    LocalTheater.start("node_2") // localhost:2312
+    val node = TheaterNode("ubuntu-tcoraini", 1810)
+    val ref = Mobile.spawnAt[StatefulActor](node)
+    ref ! Ping
+    ref ! ShowCount
+    ref
+  }
 
   def testMigrate(uuid: String) = {
     //LocalTheater.migrate(uuid) to ("localhost", 2312)

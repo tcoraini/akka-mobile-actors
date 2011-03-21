@@ -71,7 +71,7 @@ trait LocalMobileActor extends InnerReference with MessageHolder {
     super.!!(message, timeout)
   }
 
-  abstract override def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = {
+  override def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = {
     if (isMigrating) {
       holdMessage(message, senderOption)
     }

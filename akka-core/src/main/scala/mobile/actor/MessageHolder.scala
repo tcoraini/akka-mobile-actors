@@ -12,7 +12,7 @@ trait MessageHolder {
 
   protected val heldMessages = new SynchronizedQueue[HeldMessage]
 
-  protected def holdMessage(message: Any, senderOption: Option[ActorRef]): Unit = {
+  protected def holdMessage(message: Any, senderOption: Option[ActorRef]): Unit = lock.synchronized {
     heldMessages.enqueue(HeldMessage(message, senderOption))
   }
 

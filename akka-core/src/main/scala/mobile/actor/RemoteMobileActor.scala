@@ -20,8 +20,7 @@ import java.nio.channels.ClosedChannelException
 import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.Actor._
 
-
-trait RemoteMobileActor extends InnerReference {
+trait RemoteMobileActor extends InnerReference with MessageHolder {
   /*
    * Só funciona pq estamos dentro do pacote Akka. Quando não for o caso, como resolver?
    *
@@ -30,16 +29,29 @@ trait RemoteMobileActor extends InnerReference {
    */
   remoteActorRef: RemoteActorRef =>
 
-  abstract override def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = {
-    val newMessage = MobileActorMessage(LocalTheater.node.hostname, LocalTheater.node.port, message)
+  private var _holdMessages = false
+  def holdMessages = _holdMessages
+  def holdMessages_=(hold: Boolean) = { 
+    _holdMessages = hold 
+    if (hold == false) {
+      processHeldMessages(hm => this.postMessageToMailbox(hm.message, hm.sender))
+    }
+  }
 
-    val requestBuilder = createRemoteRequestProtocolBuilder(this, newMessage, true, senderOption)
-    val actorInfo = requestBuilder.getActorInfo.toBuilder
-    actorInfo.setActorType(ActorType.MOBILE_ACTOR)
+  override def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = {
+    if (_holdMessages) {
+      holdMessage(message, senderOption)
+    } else {
+      val newMessage = MobileActorMessage(LocalTheater.node.hostname, LocalTheater.node.port, message)
 
-    requestBuilder.setActorInfo(actorInfo.build)
-    
-    remoteActorRef.remoteClient.send[Any](requestBuilder.build, None)
+      val requestBuilder = createRemoteRequestProtocolBuilder(this, newMessage, true, senderOption)
+      val actorInfo = requestBuilder.getActorInfo.toBuilder
+      actorInfo.setActorType(ActorType.MOBILE_ACTOR)
+
+      requestBuilder.setActorInfo(actorInfo.build)
+      
+      remoteActorRef.remoteClient.send[Any](requestBuilder.build, None)
+    }
   }
 
   abstract override def start: ActorRef = {

@@ -1455,33 +1455,17 @@ public final class ProtobufTheaterMessages {
     public boolean hasRequestId() { return hasRequestId; }
     public long getRequestId() { return requestId_; }
     
-    // required .mobile.ConstructorType constructorType = 2;
-    public static final int CONSTRUCTORTYPE_FIELD_NUMBER = 2;
-    private boolean hasConstructorType;
-    private se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.ConstructorType constructorType_;
-    public boolean hasConstructorType() { return hasConstructorType; }
-    public se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.ConstructorType getConstructorType() { return constructorType_; }
-    
-    // optional string classname = 3;
+    // optional string className = 3;
     public static final int CLASSNAME_FIELD_NUMBER = 3;
-    private boolean hasClassname;
-    private java.lang.String classname_ = "";
-    public boolean hasClassname() { return hasClassname; }
-    public java.lang.String getClassname() { return classname_; }
-    
-    // optional bytes actorBytes = 4;
-    public static final int ACTORBYTES_FIELD_NUMBER = 4;
-    private boolean hasActorBytes;
-    private com.google.protobuf.ByteString actorBytes_ = com.google.protobuf.ByteString.EMPTY;
-    public boolean hasActorBytes() { return hasActorBytes; }
-    public com.google.protobuf.ByteString getActorBytes() { return actorBytes_; }
+    private boolean hasClassName;
+    private java.lang.String className_ = "";
+    public boolean hasClassName() { return hasClassName; }
+    public java.lang.String getClassName() { return className_; }
     
     private void initFields() {
-      constructorType_ = se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.ConstructorType.CLASSNAME;
     }
     public final boolean isInitialized() {
       if (!hasRequestId) return false;
-      if (!hasConstructorType) return false;
       return true;
     }
     
@@ -1491,14 +1475,8 @@ public final class ProtobufTheaterMessages {
       if (hasRequestId()) {
         output.writeUInt64(1, getRequestId());
       }
-      if (hasConstructorType()) {
-        output.writeEnum(2, getConstructorType().getNumber());
-      }
-      if (hasClassname()) {
-        output.writeString(3, getClassname());
-      }
-      if (hasActorBytes()) {
-        output.writeBytes(4, getActorBytes());
+      if (hasClassName()) {
+        output.writeString(3, getClassName());
       }
       getUnknownFields().writeTo(output);
     }
@@ -1513,17 +1491,9 @@ public final class ProtobufTheaterMessages {
         size += com.google.protobuf.CodedOutputStream
           .computeUInt64Size(1, getRequestId());
       }
-      if (hasConstructorType()) {
+      if (hasClassName()) {
         size += com.google.protobuf.CodedOutputStream
-          .computeEnumSize(2, getConstructorType().getNumber());
-      }
-      if (hasClassname()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeStringSize(3, getClassname());
-      }
-      if (hasActorBytes()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(4, getActorBytes());
+          .computeStringSize(3, getClassName());
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -1686,14 +1656,8 @@ public final class ProtobufTheaterMessages {
         if (other.hasRequestId()) {
           setRequestId(other.getRequestId());
         }
-        if (other.hasConstructorType()) {
-          setConstructorType(other.getConstructorType());
-        }
-        if (other.hasClassname()) {
-          setClassname(other.getClassname());
-        }
-        if (other.hasActorBytes()) {
-          setActorBytes(other.getActorBytes());
+        if (other.hasClassName()) {
+          setClassName(other.getClassName());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -1724,22 +1688,8 @@ public final class ProtobufTheaterMessages {
               setRequestId(input.readUInt64());
               break;
             }
-            case 16: {
-              int rawValue = input.readEnum();
-              se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.ConstructorType value = se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.ConstructorType.valueOf(rawValue);
-              if (value == null) {
-                unknownFields.mergeVarintField(2, rawValue);
-              } else {
-                setConstructorType(value);
-              }
-              break;
-            }
             case 26: {
-              setClassname(input.readString());
-              break;
-            }
-            case 34: {
-              setActorBytes(input.readBytes());
+              setClassName(input.readString());
               break;
             }
           }
@@ -1765,66 +1715,24 @@ public final class ProtobufTheaterMessages {
         return this;
       }
       
-      // required .mobile.ConstructorType constructorType = 2;
-      public boolean hasConstructorType() {
-        return result.hasConstructorType();
+      // optional string className = 3;
+      public boolean hasClassName() {
+        return result.hasClassName();
       }
-      public se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.ConstructorType getConstructorType() {
-        return result.getConstructorType();
+      public java.lang.String getClassName() {
+        return result.getClassName();
       }
-      public Builder setConstructorType(se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.ConstructorType value) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        result.hasConstructorType = true;
-        result.constructorType_ = value;
-        return this;
-      }
-      public Builder clearConstructorType() {
-        result.hasConstructorType = false;
-        result.constructorType_ = se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.ConstructorType.CLASSNAME;
-        return this;
-      }
-      
-      // optional string classname = 3;
-      public boolean hasClassname() {
-        return result.hasClassname();
-      }
-      public java.lang.String getClassname() {
-        return result.getClassname();
-      }
-      public Builder setClassname(java.lang.String value) {
+      public Builder setClassName(java.lang.String value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  result.hasClassname = true;
-        result.classname_ = value;
+  result.hasClassName = true;
+        result.className_ = value;
         return this;
       }
-      public Builder clearClassname() {
-        result.hasClassname = false;
-        result.classname_ = getDefaultInstance().getClassname();
-        return this;
-      }
-      
-      // optional bytes actorBytes = 4;
-      public boolean hasActorBytes() {
-        return result.hasActorBytes();
-      }
-      public com.google.protobuf.ByteString getActorBytes() {
-        return result.getActorBytes();
-      }
-      public Builder setActorBytes(com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  result.hasActorBytes = true;
-        result.actorBytes_ = value;
-        return this;
-      }
-      public Builder clearActorBytes() {
-        result.hasActorBytes = false;
-        result.actorBytes_ = getDefaultInstance().getActorBytes();
+      public Builder clearClassName() {
+        result.hasClassName = false;
+        result.className_ = getDefaultInstance().getClassName();
         return this;
       }
       
@@ -2925,22 +2833,20 @@ public final class ProtobufTheaterMessages {
       ".mobile.ActorNewLocationNotificationProt" +
       "ocol\")\n\023MovingActorProtocol\022\022\n\nactorByte" +
       "s\030\001 \002(\014\"-\n\035MobileActorRegisteredProtocol" +
-      "\022\014\n\004uuid\030\001 \002(\t\"\207\001\n\031StartActorRequestProt" +
-      "ocol\022\021\n\trequestId\030\001 \002(\004\0220\n\017constructorTy" +
-      "pe\030\002 \002(\0162\027.mobile.ConstructorType\022\021\n\tcla" +
-      "ssname\030\003 \001(\t\022\022\n\nactorBytes\030\004 \001(\014\"?\n\027Star" +
-      "tActorReplyProtocol\022\021\n\trequestId\030\001 \002(\004\022\021" +
-      "\n\tactorUuid\030\002 \002(\t\"T\n$ActorNewLocationNot",
-      "ificationProtocol\022\014\n\004uuid\030\001 \002(\t\022\020\n\010hostn" +
-      "ame\030\002 \002(\t\022\014\n\004port\030\003 \002(\005\"5\n\023TheaterNodePr" +
-      "otocol\022\020\n\010hostname\030\001 \002(\t\022\014\n\004port\030\002 \002(\005*\230" +
-      "\001\n\022TheaterMessageType\022\020\n\014MOVING_ACTOR\020\001\022" +
-      "\033\n\027MOBILE_ACTOR_REGISTERED\020\002\022\027\n\023START_AC" +
-      "TOR_REQUEST\020\003\022\025\n\021START_ACTOR_REPLY\020\004\022#\n\037" +
-      "ACTOR_NEW_LOCATION_NOTIFICATION\020\005*+\n\017Con" +
-      "structorType\022\r\n\tCLASSNAME\020\001\022\t\n\005BYTES\020\002B<" +
-      "\n:se.scalablesolutions.akka.mobile.theat" +
-      "er.protocol.protobuf"
+      "\022\014\n\004uuid\030\001 \002(\t\"A\n\031StartActorRequestProto" +
+      "col\022\021\n\trequestId\030\001 \002(\004\022\021\n\tclassName\030\003 \001(" +
+      "\t\"?\n\027StartActorReplyProtocol\022\021\n\trequestI" +
+      "d\030\001 \002(\004\022\021\n\tactorUuid\030\002 \002(\t\"T\n$ActorNewLo" +
+      "cationNotificationProtocol\022\014\n\004uuid\030\001 \002(\t" +
+      "\022\020\n\010hostname\030\002 \002(\t\022\014\n\004port\030\003 \002(\005\"5\n\023Thea",
+      "terNodeProtocol\022\020\n\010hostname\030\001 \002(\t\022\014\n\004por" +
+      "t\030\002 \002(\005*\230\001\n\022TheaterMessageType\022\020\n\014MOVING" +
+      "_ACTOR\020\001\022\033\n\027MOBILE_ACTOR_REGISTERED\020\002\022\027\n" +
+      "\023START_ACTOR_REQUEST\020\003\022\025\n\021START_ACTOR_RE" +
+      "PLY\020\004\022#\n\037ACTOR_NEW_LOCATION_NOTIFICATION" +
+      "\020\005*+\n\017ConstructorType\022\r\n\tCLASSNAME\020\001\022\t\n\005" +
+      "BYTES\020\002B<\n:se.scalablesolutions.akka.mob" +
+      "ile.theater.protocol.protobuf"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -2976,7 +2882,7 @@ public final class ProtobufTheaterMessages {
           internal_static_mobile_StartActorRequestProtocol_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_mobile_StartActorRequestProtocol_descriptor,
-              new java.lang.String[] { "RequestId", "ConstructorType", "Classname", "ActorBytes", },
+              new java.lang.String[] { "RequestId", "ClassName", },
               se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.StartActorRequestProtocol.class,
               se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.StartActorRequestProtocol.Builder.class);
           internal_static_mobile_StartActorReplyProtocol_descriptor =

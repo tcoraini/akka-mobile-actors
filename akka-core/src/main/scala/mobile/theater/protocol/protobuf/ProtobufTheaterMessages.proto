@@ -24,9 +24,7 @@ message MobileActorRegisteredProtocol {
 
 message StartActorRequestProtocol {
   required uint64 requestId = 1;
-  required ConstructorType constructorType = 2;
-  optional string classname = 3;
-  optional bytes actorBytes = 4;
+  optional string className = 3;
 }
 
 message StartActorReplyProtocol {
