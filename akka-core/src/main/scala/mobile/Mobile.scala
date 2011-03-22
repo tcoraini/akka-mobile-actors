@@ -92,16 +92,60 @@ object Mobile extends Logging {
     TheaterHelper.spawnActorsGroupRemotely(Right(factories.toList), node)
   }
 
+  def colocate[T <: MobileActor : Manifest](number: Int) = new {
+    val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
+    def nextTo(ref: MobileActorRef): List[MobileActorRef] = {
+      println("Colocating " + number + " actors of class " + clazz.getName + " with actor with UUID [" + ref.uuid +
+	      "] in node " + ref.node.format)
+      spawnColocated(Left(clazz, number), Some(ref.node))
+    }
+
+    def at(node: TheaterNode): List[MobileActorRef] = {
+      println("Colocating " + number + " actors of class " + clazz.getName + " in node " + node.format)
+      spawnColocated(Left(clazz, number), Some(node))
+    }
+
+    def here: List[MobileActorRef] = {
+      println("Colocating " + number + "  actors of class " + clazz.getName + " in local node " + LocalTheater.node.format)
+      spawnColocated(Left(clazz, number), Some(LocalTheater.node))
+    }
+
+    def ! : List[MobileActorRef] = {
+      println("Colocating " + number + "  actors of class " + clazz.getName + " in some chosen node")
+      spawnColocated(Left(clazz, number), None)
+    }
+  }
+
+  def colocate(factories: (() => MobileActor)*) = new {
+    def nextTo(ref: MobileActorRef): List[MobileActorRef] = {
+      println("Colocating " + factories.size + " actors from factories with actor with UUID [" + ref.uuid +
+	      "] in node " + ref.node.format)
+      spawnColocated(Right(factories), Some(ref.node))
+    }
+
+    def at(node: TheaterNode): List[MobileActorRef] = {
+      println("Colocating " + factories.size + " actors from factories in node " + node.format)
+      spawnColocated(Right(factories), Some(node))
+    }
+
+    def here: List[MobileActorRef] = {
+      println("Colocating " + factories.size + " actors from factories in local node " + LocalTheater.node.format)
+      spawnColocated(Right(factories), Some(LocalTheater.node))
+    }
+
+    def ! : List[MobileActorRef] = {
+      println("Colocating " + factories.size + "  actors from factories in some chosen node")
+      spawnColocated(Right(factories), None)
+    }
+  }
+
   // TODO tem como unificar os metodos de spawn normal e co-locados?
   private def spawn(
       constructor: Either[Class[_ <: MobileActor], () => MobileActor], 
       where: Option[TheaterNode] = None,
       groupId: Option[String] = None): MobileActorRef = {
 
-    val node: TheaterNode = where match {
-      case Some(theater) => theater
-      case None => algorithm.chooseTheater
-    }
+    val node: TheaterNode = where.getOrElse(algorithm.chooseTheater)
   
     if (node.isLocal) {
       val mobileRef = constructor match {
@@ -117,6 +161,30 @@ object Mobile extends Logging {
       TheaterHelper.spawnActorRemotely(constructor, node)
     }
   }
+
+  private def spawnColocated(
+      constructor: Either[Tuple2[Class[_ <: MobileActor], Int], Seq[() => MobileActor]],
+      where: Option[TheaterNode] = None): List[MobileActorRef] = {
+
+    val node: TheaterNode = where.getOrElse(algorithm.chooseTheater)
+    
+    if (node.isLocal) {
+      val mobileRefs: Seq[MobileActorRef] = constructor match {
+	case Left((clazz, n)) =>
+	  for (i <- 1 to n) yield spawn(Left(clazz), Some(LocalTheater.node))
+	
+	case Right(factories) =>
+	  for (factory <- factories) yield spawn(Right(factory), Some(LocalTheater.node))
+      }
+      val groupId = GroupManagement.newGroupId
+      mobileRefs.foreach { ref => 
+	ref.groupId = Some(groupId)
+	ref.start
+      }
+      mobileRefs.toList
+    } else Nil // TODO spawn remoto
+  }
+
 
   def startTheater(nodeName: String): Boolean = LocalTheater.start(nodeName)
 
