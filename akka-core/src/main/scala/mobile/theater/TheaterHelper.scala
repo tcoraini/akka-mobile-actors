@@ -20,7 +20,10 @@ object TheaterHelper extends Logging {
   private val mobileRefs = new HashMap[Long, MobileActorRef]
   private val mobileGroups = new HashMap[Long, List[MobileActorRef]]
 
-  def spawnActorRemotely(constructor: Either[Class[_ <: MobileActor], () => MobileActor], node: TheaterNode): MobileActorRef = {
+  private[mobile] def spawnActorRemotely(
+      constructor: Either[Class[_ <: MobileActor], () => MobileActor], 
+      node: TheaterNode): MobileActorRef = {
+
     val hostname = node.hostname
     val port = node.port
 
@@ -39,11 +42,42 @@ object TheaterHelper extends Logging {
     }
   }
 
-  def completeActorSpawn(reply: StartMobileActorReply): Unit = {
-    log.debug("Mobile actor with UUID [%s] started in remote theater at %s.", 
-	      reply.uuid, 
-	      TheaterNode(reply.sender.get.hostname, reply.sender.get.port).format)
-    ReferenceManagement.attachRefToActor(reply.requestId.toString, reply.uuid)
+  private[mobile] def completeActorSpawn(requestId: Long, uuid: String, node: TheaterNode): Unit = {
+    log.debug("Mobile actor with UUID [%s] started in remote theater at %s.", uuid, node.format)
+    ReferenceManagement.attachRefToActor(requestId.toString, uuid)
+  }
+
+  private[mobile] def spawnColocatedActorsRemotely(
+      constructor: Either[Tuple2[Class[_ <: MobileActor], Int], Seq[() => MobileActor]], 
+      node: TheaterNode): List[MobileActorRef] = {
+    
+    val hostname = node.hostname
+    val port = node.port
+
+    constructor match {
+      case Left((clazz, n)) => 
+	val requestId = newRequestId
+	LocalTheater.protocol.sendTo(node, StartColocatedActorsRequest(requestId, clazz.getName, n))
+	(for {
+	  i <- 0 to (n - 1)
+	  temporaryId = requestId + "_" + i
+	} yield MobileActorRef(temporaryId, node.hostname, node.port, true)).toList
+
+      case Right(factory) =>
+	// We create a local mobile ref and migrate it right away to the proper node
+	/*val mobileRef = MobileActorRef(factory()) 
+	mobileRef.start
+	mobileRef ! MoveTo(hostname, port)
+	mobileRef*/
+	Nil
+    }
+  }
+
+  private[mobile] def completeColocatedActorsSpawn(requestId: Long, uuids: Array[String], node: TheaterNode): Unit = {
+    log.debug("%d colocated mobile actors started in remote theater at %s.", uuids.size, node.format)
+    for (i <- 0 to (uuids.size - 1)) {
+      ReferenceManagement.attachRefToActor(requestId + "_" + i, uuids(i))
+    }
   }
 
   def spawnActorsGroupRemotely(
@@ -89,7 +123,8 @@ object TheaterHelper extends Logging {
     mobileGroups.put(reply.requestId, newRefs)
   }
 
-  def newRequestId: Long = {
+  // TODO melhorar o meio de conseguir um incremento atomicamente
+  def newRequestId: Long = this.synchronized {
     requestId += 1
     requestId
   }

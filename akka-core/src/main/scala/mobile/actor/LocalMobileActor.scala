@@ -20,6 +20,7 @@ import se.scalablesolutions.akka.stm.TransactionManagement._
 
 import se.scalablesolutions.akka.mobile.theater.LocalTheater
 import se.scalablesolutions.akka.mobile.dispatcher.MobileMessageDispatcher
+import se.scalablesolutions.akka.mobile.theater.GroupManagement
 import se.scalablesolutions.akka.mobile.util.messages._
 
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -34,7 +35,7 @@ trait LocalMobileActor extends InnerReference with MessageHolder {
   // Check some conditions that must hold for the proper instantiation of the actor
   checkConditions()
 
-  abstract override def actor: MobileActor = super.actor.asInstanceOf[MobileActor]
+  abstract override protected[akka] def actor: MobileActor = super.actor.asInstanceOf[MobileActor]
 
   abstract override def start(): ActorRef = {
     // Needed during deserialization
@@ -154,6 +155,16 @@ trait LocalMobileActor extends InnerReference with MessageHolder {
     case mmd: MobileMessageDispatcher => ()
 
     case _ => dispatcher = MobileDispatchers.globalMobileExecutorBasedEventDrivenDispatcher
+  }
+
+  override def groupId: Option[String] = actor.groupId
+  
+  override protected[mobile] def groupId_=(id: Option[String]) {
+    // Removes this actor from the old group id, if it is not None
+    groupId.foreach(GroupManagement.remove(outerRef, _))
+    // Inserts this actor in the new group id, if it is not None
+    id.foreach(GroupManagement.insert(outerRef, _))
+    actor.groupId = id
   }
 
   protected[actor] def isLocal = true

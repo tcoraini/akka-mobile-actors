@@ -4,7 +4,6 @@ import se.scalablesolutions.akka.mobile.theater.Theater
 import se.scalablesolutions.akka.mobile.theater.LocalTheater
 import se.scalablesolutions.akka.mobile.theater.TheaterNode
 import se.scalablesolutions.akka.mobile.theater.ReferenceManagement
-import se.scalablesolutions.akka.mobile.theater.GroupManagement
 import se.scalablesolutions.akka.mobile.serialization.DefaultActorFormat
 import se.scalablesolutions.akka.mobile.nameservice.NameService
 import se.scalablesolutions.akka.mobile.Mobile
@@ -158,32 +157,12 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
   
   private var _migratingTo: Option[TheaterNode] = None
 
-  private var _homeTheater: Theater = LocalTheater
-  
-  private var _groupId: Option[String] = None
-
   def isMigrating = _isMigrating
 
   def migratingTo: Option[TheaterNode] = _migratingTo
   
-  private def homeTheater = _homeTheater
-  protected[mobile] def homeTheater_=(theater: Theater) = {
-    if (isLocal) {
-      _homeTheater = theater
-      // TODO verificar se isso estava sendo usado. Em caso afirmativo, tem que atualizar o homeAddress
-      // para o valor inicial de homeTheater
-      //this.homeAddress = new InetSocketAddress(theater.hostname, theater.port)
-    }
-  }
-
-  def groupId = _groupId
-  def groupId_=(id: Option[String]) {
-    // Removes this actor from the old group id, if it is not None
-    groupId.foreach(GroupManagement.remove(this, _))
-    // Inserts this actor in the new group id, if it is not None
-    id.foreach(GroupManagement.insert(this, _))
-    _groupId = id
-  }
+  def groupId = innerRef.groupId
+  protected[mobile] def groupId_=(id: Option[String]) = { innerRef.groupId = id }
 
   def node: TheaterNode = innerRef.node
   

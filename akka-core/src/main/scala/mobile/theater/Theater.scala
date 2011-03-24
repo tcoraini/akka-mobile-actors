@@ -23,6 +23,7 @@ import se.scalablesolutions.akka.config.Config
 import se.scalablesolutions.akka.util.Logging
 
 import java.util.concurrent.ConcurrentHashMap
+import collection.JavaConversions._
 
 object LocalTheater extends Theater
 
@@ -103,6 +104,19 @@ private[mobile] trait Theater extends Logging {
     _isRunning = server.isRunning
     // Returns true if the theater has been started properly
     _isRunning
+  }
+  
+  def shutdown(): Unit = {
+    log.info("Shutting down theater at %s.", node.format)
+
+    mobileActors.values.foreach { ref =>
+      NameService.remove(ref.uuid)
+      ref.stop
+    }
+    mobileActors.clear
+    
+    server.shutdown
+    _isRunning = false
   }
   
   def register(actor: MobileActorRef, fromMigration: Boolean = false): Unit = {
@@ -212,6 +226,7 @@ private[mobile] trait Theater extends Logging {
    * @return the reference of the new actor started
    */
   def startActorByClassName(className: String): MobileActorRef = {
+    log.debug("Starting an actor of class %s at theater %s", className, node.format)
     val mobileRef = MobileActorRef(Class.forName(className).asInstanceOf[Class[_ <: MobileActor]])
     mobileRef.start
 //    this.register(mobileRef)
@@ -325,8 +340,24 @@ private[mobile] trait Theater extends Logging {
       val ref = startActorByClassName(className)
       sendTo(message.sender.get, StartMobileActorReply(requestId, ref.uuid))
 
-    case reply: StartMobileActorReply =>
-      TheaterHelper.completeActorSpawn(reply)
+    case StartMobileActorReply(requestId, uuid) =>
+      TheaterHelper.completeActorSpawn(requestId, uuid, message.sender.get)
+    
+    case StartColocatedActorsRequest(requestId, className, number) => {
+      log.debug("Starting %d colocated actors of class %s in theater %s.", number, className, node.format)
+      val groupId = GroupManagement.newGroupId
+      val uuids = new Array[String](number)
+      for (i <- 0 to (number - 1)) {
+	val ref = startActorByClassName(className)
+	ref.groupId = Some(groupId)
+	uuids(i) = ref.uuid
+      } 
+
+      sendTo(message.sender.get, StartColocatedActorsReply(requestId, uuids))
+    }
+    
+    case StartColocatedActorsReply(requestId, uuids) =>
+      TheaterHelper.completeColocatedActorsSpawn(requestId, uuids, message.sender.get)
 
     case StartMobileActorsGroupRequest(requestId, constructor) =>
       val refs = startLocalActorsGroup(constructor)
