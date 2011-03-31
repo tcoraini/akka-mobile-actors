@@ -49,6 +49,7 @@ case object Pong
 case class Garbage(what: String)
 case class Message(what: String)
 case object Identify
+case class TalkTo(ref: ActorRef, msg: Any)
 
 case class MsgFunction(func: Function0[String])
 
@@ -101,6 +102,9 @@ case object ShowCount
 
     case MsgFunction(func) =>
       show("Received function. Applying it: " + func())
+
+    case TalkTo(ref, msg) =>
+      ref ! msg
 
     case msg =>
       show("Received unknown message: " + msg)
@@ -273,25 +277,31 @@ object GeneralTests {
   def stopAll() = {
     stop(actors size)
   }
+  
+  val node1 = TheaterNode("ubuntu-tcoraini", 1810)
+  val node2 = TheaterNode("localhost", 2312)
 
   def testServer1(migrate: Boolean = false) = {
-    LocalTheater.start("localhost", 2312)
+    //LocalTheater.start("localhost", 2312)
+    Mobile.startTheater(node1.hostname, node1.port)
     val ref = Mobile.spawnHere[StatefulActor]
     ref ! Ping
     ref ! ShowCount
     if (migrate) {
-      testMigrate(ref uuid)
+      ref ! MoveTo(node2.hostname, node2.port)
     }
+    ref ! Ping
+    ref ! ShowCount
     ref
   }
 
   def testServer2 = {
-    LocalTheater.start("ubuntu-tcoraini", 1810)
+    LocalTheater.start(node2.hostname, node2.port)
   }
 
   def testClient(uuid: String) = {
     LocalTheater.start("localhost", 2222)
-    val ref = MobileActorRef(uuid, "localhost", 2312)
+    val ref = MobileActorRef(uuid, node1.hostname, node1.port)
 //    val ref = MobileActorRef(uuid, "ubuntu-tcoraini", 1810)
     ref ! Ping
     ref ! ShowCount
@@ -305,19 +315,6 @@ object GeneralTests {
     ref ! Ping
     ref ! ShowCount
     ref
-  }
-
-  def testMigrate(uuid: String) = {
-    //LocalTheater.migrate(uuid) to ("localhost", 2312)
-  }
-
-  def testAll() {
-    val ref1 = testServer1(false)
-    testServer2
-    val ref2 = testClient(ref1 uuid)
-    testMigrate(ref1 uuid)
-    ref1 ! Ping
-    ref2 ! ShowCount
   }
 
   def testDelayedMigration() =  {
@@ -370,7 +367,7 @@ object GeneralTests {
     lazy val actor = new HeavyActor(size)
     val ref = Mobile.spawnHere(actor)
 
-    val bytes_1 = ref.startMigration("", 0000)
+    val bytes_1 = ref.startMigration()
     
     val builder = MovingActorProtocol.newBuilder
       .setActorBytes(ByteString.copyFrom(format.toBinary(actor)))
