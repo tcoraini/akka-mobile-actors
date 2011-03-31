@@ -70,7 +70,7 @@ object Mobile extends Logging {
   /**
    * Co-located actors
    */
-  def spawnTogetherHere[T <: MobileActor : Manifest](number: Int): List[MobileActorRef] = {
+/*  def spawnTogetherHere[T <: MobileActor : Manifest](number: Int): List[MobileActorRef] = {
     val groupId = GroupManagement.newGroupId
     val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
     (for (i <- 1 to number)
@@ -90,7 +90,7 @@ object Mobile extends Logging {
   
   def spawnTogetherAt(node: TheaterNode)(factories: (() => MobileActor)*): List[MobileActorRef] = {
     TheaterHelper.spawnActorsGroupRemotely(Right(factories.toList), node)
-  }
+  }*/
 
   // TODO tem como unificar os metodos de spawn normal e co-locados?
   private def spawn(
@@ -124,6 +124,7 @@ object Mobile extends Logging {
   def colocate(factories: (() => MobileActor)*) = colocateOptions(Right(factories))//new {
 
   private def colocateOptions(constructor: Either[Tuple2[Class[_ <: MobileActor], Int], Seq[() => MobileActor]]) = new {
+    // TODO os atores nesse caso tem que ter o groupId do ator que eles estao sendo colocados juntos
     def nextTo(ref: MobileActorRef): List[MobileActorRef] = {
       spawnColocated(constructor, Some(ref.node))
     }

@@ -63,13 +63,16 @@ object TheaterHelper extends Logging {
 	  temporaryId = requestId + "_" + i
 	} yield MobileActorRef(temporaryId, node.hostname, node.port, true)).toList
 
-      case Right(factory) =>
-	// We create a local mobile ref and migrate it right away to the proper node
-	/*val mobileRef = MobileActorRef(factory()) 
-	mobileRef.start
-	mobileRef ! MoveTo(hostname, port)
-	mobileRef*/
-	Nil
+      case Right(factories) =>
+	// We create N local mobile ref's and migrate them right away to the proper node
+	val groupId = GroupManagement.newGroupId
+	val refs = for (factory <- factories) yield MobileActorRef(factory())
+	refs.foreach { ref =>
+	  ref.groupId = Some(groupId)
+	  ref.start
+          ref ! MoveTo(hostname, port)
+	}
+        refs.toList
     }
   }
 
@@ -80,7 +83,7 @@ object TheaterHelper extends Logging {
     }
   }
 
-  def spawnActorsGroupRemotely(
+  private def spawnActorsGroupRemotely(
       constructor: Either[Tuple2[Class[_ <: MobileActor], Int], List[() => MobileActor]], 
       node: TheaterNode): List[MobileActorRef] = {
     
@@ -97,7 +100,7 @@ object TheaterHelper extends Logging {
 	  factory <- factories
 	  mobileRef = MobileActorRef(factory()) // TODO pra onde vai? ali embaixo criamos outra! O ideal e' evitar essa criação.
 	                                        // Como serializar sem ter que criar um MobileActorRef?
-	  bytes = mobileRef.startMigration(hostname, port)
+	  bytes = mobileRef.startMigration()
 	} yield bytes
 	Right(array.toList)
     }
@@ -113,7 +116,7 @@ object TheaterHelper extends Logging {
     refs
   }
 
-  def completeActorsGroupSpawn(reply: StartMobileActorsGroupReply): Unit = {
+  private def completeActorsGroupSpawn(reply: StartMobileActorsGroupReply): Unit = {
     log.debug("Mobile co-located actors started in remote theater at %s.", TheaterNode(reply.sender.get.hostname, reply.sender.get.port).format)
     val newRefs = 
       (for {

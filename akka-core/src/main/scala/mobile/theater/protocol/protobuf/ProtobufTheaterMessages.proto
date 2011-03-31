@@ -8,7 +8,7 @@ message TheaterMessageProtocol {
   
   // Possible messages
   optional MovingActorProtocol movingActor = 3;
-  optional MobileActorRegisteredProtocol mobileActorRegistered = 4;
+  optional MobileActorsRegisteredProtocol mobileActorsRegistered = 4;
   optional StartActorRequestProtocol startActorRequest = 5;
   optional StartActorReplyProtocol startActorReply = 6;
   optional ActorNewLocationNotificationProtocol actorNewLocationNotification = 7;
@@ -18,8 +18,8 @@ message MovingActorProtocol {
   required bytes actorBytes = 1;
 }
 
-message MobileActorRegisteredProtocol {
-  required string uuid = 1;
+message MobileActorsRegisteredProtocol {
+  repeated string uuids = 1;
 }
 
 message StartActorRequestProtocol {
@@ -46,7 +46,7 @@ message TheaterNodeProtocol {
 
 enum TheaterMessageType {
   MOVING_ACTOR = 1;
-  MOBILE_ACTOR_REGISTERED = 2;
+  MOBILE_ACTORS_REGISTERED = 2;
   START_ACTOR_REQUEST = 3;
   START_ACTOR_REPLY = 4;
   ACTOR_NEW_LOCATION_NOTIFICATION = 5;

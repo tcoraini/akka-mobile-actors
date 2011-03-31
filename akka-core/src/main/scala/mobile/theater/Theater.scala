@@ -16,6 +16,7 @@ import se.scalablesolutions.akka.mobile.nameservice.DistributedNameService
 import se.scalablesolutions.akka.mobile.tools.mobtrack.MobTrackGUI
 
 import se.scalablesolutions.akka.actor.ActorRef
+import se.scalablesolutions.akka.actor.RemoteActorSerialization
 import se.scalablesolutions.akka.remote.RemoteServer
 import se.scalablesolutions.akka.remote.protocol.RemoteProtocol._
 import se.scalablesolutions.akka.remote.MessageSerializer
@@ -172,14 +173,26 @@ private[mobile] trait Theater extends Logging {
     mobileActors.get(uuid) match {
       case actor: MobileActorRef =>
         val message = MessageSerializer.deserialize(request.getMessage)
-        // TODO ver o negocio do sender
-        actor.!(message)(None)
+	val sender = findMessageSender(request)
+	actor.!(message)(sender)
 
       // The actor is not here. Possibly it has been migrated to some other theater.
       case null =>
         log.debug("Actor with UUID [%s] not found at theater %s.", uuid, node.format)
         handleActorNotFound(request)
     }
+  }
+
+  private def findMessageSender(request: RemoteRequestProtocol): Option[ActorRef] = {
+    if (request.hasSender) {
+      val sender = request.getSender
+      MobileActorRef(sender.getUuid) match {
+	// Sender is a mobile actor
+	case Some(actorRef) => Some(actorRef)
+	// Sender is not a mobile actor, construct proxy as usual (from Akka)
+	case None => Some(RemoteActorSerialization.fromProtobufToRemoteActorRef(sender, None)) // TODO e esse None?
+      }
+    } else None
   }
   
   /**
@@ -271,7 +284,7 @@ private[mobile] trait Theater extends Logging {
 
         val ref = mobileActors.get(uuid)
         if (ref != null) {
-          val actorBytes = ref.startMigration(destHostname, destPort)
+          val actorBytes = ref.startMigration()
           sendTo(TheaterNode(destHostname, destPort), MovingActor(actorBytes))
         } else {
           log.warning("Theater at %s received a request to migrate actor with UUID [%s], but the actor was " +
@@ -284,57 +297,79 @@ private[mobile] trait Theater extends Logging {
   private[mobile] def migrate(actor: MobileActorRef, destination: TheaterNode): Unit = {
     if (_isRunning) {
       log.info("Theater at %s received a request to migrate actor with UUID [%s] to theater at %s.",
-	       node.format, actor.uuid, TheaterNode(destination.hostname, destination.port).format)
+	       node.format, actor.uuid, destination.format)
       
       if (mobileActors.get(actor.uuid) == null) {
 	throw new RuntimeException("Actor not registered in this theater, can't go on with migration")
       }
 
-      val actorBytes = actor.startMigration(destination.hostname, destination.port)
+      val actorBytes = actor.startMigration()
       sendTo(destination, MovingActor(actorBytes))
     }
   }
 
+  private[mobile] def migrateGroup(actorsBytes: Array[Array[Byte]], destination: TheaterNode): Unit = {
+    if (_isRunning) {
+      log.info("Theater at %s performing migration of %d actors to theater at %s.", 
+	       node.format, actorsBytes.size, destination.format)
+
+      sendTo(destination, MovingGroup(actorsBytes))
+    }
+  }
+
   /* Complete the actor migration in the sender theater */
-  def finishMigration(actorUuid: String): Unit = {
-    log.debug("Finishing the migration process of actor with UUID [%s]", actorUuid)
-    profiler.remove(actorUuid)
-    val actor = mobileActors.get(actorUuid)
-    if (actor != null) {
-      //println("RETAINED MESSAGES: " + actor.retained)
-      //println("MAILBOX: " + actor.mb)
-      actor.endMigration()
-//      this.unregister(actor, true)
-      // TODO destruir instancia
+  def finishMigration(uuids: Array[String], destination: TheaterNode): Unit = {
+    uuids.foreach { uuid =>
+      log.debug("Finishing the migration process of actor with UUID [%s]", uuid)
+      profiler.remove(uuid)
+      val actor = mobileActors.get(uuid)
+      if (actor != null) {
+	//println("RETAINED MESSAGES: " + actor.retained)
+	//println("MAILBOX: " + actor.mb)
+	actor.endMigration(destination)
+	//      this.unregister(actor, true)
+	// TODO destruir instancia
+      }
     }
   }
 
   /**
    * Instantiates an actor migrating from another theater, starts and registers it.
    */
-  def receiveActor(bytes: Array[Byte], sender: Option[TheaterNode]): Unit = {
+  def receiveActor(bytes: Array[Byte], sender: Option[TheaterNode]): String = {
     if (_isRunning) {
       if (!sender.isDefined)
         throw new RuntimeException("Can't perform a migration without knowing the original node of the actor.")
 
       log.debug("Theater at %s just received a migrating actor from %s.", 
-        node.format, TheaterNode(sender.get.hostname, sender.get.port).format)
+        node.format, sender.get.format)
 
       val mobileRef = MobileSerialization.mobileFromBinary(bytes)(DefaultActorFormat)
+      mobileRef.groupId.foreach(id => GroupManagement.insert(mobileRef, id))
 //      register(mobileRef, true)
 //      NameService.put(mobileRef.uuid, this.node)
       if (mobTrack) {
 	sendTo(mobTrackNode.get, MobTrackMigrate(mobileRef.uuid, sender.get, this.node))
       }
-
-      // Notifying the sender that the actor is now registered in this theater
-      sendTo(sender.get, MobileActorRegistered(mobileRef.uuid))
-    }
+      mobileRef.uuid
+    } else "" // TODO como fazer melhor?
   }
 
   def processMessage(message: TheaterMessage): Unit = message match {
     case MovingActor(bytes) =>
-      receiveActor(bytes, message.sender)
+      val uuid = receiveActor(bytes, message.sender)
+      // Notifying the sender that the actor is now registered in this theater
+      sendTo(message.sender.get, MobileActorsRegistered(Array(uuid)))
+
+    case MobileActorsRegistered(uuids) =>
+      finishMigration(uuids, message.sender.get)
+
+    case MovingGroup(actorsBytes) =>
+      val uuids = for { 
+	bytes <- actorsBytes
+	uuid = receiveActor(bytes, message.sender)
+      } yield uuid
+      sendTo(message.sender.get, MobileActorsRegistered(uuids))
 
     case StartMobileActorRequest(requestId, className) =>
       val ref = startActorByClassName(className)
@@ -364,12 +399,9 @@ private[mobile] trait Theater extends Logging {
       val uuids = refs.map(ref => ref.uuid)
       sendTo(message.sender.get, StartMobileActorsGroupReply(requestId, uuids))
 
-    case reply: StartMobileActorsGroupReply =>
-      TheaterHelper.completeActorsGroupSpawn(reply)
+//    case reply: StartMobileActorsGroupReply =>
+//      TheaterHelper.completeActorsGroupSpawn(reply)
     
-    case MobileActorRegistered(uuid) =>
-      finishMigration(uuid)
-
     case ActorNewLocationNotification(uuid, newHostname, newPort) =>
       log.debug("Theater at %s received a notification that actor with UUID [%s] has migrated " + 
         "to %s.", node.format, uuid, TheaterNode(newHostname, newPort).format)

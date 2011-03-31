@@ -11,7 +11,7 @@ public final class ProtobufTheaterMessages {
   public enum TheaterMessageType
       implements com.google.protobuf.ProtocolMessageEnum {
     MOVING_ACTOR(0, 1),
-    MOBILE_ACTOR_REGISTERED(1, 2),
+    MOBILE_ACTORS_REGISTERED(1, 2),
     START_ACTOR_REQUEST(2, 3),
     START_ACTOR_REPLY(3, 4),
     ACTOR_NEW_LOCATION_NOTIFICATION(4, 5),
@@ -23,7 +23,7 @@ public final class ProtobufTheaterMessages {
     public static TheaterMessageType valueOf(int value) {
       switch (value) {
         case 1: return MOVING_ACTOR;
-        case 2: return MOBILE_ACTOR_REGISTERED;
+        case 2: return MOBILE_ACTORS_REGISTERED;
         case 3: return START_ACTOR_REQUEST;
         case 4: return START_ACTOR_REPLY;
         case 5: return ACTOR_NEW_LOCATION_NOTIFICATION;
@@ -57,7 +57,7 @@ public final class ProtobufTheaterMessages {
     }
     
     private static final TheaterMessageType[] VALUES = {
-      MOVING_ACTOR, MOBILE_ACTOR_REGISTERED, START_ACTOR_REQUEST, START_ACTOR_REPLY, ACTOR_NEW_LOCATION_NOTIFICATION, 
+      MOVING_ACTOR, MOBILE_ACTORS_REGISTERED, START_ACTOR_REQUEST, START_ACTOR_REPLY, ACTOR_NEW_LOCATION_NOTIFICATION, 
     };
     public static TheaterMessageType valueOf(
         com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
@@ -196,12 +196,12 @@ public final class ProtobufTheaterMessages {
     public boolean hasMovingActor() { return hasMovingActor; }
     public se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MovingActorProtocol getMovingActor() { return movingActor_; }
     
-    // optional .mobile.MobileActorRegisteredProtocol mobileActorRegistered = 4;
-    public static final int MOBILEACTORREGISTERED_FIELD_NUMBER = 4;
-    private boolean hasMobileActorRegistered;
-    private se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol mobileActorRegistered_;
-    public boolean hasMobileActorRegistered() { return hasMobileActorRegistered; }
-    public se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol getMobileActorRegistered() { return mobileActorRegistered_; }
+    // optional .mobile.MobileActorsRegisteredProtocol mobileActorsRegistered = 4;
+    public static final int MOBILEACTORSREGISTERED_FIELD_NUMBER = 4;
+    private boolean hasMobileActorsRegistered;
+    private se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol mobileActorsRegistered_;
+    public boolean hasMobileActorsRegistered() { return hasMobileActorsRegistered; }
+    public se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol getMobileActorsRegistered() { return mobileActorsRegistered_; }
     
     // optional .mobile.StartActorRequestProtocol startActorRequest = 5;
     public static final int STARTACTORREQUEST_FIELD_NUMBER = 5;
@@ -228,7 +228,7 @@ public final class ProtobufTheaterMessages {
       messageType_ = se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.TheaterMessageType.MOVING_ACTOR;
       sender_ = se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.TheaterNodeProtocol.getDefaultInstance();
       movingActor_ = se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MovingActorProtocol.getDefaultInstance();
-      mobileActorRegistered_ = se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol.getDefaultInstance();
+      mobileActorsRegistered_ = se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol.getDefaultInstance();
       startActorRequest_ = se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.StartActorRequestProtocol.getDefaultInstance();
       startActorReply_ = se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.StartActorReplyProtocol.getDefaultInstance();
       actorNewLocationNotification_ = se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.ActorNewLocationNotificationProtocol.getDefaultInstance();
@@ -240,9 +240,6 @@ public final class ProtobufTheaterMessages {
       }
       if (hasMovingActor()) {
         if (!getMovingActor().isInitialized()) return false;
-      }
-      if (hasMobileActorRegistered()) {
-        if (!getMobileActorRegistered().isInitialized()) return false;
       }
       if (hasStartActorRequest()) {
         if (!getStartActorRequest().isInitialized()) return false;
@@ -268,8 +265,8 @@ public final class ProtobufTheaterMessages {
       if (hasMovingActor()) {
         output.writeMessage(3, getMovingActor());
       }
-      if (hasMobileActorRegistered()) {
-        output.writeMessage(4, getMobileActorRegistered());
+      if (hasMobileActorsRegistered()) {
+        output.writeMessage(4, getMobileActorsRegistered());
       }
       if (hasStartActorRequest()) {
         output.writeMessage(5, getStartActorRequest());
@@ -301,9 +298,9 @@ public final class ProtobufTheaterMessages {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(3, getMovingActor());
       }
-      if (hasMobileActorRegistered()) {
+      if (hasMobileActorsRegistered()) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(4, getMobileActorRegistered());
+          .computeMessageSize(4, getMobileActorsRegistered());
       }
       if (hasStartActorRequest()) {
         size += com.google.protobuf.CodedOutputStream
@@ -484,8 +481,8 @@ public final class ProtobufTheaterMessages {
         if (other.hasMovingActor()) {
           mergeMovingActor(other.getMovingActor());
         }
-        if (other.hasMobileActorRegistered()) {
-          mergeMobileActorRegistered(other.getMobileActorRegistered());
+        if (other.hasMobileActorsRegistered()) {
+          mergeMobileActorsRegistered(other.getMobileActorsRegistered());
         }
         if (other.hasStartActorRequest()) {
           mergeStartActorRequest(other.getStartActorRequest());
@@ -550,12 +547,12 @@ public final class ProtobufTheaterMessages {
               break;
             }
             case 34: {
-              se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol.Builder subBuilder = se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol.newBuilder();
-              if (hasMobileActorRegistered()) {
-                subBuilder.mergeFrom(getMobileActorRegistered());
+              se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol.Builder subBuilder = se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol.newBuilder();
+              if (hasMobileActorsRegistered()) {
+                subBuilder.mergeFrom(getMobileActorsRegistered());
               }
               input.readMessage(subBuilder, extensionRegistry);
-              setMobileActorRegistered(subBuilder.buildPartial());
+              setMobileActorsRegistered(subBuilder.buildPartial());
               break;
             }
             case 42: {
@@ -685,40 +682,40 @@ public final class ProtobufTheaterMessages {
         return this;
       }
       
-      // optional .mobile.MobileActorRegisteredProtocol mobileActorRegistered = 4;
-      public boolean hasMobileActorRegistered() {
-        return result.hasMobileActorRegistered();
+      // optional .mobile.MobileActorsRegisteredProtocol mobileActorsRegistered = 4;
+      public boolean hasMobileActorsRegistered() {
+        return result.hasMobileActorsRegistered();
       }
-      public se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol getMobileActorRegistered() {
-        return result.getMobileActorRegistered();
+      public se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol getMobileActorsRegistered() {
+        return result.getMobileActorsRegistered();
       }
-      public Builder setMobileActorRegistered(se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol value) {
+      public Builder setMobileActorsRegistered(se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol value) {
         if (value == null) {
           throw new NullPointerException();
         }
-        result.hasMobileActorRegistered = true;
-        result.mobileActorRegistered_ = value;
+        result.hasMobileActorsRegistered = true;
+        result.mobileActorsRegistered_ = value;
         return this;
       }
-      public Builder setMobileActorRegistered(se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol.Builder builderForValue) {
-        result.hasMobileActorRegistered = true;
-        result.mobileActorRegistered_ = builderForValue.build();
+      public Builder setMobileActorsRegistered(se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol.Builder builderForValue) {
+        result.hasMobileActorsRegistered = true;
+        result.mobileActorsRegistered_ = builderForValue.build();
         return this;
       }
-      public Builder mergeMobileActorRegistered(se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol value) {
-        if (result.hasMobileActorRegistered() &&
-            result.mobileActorRegistered_ != se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol.getDefaultInstance()) {
-          result.mobileActorRegistered_ =
-            se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol.newBuilder(result.mobileActorRegistered_).mergeFrom(value).buildPartial();
+      public Builder mergeMobileActorsRegistered(se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol value) {
+        if (result.hasMobileActorsRegistered() &&
+            result.mobileActorsRegistered_ != se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol.getDefaultInstance()) {
+          result.mobileActorsRegistered_ =
+            se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol.newBuilder(result.mobileActorsRegistered_).mergeFrom(value).buildPartial();
         } else {
-          result.mobileActorRegistered_ = value;
+          result.mobileActorsRegistered_ = value;
         }
-        result.hasMobileActorRegistered = true;
+        result.hasMobileActorsRegistered = true;
         return this;
       }
-      public Builder clearMobileActorRegistered() {
-        result.hasMobileActorRegistered = false;
-        result.mobileActorRegistered_ = se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol.getDefaultInstance();
+      public Builder clearMobileActorsRegistered() {
+        result.hasMobileActorsRegistered = false;
+        result.mobileActorsRegistered_ = se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol.getDefaultInstance();
         return this;
       }
       
@@ -1133,52 +1130,56 @@ public final class ProtobufTheaterMessages {
     // @@protoc_insertion_point(class_scope:mobile.MovingActorProtocol)
   }
   
-  public static final class MobileActorRegisteredProtocol extends
+  public static final class MobileActorsRegisteredProtocol extends
       com.google.protobuf.GeneratedMessage {
-    // Use MobileActorRegisteredProtocol.newBuilder() to construct.
-    private MobileActorRegisteredProtocol() {
+    // Use MobileActorsRegisteredProtocol.newBuilder() to construct.
+    private MobileActorsRegisteredProtocol() {
       initFields();
     }
-    private MobileActorRegisteredProtocol(boolean noInit) {}
+    private MobileActorsRegisteredProtocol(boolean noInit) {}
     
-    private static final MobileActorRegisteredProtocol defaultInstance;
-    public static MobileActorRegisteredProtocol getDefaultInstance() {
+    private static final MobileActorsRegisteredProtocol defaultInstance;
+    public static MobileActorsRegisteredProtocol getDefaultInstance() {
       return defaultInstance;
     }
     
-    public MobileActorRegisteredProtocol getDefaultInstanceForType() {
+    public MobileActorsRegisteredProtocol getDefaultInstanceForType() {
       return defaultInstance;
     }
     
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.internal_static_mobile_MobileActorRegisteredProtocol_descriptor;
+      return se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.internal_static_mobile_MobileActorsRegisteredProtocol_descriptor;
     }
     
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.internal_static_mobile_MobileActorRegisteredProtocol_fieldAccessorTable;
+      return se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.internal_static_mobile_MobileActorsRegisteredProtocol_fieldAccessorTable;
     }
     
-    // required string uuid = 1;
-    public static final int UUID_FIELD_NUMBER = 1;
-    private boolean hasUuid;
-    private java.lang.String uuid_ = "";
-    public boolean hasUuid() { return hasUuid; }
-    public java.lang.String getUuid() { return uuid_; }
+    // repeated string uuids = 1;
+    public static final int UUIDS_FIELD_NUMBER = 1;
+    private java.util.List<java.lang.String> uuids_ =
+      java.util.Collections.emptyList();
+    public java.util.List<java.lang.String> getUuidsList() {
+      return uuids_;
+    }
+    public int getUuidsCount() { return uuids_.size(); }
+    public java.lang.String getUuids(int index) {
+      return uuids_.get(index);
+    }
     
     private void initFields() {
     }
     public final boolean isInitialized() {
-      if (!hasUuid) return false;
       return true;
     }
     
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
-      if (hasUuid()) {
-        output.writeString(1, getUuid());
+      for (java.lang.String element : getUuidsList()) {
+        output.writeString(1, element);
       }
       getUnknownFields().writeTo(output);
     }
@@ -1189,50 +1190,55 @@ public final class ProtobufTheaterMessages {
       if (size != -1) return size;
     
       size = 0;
-      if (hasUuid()) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeStringSize(1, getUuid());
+      {
+        int dataSize = 0;
+        for (java.lang.String element : getUuidsList()) {
+          dataSize += com.google.protobuf.CodedOutputStream
+            .computeStringSizeNoTag(element);
+        }
+        size += dataSize;
+        size += 1 * getUuidsList().size();
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
       return size;
     }
     
-    public static se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol parseFrom(
+    public static se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return newBuilder().mergeFrom(data).buildParsed();
     }
-    public static se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol parseFrom(
+    public static se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return newBuilder().mergeFrom(data, extensionRegistry)
                .buildParsed();
     }
-    public static se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol parseFrom(byte[] data)
+    public static se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return newBuilder().mergeFrom(data).buildParsed();
     }
-    public static se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol parseFrom(
+    public static se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return newBuilder().mergeFrom(data, extensionRegistry)
                .buildParsed();
     }
-    public static se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol parseFrom(java.io.InputStream input)
+    public static se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return newBuilder().mergeFrom(input).buildParsed();
     }
-    public static se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol parseFrom(
+    public static se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return newBuilder().mergeFrom(input, extensionRegistry)
                .buildParsed();
     }
-    public static se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol parseDelimitedFrom(java.io.InputStream input)
+    public static se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       Builder builder = newBuilder();
       if (builder.mergeDelimitedFrom(input)) {
@@ -1241,7 +1247,7 @@ public final class ProtobufTheaterMessages {
         return null;
       }
     }
-    public static se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol parseDelimitedFrom(
+    public static se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -1252,12 +1258,12 @@ public final class ProtobufTheaterMessages {
         return null;
       }
     }
-    public static se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol parseFrom(
+    public static se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return newBuilder().mergeFrom(input).buildParsed();
     }
-    public static se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol parseFrom(
+    public static se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -1267,25 +1273,25 @@ public final class ProtobufTheaterMessages {
     
     public static Builder newBuilder() { return Builder.create(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol prototype) {
+    public static Builder newBuilder(se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol prototype) {
       return newBuilder().mergeFrom(prototype);
     }
     public Builder toBuilder() { return newBuilder(this); }
     
     public static final class Builder extends
         com.google.protobuf.GeneratedMessage.Builder<Builder> {
-      private se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol result;
+      private se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol result;
       
-      // Construct using se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol.newBuilder()
+      // Construct using se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol.newBuilder()
       private Builder() {}
       
       private static Builder create() {
         Builder builder = new Builder();
-        builder.result = new se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol();
+        builder.result = new se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol();
         return builder;
       }
       
-      protected se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol internalGetResult() {
+      protected se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol internalGetResult() {
         return result;
       }
       
@@ -1294,7 +1300,7 @@ public final class ProtobufTheaterMessages {
           throw new IllegalStateException(
             "Cannot call clear() after build().");
         }
-        result = new se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol();
+        result = new se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol();
         return this;
       }
       
@@ -1304,24 +1310,24 @@ public final class ProtobufTheaterMessages {
       
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol.getDescriptor();
+        return se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol.getDescriptor();
       }
       
-      public se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol getDefaultInstanceForType() {
-        return se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol.getDefaultInstance();
+      public se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol getDefaultInstanceForType() {
+        return se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol.getDefaultInstance();
       }
       
       public boolean isInitialized() {
         return result.isInitialized();
       }
-      public se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol build() {
+      public se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol build() {
         if (result != null && !isInitialized()) {
           throw newUninitializedMessageException(result);
         }
         return buildPartial();
       }
       
-      private se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol buildParsed()
+      private se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol buildParsed()
           throws com.google.protobuf.InvalidProtocolBufferException {
         if (!isInitialized()) {
           throw newUninitializedMessageException(
@@ -1330,29 +1336,36 @@ public final class ProtobufTheaterMessages {
         return buildPartial();
       }
       
-      public se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol buildPartial() {
+      public se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol buildPartial() {
         if (result == null) {
           throw new IllegalStateException(
             "build() has already been called on this Builder.");
         }
-        se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol returnMe = result;
+        if (result.uuids_ != java.util.Collections.EMPTY_LIST) {
+          result.uuids_ =
+            java.util.Collections.unmodifiableList(result.uuids_);
+        }
+        se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol returnMe = result;
         result = null;
         return returnMe;
       }
       
       public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol) {
-          return mergeFrom((se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol)other);
+        if (other instanceof se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol) {
+          return mergeFrom((se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol)other);
         } else {
           super.mergeFrom(other);
           return this;
         }
       }
       
-      public Builder mergeFrom(se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol other) {
-        if (other == se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol.getDefaultInstance()) return this;
-        if (other.hasUuid()) {
-          setUuid(other.getUuid());
+      public Builder mergeFrom(se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol other) {
+        if (other == se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol.getDefaultInstance()) return this;
+        if (!other.uuids_.isEmpty()) {
+          if (result.uuids_.isEmpty()) {
+            result.uuids_ = new java.util.ArrayList<java.lang.String>();
+          }
+          result.uuids_.addAll(other.uuids_);
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -1380,7 +1393,7 @@ public final class ProtobufTheaterMessages {
               break;
             }
             case 10: {
-              setUuid(input.readString());
+              addUuids(input.readString());
               break;
             }
           }
@@ -1388,37 +1401,56 @@ public final class ProtobufTheaterMessages {
       }
       
       
-      // required string uuid = 1;
-      public boolean hasUuid() {
-        return result.hasUuid();
+      // repeated string uuids = 1;
+      public java.util.List<java.lang.String> getUuidsList() {
+        return java.util.Collections.unmodifiableList(result.uuids_);
       }
-      public java.lang.String getUuid() {
-        return result.getUuid();
+      public int getUuidsCount() {
+        return result.getUuidsCount();
       }
-      public Builder setUuid(java.lang.String value) {
+      public java.lang.String getUuids(int index) {
+        return result.getUuids(index);
+      }
+      public Builder setUuids(int index, java.lang.String value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  result.hasUuid = true;
-        result.uuid_ = value;
+  result.uuids_.set(index, value);
         return this;
       }
-      public Builder clearUuid() {
-        result.hasUuid = false;
-        result.uuid_ = getDefaultInstance().getUuid();
+      public Builder addUuids(java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  if (result.uuids_.isEmpty()) {
+          result.uuids_ = new java.util.ArrayList<java.lang.String>();
+        }
+        result.uuids_.add(value);
+        return this;
+      }
+      public Builder addAllUuids(
+          java.lang.Iterable<? extends java.lang.String> values) {
+        if (result.uuids_.isEmpty()) {
+          result.uuids_ = new java.util.ArrayList<java.lang.String>();
+        }
+        super.addAll(values, result.uuids_);
+        return this;
+      }
+      public Builder clearUuids() {
+        result.uuids_ = java.util.Collections.emptyList();
         return this;
       }
       
-      // @@protoc_insertion_point(builder_scope:mobile.MobileActorRegisteredProtocol)
+      // @@protoc_insertion_point(builder_scope:mobile.MobileActorsRegisteredProtocol)
     }
     
     static {
-      defaultInstance = new MobileActorRegisteredProtocol(true);
+      defaultInstance = new MobileActorsRegisteredProtocol(true);
       se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.internalForceInit();
       defaultInstance.initFields();
     }
     
-    // @@protoc_insertion_point(class_scope:mobile.MobileActorRegisteredProtocol)
+    // @@protoc_insertion_point(class_scope:mobile.MobileActorsRegisteredProtocol)
   }
   
   public static final class StartActorRequestProtocol extends
@@ -2786,10 +2818,10 @@ public final class ProtobufTheaterMessages {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_mobile_MovingActorProtocol_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
-    internal_static_mobile_MobileActorRegisteredProtocol_descriptor;
+    internal_static_mobile_MobileActorsRegisteredProtocol_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_mobile_MobileActorRegisteredProtocol_fieldAccessorTable;
+      internal_static_mobile_MobileActorsRegisteredProtocol_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
     internal_static_mobile_StartActorRequestProtocol_descriptor;
   private static
@@ -2820,33 +2852,33 @@ public final class ProtobufTheaterMessages {
   static {
     java.lang.String[] descriptorData = {
       "\n\035ProtobufTheaterMessages.proto\022\006mobile\"" +
-      "\272\003\n\026TheaterMessageProtocol\022/\n\013messageTyp" +
+      "\274\003\n\026TheaterMessageProtocol\022/\n\013messageTyp" +
       "e\030\001 \002(\0162\032.mobile.TheaterMessageType\022+\n\006s" +
       "ender\030\002 \001(\0132\033.mobile.TheaterNodeProtocol" +
       "\0220\n\013movingActor\030\003 \001(\0132\033.mobile.MovingAct" +
-      "orProtocol\022D\n\025mobileActorRegistered\030\004 \001(" +
-      "\0132%.mobile.MobileActorRegisteredProtocol" +
-      "\022<\n\021startActorRequest\030\005 \001(\0132!.mobile.Sta" +
-      "rtActorRequestProtocol\0228\n\017startActorRepl" +
-      "y\030\006 \001(\0132\037.mobile.StartActorReplyProtocol",
-      "\022R\n\034actorNewLocationNotification\030\007 \001(\0132," +
-      ".mobile.ActorNewLocationNotificationProt" +
-      "ocol\")\n\023MovingActorProtocol\022\022\n\nactorByte" +
-      "s\030\001 \002(\014\"-\n\035MobileActorRegisteredProtocol" +
-      "\022\014\n\004uuid\030\001 \002(\t\"A\n\031StartActorRequestProto" +
-      "col\022\021\n\trequestId\030\001 \002(\004\022\021\n\tclassName\030\003 \001(" +
-      "\t\"?\n\027StartActorReplyProtocol\022\021\n\trequestI" +
-      "d\030\001 \002(\004\022\021\n\tactorUuid\030\002 \002(\t\"T\n$ActorNewLo" +
-      "cationNotificationProtocol\022\014\n\004uuid\030\001 \002(\t" +
-      "\022\020\n\010hostname\030\002 \002(\t\022\014\n\004port\030\003 \002(\005\"5\n\023Thea",
-      "terNodeProtocol\022\020\n\010hostname\030\001 \002(\t\022\014\n\004por" +
-      "t\030\002 \002(\005*\230\001\n\022TheaterMessageType\022\020\n\014MOVING" +
-      "_ACTOR\020\001\022\033\n\027MOBILE_ACTOR_REGISTERED\020\002\022\027\n" +
-      "\023START_ACTOR_REQUEST\020\003\022\025\n\021START_ACTOR_RE" +
-      "PLY\020\004\022#\n\037ACTOR_NEW_LOCATION_NOTIFICATION" +
-      "\020\005*+\n\017ConstructorType\022\r\n\tCLASSNAME\020\001\022\t\n\005" +
-      "BYTES\020\002B<\n:se.scalablesolutions.akka.mob" +
-      "ile.theater.protocol.protobuf"
+      "orProtocol\022F\n\026mobileActorsRegistered\030\004 \001" +
+      "(\0132&.mobile.MobileActorsRegisteredProtoc" +
+      "ol\022<\n\021startActorRequest\030\005 \001(\0132!.mobile.S" +
+      "tartActorRequestProtocol\0228\n\017startActorRe" +
+      "ply\030\006 \001(\0132\037.mobile.StartActorReplyProtoc",
+      "ol\022R\n\034actorNewLocationNotification\030\007 \001(\013" +
+      "2,.mobile.ActorNewLocationNotificationPr" +
+      "otocol\")\n\023MovingActorProtocol\022\022\n\nactorBy" +
+      "tes\030\001 \002(\014\"/\n\036MobileActorsRegisteredProto" +
+      "col\022\r\n\005uuids\030\001 \003(\t\"A\n\031StartActorRequestP" +
+      "rotocol\022\021\n\trequestId\030\001 \002(\004\022\021\n\tclassName\030" +
+      "\003 \001(\t\"?\n\027StartActorReplyProtocol\022\021\n\trequ" +
+      "estId\030\001 \002(\004\022\021\n\tactorUuid\030\002 \002(\t\"T\n$ActorN" +
+      "ewLocationNotificationProtocol\022\014\n\004uuid\030\001" +
+      " \002(\t\022\020\n\010hostname\030\002 \002(\t\022\014\n\004port\030\003 \002(\005\"5\n\023",
+      "TheaterNodeProtocol\022\020\n\010hostname\030\001 \002(\t\022\014\n" +
+      "\004port\030\002 \002(\005*\231\001\n\022TheaterMessageType\022\020\n\014MO" +
+      "VING_ACTOR\020\001\022\034\n\030MOBILE_ACTORS_REGISTERED" +
+      "\020\002\022\027\n\023START_ACTOR_REQUEST\020\003\022\025\n\021START_ACT" +
+      "OR_REPLY\020\004\022#\n\037ACTOR_NEW_LOCATION_NOTIFIC" +
+      "ATION\020\005*+\n\017ConstructorType\022\r\n\tCLASSNAME\020" +
+      "\001\022\t\n\005BYTES\020\002B<\n:se.scalablesolutions.akk" +
+      "a.mobile.theater.protocol.protobuf"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -2858,7 +2890,7 @@ public final class ProtobufTheaterMessages {
           internal_static_mobile_TheaterMessageProtocol_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_mobile_TheaterMessageProtocol_descriptor,
-              new java.lang.String[] { "MessageType", "Sender", "MovingActor", "MobileActorRegistered", "StartActorRequest", "StartActorReply", "ActorNewLocationNotification", },
+              new java.lang.String[] { "MessageType", "Sender", "MovingActor", "MobileActorsRegistered", "StartActorRequest", "StartActorReply", "ActorNewLocationNotification", },
               se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.TheaterMessageProtocol.class,
               se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.TheaterMessageProtocol.Builder.class);
           internal_static_mobile_MovingActorProtocol_descriptor =
@@ -2869,14 +2901,14 @@ public final class ProtobufTheaterMessages {
               new java.lang.String[] { "ActorBytes", },
               se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MovingActorProtocol.class,
               se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MovingActorProtocol.Builder.class);
-          internal_static_mobile_MobileActorRegisteredProtocol_descriptor =
+          internal_static_mobile_MobileActorsRegisteredProtocol_descriptor =
             getDescriptor().getMessageTypes().get(2);
-          internal_static_mobile_MobileActorRegisteredProtocol_fieldAccessorTable = new
+          internal_static_mobile_MobileActorsRegisteredProtocol_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_mobile_MobileActorRegisteredProtocol_descriptor,
-              new java.lang.String[] { "Uuid", },
-              se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol.class,
-              se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorRegisteredProtocol.Builder.class);
+              internal_static_mobile_MobileActorsRegisteredProtocol_descriptor,
+              new java.lang.String[] { "Uuids", },
+              se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol.class,
+              se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages.MobileActorsRegisteredProtocol.Builder.class);
           internal_static_mobile_StartActorRequestProtocol_descriptor =
             getDescriptor().getMessageTypes().get(3);
           internal_static_mobile_StartActorRequestProtocol_fieldAccessorTable = new

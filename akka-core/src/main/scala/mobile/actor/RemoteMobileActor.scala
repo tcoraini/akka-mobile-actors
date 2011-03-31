@@ -43,12 +43,28 @@ trait RemoteMobileActor extends InnerReference with MessageHolder {
       holdMessage(message, senderOption)
     } else {
       val newMessage = MobileActorMessage(LocalTheater.node.hostname, LocalTheater.node.port, message)
-
-      val requestBuilder = createRemoteRequestProtocolBuilder(this, newMessage, true, senderOption)
+      val senderIsMobile = senderOption.isDefined && senderOption.get.isInstanceOf[InnerReference]
+      
+      val requestBuilder = 
+	if (senderIsMobile) 
+	  createRemoteRequestProtocolBuilder(this, newMessage, true, None)
+	else 
+	  createRemoteRequestProtocolBuilder(this, newMessage, true, senderOption)
+      
       val actorInfo = requestBuilder.getActorInfo.toBuilder
       actorInfo.setActorType(ActorType.MOBILE_ACTOR)
-
       requestBuilder.setActorInfo(actorInfo.build)
+      
+      if (senderIsMobile) {
+	val senderRef = senderOption.get.asInstanceOf[InnerReference]
+	val senderBuilder = RemoteActorRefProtocol.newBuilder
+	  .setUuid(senderRef.uuid)
+	  .setActorClassname(senderRef.actorClass.getName)
+	  .setHomeAddress(AddressProtocol.newBuilder.setHostname(senderRef.node.hostname).setPort(senderRef.node.port).build)
+	  .setTimeout(senderRef.timeout)
+	  .build
+	requestBuilder.setSender(senderBuilder)
+      }
       
       remoteActorRef.remoteClient.send[Any](requestBuilder.build, None)
     }

@@ -10,6 +10,8 @@ import se.scalablesolutions.akka.mobile.util.messages._
 import com.google.protobuf.ByteString
 import com.google.protobuf.Message
 
+import collection.JavaConversions._
+
 abstract class ProtobufProtocol(theater: Theater) extends TheaterProtocol(theater) {
   
   /**
@@ -31,9 +33,9 @@ abstract class ProtobufProtocol(theater: Theater) extends TheaterProtocol(theate
             .setActorBytes(ByteString.copyFrom(bytes))
             .build
 
-      case MobileActorRegistered(uuid: String) =>
-        MobileActorRegisteredProtocol.newBuilder
-            .setUuid(uuid)
+      case MobileActorsRegistered(uuids: Array[String]) =>
+        MobileActorsRegisteredProtocol.newBuilder
+            .addAllUuids(uuids.toList)
             .build
 
       case StartMobileActorRequest(requestId, className) => 
@@ -80,10 +82,10 @@ abstract class ProtobufProtocol(theater: Theater) extends TheaterProtocol(theate
           .setMovingActor(msg)
           .build
 
-      case msg: MobileActorRegisteredProtocol =>
+      case msg: MobileActorsRegisteredProtocol =>
         builder
-          .setMessageType(MessageType.MOBILE_ACTOR_REGISTERED)
-          .setMobileActorRegistered(msg)
+          .setMessageType(MessageType.MOBILE_ACTORS_REGISTERED)
+          .setMobileActorsRegistered(msg)
           .build
 
       case msg: StartActorRequestProtocol =>
@@ -127,8 +129,9 @@ abstract class ProtobufProtocol(theater: Theater) extends TheaterProtocol(theate
         val reply = message.getStartActorReply
         StartMobileActorReply(reply.getRequestId, reply.getActorUuid)
 
-      case MOBILE_ACTOR_REGISTERED =>
-        MobileActorRegistered(message.getMobileActorRegistered.getUuid)
+      case MOBILE_ACTORS_REGISTERED =>
+	val uuids = message.getMobileActorsRegistered.getUuidsList.asInstanceOf[List[String]]
+        MobileActorsRegistered(uuids.toArray)
       
       case ACTOR_NEW_LOCATION_NOTIFICATION =>
         val notification = message.getActorNewLocationNotification

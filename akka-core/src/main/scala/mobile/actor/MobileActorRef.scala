@@ -4,6 +4,7 @@ import se.scalablesolutions.akka.mobile.theater.Theater
 import se.scalablesolutions.akka.mobile.theater.LocalTheater
 import se.scalablesolutions.akka.mobile.theater.TheaterNode
 import se.scalablesolutions.akka.mobile.theater.ReferenceManagement
+import se.scalablesolutions.akka.mobile.theater.GroupManagement
 import se.scalablesolutions.akka.mobile.serialization.DefaultActorFormat
 import se.scalablesolutions.akka.mobile.nameservice.NameService
 import se.scalablesolutions.akka.mobile.Mobile
@@ -155,13 +156,9 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
 
   private var _isMigrating = false
   
-  private var _migratingTo: Option[TheaterNode] = None
-
   def isMigrating = _isMigrating
 
-  def migratingTo: Option[TheaterNode] = _migratingTo
-  
-  def groupId = innerRef.groupId
+  def groupId: Option[String] = innerRef.groupId
   protected[mobile] def groupId_=(id: Option[String]) = { innerRef.groupId = id }
 
   def node: TheaterNode = innerRef.node
@@ -170,7 +167,23 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
 
   // To be called by the actor when it receives a MoveTo message
   private[mobile] def moveTo(hostname: String, port: Int): Unit = {
+    groupId = None
     LocalTheater.migrate(this, TheaterNode(hostname, port))
+  }
+
+  private[mobile] def moveGroupTo(hostname: String, port: Int): Unit = {
+    if (groupId.isDefined) {
+      GroupManagement.startGroupMigration(groupId.get, TheaterNode(hostname, port))
+    } else {
+      // If not in a group, migrate the actor alone
+      moveTo(hostname, port)
+    }
+  }
+
+  private[mobile] def prepareToMigrate(): Unit = {
+    if (groupId.isDefined) {
+      GroupManagement.readyToMigrate(this)
+    }
   }
 
   /**
@@ -186,11 +199,11 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
     log.debug("Switching mobile reference for actor with UUID [%s] to a %s reference.", uuid, label)  
   }
 
-  /* TODO protected[mobile]*/ def startMigration(hostname: String, port: Int): Array[Byte] = {
+  /* TODO protected[mobile]*/ def startMigration(): Array[Byte] = {
     if (!isLocal) throw new RuntimeException("The method 'startMigration' should be call only on local actors")
     
+    // TODO receber 2 MoveTo seguidos
     _isMigrating = true
-    _migratingTo = Some(TheaterNode(hostname, port))
     
     // The mailbox won't be serialized if the actor has not been started yet. In this case, there will be
     // no messages in it's mailbox. This was used in a previous form of actor remote spawn, where the actor
@@ -205,16 +218,15 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
     ActorSerialization.toBinary(innerRef, serializeMailbox)(DefaultActorFormat)
   }
 
-  protected[mobile] def endMigration(): Unit = {
+  protected[mobile] def endMigration(destination: TheaterNode): Unit = {
     if (isLocal && isMigrating) {
-      val destination = migratingTo.get
       val remoteActorRef = MobileActorRef.remoteMobileActor(uuid, destination.hostname, destination.port, innerRef.timeout)
       
       innerRef.asInstanceOf[LocalMobileActor].endMigration(remoteActorRef)
+      innerRef.groupId = None
       switchActorRef(remoteActorRef)
 
       _isMigrating = false
-      _migratingTo = None
     }
   }
 
