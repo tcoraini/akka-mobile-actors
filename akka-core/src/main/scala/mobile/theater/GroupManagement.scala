@@ -2,33 +2,35 @@ package se.scalablesolutions.akka.mobile.theater
 
 import se.scalablesolutions.akka.mobile.actor.MobileActorRef
 import se.scalablesolutions.akka.mobile.util.messages._
+import se.scalablesolutions.akka.config.Config
 import se.scalablesolutions.akka.util.UUID
+
 import collection.mutable.SynchronizedMap
 import collection.mutable.HashMap
 import collection.mutable.ArrayBuilder
 import java.util.Timer
 import java.util.TimerTask
-import java.util.concurrent.ConcurrentHashMap
 
 object GroupManagement {
 
-  val TIMEOUT: Long = 5000
+  val MIGRATION_TIMEOUT = 5000L
+  
+  val migrationTimeout = Config.config.getLong("cluster.colocated-actors.migration-timeout", MIGRATION_TIMEOUT)
+
   private val timer = new Timer("Group Management Timer")
 
-  /* TODO private */ val groups = new ConcurrentHashMap[String, List[MobileActorRef]]
-  val migrationTasks = new HashMap[String, GroupMigrationTask] with SynchronizedMap[String, GroupMigrationTask]
+  /* TODO private */ val groups = new HashMap[String, List[MobileActorRef]] with SynchronizedMap[String, List[MobileActorRef]]
+  private val migrationTasks = new HashMap[String, GroupMigrationTask] with SynchronizedMap[String, GroupMigrationTask]
   
   def newGroupId = UUID.newUuid.toString
 
-  def insert(ref: MobileActorRef, groupId: String): Unit = groups.get(groupId) match {
-    case null => groups.put(groupId, List(ref))
-    
-    case list => groups.put(groupId, ref :: list)
+  private[mobile] def insert(ref: MobileActorRef, groupId: String): Unit = this.synchronized {
+    val list = groups.getOrElseUpdate(groupId, Nil)
+    groups.put(groupId, ref :: list)
   }
   
-  def remove(ref: MobileActorRef, groupId: String): Unit = {
-    val group = groups.get(groupId)
-    if (group != null) {
+  private[mobile] def remove(ref: MobileActorRef, groupId: String): Unit = this.synchronized {
+    groups.get(groupId).foreach { group =>
       val newGroup = group.filter(_ != ref)
       if (newGroup.size > 0) {
 	groups.put(groupId, newGroup)
@@ -37,15 +39,21 @@ object GroupManagement {
       }
     }
   }
+
+  def group(groupId: String): Option[List[MobileActorRef]] = groups.get(groupId)
   
   private[mobile] def startGroupMigration(groupId: String, destination: TheaterNode): Unit = this.synchronized {
     val group = groups.get(groupId)
     val task = migrationTasks.get(groupId)
-    if (group != null && !task.isDefined) {
-      val task = new GroupMigrationTask(groupId, destination)
-      migrationTasks.put(groupId, task)
-      group.foreach(actor => actor ! PrepareToMigrate)
-      timer.schedule(task, TIMEOUT)
+    (group, task) match {
+      case (Some(group), None) =>
+//    if (group.isDefined && !task.isDefined) {
+	val task = new GroupMigrationTask(groupId, destination)
+	migrationTasks.put(groupId, task)
+	group.foreach(actor => actor ! PrepareToMigrate)
+	timer.schedule(task, migrationTimeout)
+
+      case _ => ()
     }
   }
 
@@ -57,8 +65,7 @@ object GroupManagement {
   }
   
   private[mobile] def migrationPerformed(groupId: String): Unit = {
-    val group = groups.get(groupId)
-    if (group != null) {
+    groups.get(groupId).foreach { group =>
       // If the actor didn't respond, it gets behind and is removed from group
       group.foreach(actor => actor.groupId = None)
     }

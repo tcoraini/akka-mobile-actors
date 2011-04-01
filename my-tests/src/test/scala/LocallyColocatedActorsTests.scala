@@ -24,9 +24,9 @@ object LocallyColocatedActorsTests {
   @BeforeClass def initialize() {
     Mobile.startTheater(thisNode.hostname, thisNode.port) // Local Theater
 
-    atRefs = Mobile.colocate[tests.StatefulActor](3) at LocalTheater.node
-    hereRefs = Mobile.colocate[tests.StatefulActor](4).here
-    nextToRefs = Mobile.colocate[tests.StatefulActor](2) nextTo (hereRefs(0))
+    atRefs = Mobile.colocate[GroupIdAnswererActor](3) at LocalTheater.node
+    hereRefs = Mobile.colocate[GroupIdAnswererActor](4).here
+    nextToRefs = Mobile.colocate[GroupIdAnswererActor](2) nextTo (hereRefs(0))
   }
 
   @AfterClass def close() {
@@ -106,8 +106,48 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
   }
 
   @Test
+  def testRemotelyColocatedByClassNameActors {
+    val refs = Mobile.colocate[GroupIdAnswererActor](3) at thatNode
+    
+    refs(0) should not be ('local)
+    refs(1) should not be ('local)
+    refs(2) should not be ('local)
+    
+    // Checking that the group id of the actors are equal in the remote node
+    val requestIds = for (ref <- refs) yield RemoteActorsTesting.testRemoteActor(ref, GroupId)
+    def answers: Seq[Option[Any]] = for (id <- requestIds) yield RemoteActorsTesting.getAnswer(id)
+    while (!answers.forall(_.isDefined)) { Thread.sleep(500) }
+    val groupId = answers(0).get
+    groupId should not be (None)
+    for (answer <- answers) answer.get should equal (groupId)
+  }
+
+  @Test
+  def testRemotelyColocatedWithFactoriesActors {
+    val refs = Mobile.colocate(
+      () => new GroupIdAnswererActor,
+      () => new GroupIdAnswererActor,
+      () => new GroupIdAnswererActor) at thatNode
+    
+    while (!refs.forall(!_.isLocal)) { Thread.sleep(300) }
+
+    refs(0) should not be ('local)
+    refs(1) should not be ('local)
+    refs(2) should not be ('local)
+    
+    // Checking that the group id of the actors are equal in the remote node
+    val requestIds = for (ref <- refs) yield RemoteActorsTesting.testRemoteActor(ref, GroupId)
+    def answers: Seq[Option[Any]] = for (id <- requestIds) yield RemoteActorsTesting.getAnswer(id)
+    while (!answers.forall(_.isDefined)) { Thread.sleep(500) }
+    val groupId = answers(0).get
+    groupId should not be (None)
+    for (answer <- answers) answer.get should equal (groupId)
+  }
+
+  @Test
   def testGroupMigration {
-    val refs: List[MobileActorRef] = Mobile.colocate[StatefulActor](3).here
+    val refs: List[MobileActorRef] = Mobile.colocate[GroupIdAnswererActor](3).here
+    val groupId = refs(0).groupId
 
     refs(0).node should be ('local)
     refs(1).node should be ('local)
@@ -120,6 +160,12 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
     refs(0).node should not be ('local)
     refs(1).node should not be ('local)
     refs(2).node should not be ('local)
+    
+    // Checking that the group id of the actors are maintained in the new node
+    val requestIds = for (ref <- refs) yield RemoteActorsTesting.testRemoteActor(ref, GroupId)
+    def answers: Seq[Option[Any]] = for (id <- requestIds) yield RemoteActorsTesting.getAnswer(id)
+    while (!answers.forall(_.isDefined)) { Thread.sleep(500) }
+    for (answer <- answers) answer.get should equal (groupId)
   }
   
   @Test
@@ -138,7 +184,6 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
     
     refs(0).node should be ('local)
   }
-    
 
   @Test
   def isActorRemovedFromGroupAfterMigration {
@@ -159,6 +204,12 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
     group should have size (3)
     group should not contain (actorToMigrate)
     actorToMigrate.groupId should equal (None)
+    
+    // Ensuring that the groupId of the actor, on the remote node, is None
+    val requestId = RemoteActorsTesting.testRemoteActor(actorToMigrate, GroupId)
+    def answer = RemoteActorsTesting.getAnswer(requestId)
+    while (!answer.isDefined) { Thread.sleep(500) }
+    answer.get should equal (None)
   }
 
 }

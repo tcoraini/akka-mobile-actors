@@ -10,7 +10,7 @@ import java.net.InetSocketAddress
 @serializable 
 trait MobileActor extends Actor {
 
-  private[actor] var groupId: Option[String] = None
+  protected[actor] var groupId: Option[String] = None
 //  def groupId = _groupId
 //  private[mobile] def groupId_=(id: Option[String]) = { _groupId = id }
 

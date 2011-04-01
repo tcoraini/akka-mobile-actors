@@ -35,16 +35,10 @@ class MobileActorTests extends JUnitSuite with ShouldMatchersForJUnit {
   def testReplyToSender {
     val remoteRef = Mobile.spawnAt[AnswererActor](thatNode)
     
-    lazy val inquirer = new InquirerActor
-    val localRef = Mobile.spawnHere(inquirer)
+    val requestId = RemoteActorsTesting.testRemoteActor(remoteRef, 12)
 
-    val requestId = UUID.newUuid.toString
-    localRef ! Inquire(requestId, remoteRef, 12)
-
-    def answer = inquirer.getAnswer(requestId)
-
+    def answer = RemoteActorsTesting.getAnswer(requestId)
     while (!answer.isDefined) { Thread.sleep(500) }
-    
     answer.get should equal (144)
   }
 }

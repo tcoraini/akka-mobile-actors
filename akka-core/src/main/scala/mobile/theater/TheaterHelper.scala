@@ -17,9 +17,6 @@ object TheaterHelper extends Logging {
 
   private var requestId: Long = 1
 
-  private val mobileRefs = new HashMap[Long, MobileActorRef]
-  private val mobileGroups = new HashMap[Long, List[MobileActorRef]]
-
   private[mobile] def spawnActorRemotely(
       constructor: Either[Class[_ <: MobileActor], () => MobileActor], 
       node: TheaterNode): MobileActorRef = {
@@ -70,8 +67,8 @@ object TheaterHelper extends Logging {
 	refs.foreach { ref =>
 	  ref.groupId = Some(groupId)
 	  ref.start
-          ref ! MoveTo(hostname, port)
 	}
+	refs(0) ! MoveGroupTo(hostname, port)
         refs.toList
     }
   }
@@ -81,49 +78,6 @@ object TheaterHelper extends Logging {
     for (i <- 0 to (uuids.size - 1)) {
       ReferenceManagement.attachRefToActor(requestId + "_" + i, uuids(i))
     }
-  }
-
-  private def spawnActorsGroupRemotely(
-      constructor: Either[Tuple2[Class[_ <: MobileActor], Int], List[() => MobileActor]], 
-      node: TheaterNode): List[MobileActorRef] = {
-    
-    val hostname = node.hostname
-    val port = node.port    
-        
-    // The function literal is not serializable
-    val serializableConstructor: Either[Tuple2[String, Int], List[Array[Byte]]] = constructor match {
-      case Left((clazz, n)) =>
-        Left(clazz.getName, n)
-
-      case Right(factories) =>
-	val array = for {
-	  factory <- factories
-	  mobileRef = MobileActorRef(factory()) // TODO pra onde vai? ali embaixo criamos outra! O ideal e' evitar essa criação.
-	                                        // Como serializar sem ter que criar um MobileActorRef?
-	  bytes = mobileRef.startMigration()
-	} yield bytes
-	Right(array.toList)
-    }
-    
-    // TODO Definitivamente precisamos de um protocolo melhor para essa tarefa
-    val reqId = newRequestId
-    LocalTheater.protocol.sendTo(node, StartMobileActorsGroupRequest(reqId, serializableConstructor))
-    while (!mobileGroups.contains(reqId))
-      Thread.sleep(200)
-
-    val refs = mobileGroups.get(reqId).get
-    mobileGroups.remove(reqId)
-    refs
-  }
-
-  private def completeActorsGroupSpawn(reply: StartMobileActorsGroupReply): Unit = {
-    log.debug("Mobile co-located actors started in remote theater at %s.", TheaterNode(reply.sender.get.hostname, reply.sender.get.port).format)
-    val newRefs = 
-      (for {
-	uuid <- reply.uuids
-	ref = MobileActorRef(uuid, reply.sender.get.hostname, reply.sender.get.port)
-      } yield ref).toList
-    mobileGroups.put(reply.requestId, newRefs)
   }
 
   // TODO melhorar o meio de conseguir um incremento atomicamente

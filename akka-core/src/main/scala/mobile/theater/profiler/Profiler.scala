@@ -24,6 +24,7 @@ object Profiler {
   val DEFAULT_RESET_INTERVAL = 60 // In Minutes
 }
 
+// TODO tratamento especial para atores co-locados?
 class Profiler(val localNode: TheaterNode) extends Logging {
   // TODO privates
   /*private*/ val incomingMessages = new ConcurrentHashMap[String, HashMap[TheaterNode, IMRecord]]
