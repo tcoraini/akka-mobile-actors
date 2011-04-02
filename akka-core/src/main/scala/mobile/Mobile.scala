@@ -17,6 +17,10 @@ import java.net.InetAddress
 
 object Mobile extends Logging {
   
+  // Implicit conversion to make it easier to spawn co-located actors from factories (non-default
+  // constructor)
+  implicit def fromByNameToFunctionLiteral(byName: => MobileActor): () => MobileActor = { () => byName }
+  
   // TODO configurar via arquivo de conf
   private lazy val algorithm: DistributionAlgorithm = {
     lazy val defaultAlgorithm = new RoundRobinAlgorithm
@@ -63,34 +67,9 @@ object Mobile extends Logging {
     spawn(Left(clazz), Some(node))
   }
 
-  def spawnAt(node: TheaterNode, factory: => MobileActor): MobileActorRef = {
+  def spawnAt(factory: => MobileActor, node: TheaterNode): MobileActorRef = {
     spawn(Right(() => factory), Some(node))
   }
-  
-  /**
-   * Co-located actors
-   */
-/*  def spawnTogetherHere[T <: MobileActor : Manifest](number: Int): List[MobileActorRef] = {
-    val groupId = GroupManagement.newGroupId
-    val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
-    (for (i <- 1 to number)
-      yield spawn(Left(clazz), Some(LocalTheater.node), Some(groupId))).toList
-  }
-
-  def spawnTogetherHere(factories: (() => MobileActor)*): List[MobileActorRef] = {
-    val groupId = GroupManagement.newGroupId
-    (for (factory <- factories)
-      yield spawn(Right(factory), Some(LocalTheater.node), Some(groupId))).toList
-  }
-
-  def spawnTogetherAt[T <: MobileActor : Manifest](node: TheaterNode, number: Int): List[MobileActorRef] = {
-    val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
-    TheaterHelper.spawnActorsGroupRemotely(Left((clazz, number)), node)
-  }
-  
-  def spawnTogetherAt(node: TheaterNode)(factories: (() => MobileActor)*): List[MobileActorRef] = {
-    TheaterHelper.spawnActorsGroupRemotely(Right(factories.toList), node)
-  }*/
 
   // TODO tem como unificar os metodos de spawn normal e co-locados?
   private def spawn(
@@ -115,32 +94,56 @@ object Mobile extends Logging {
     }
   }
 
+  /**
+   * Co-located actors
+   */
 
+  /**
+   * Co-locate at some node chosen by algorithm
+   */
   def colocate[T <: MobileActor : Manifest](number: Int) = {
     val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
-    colocateOptions(Left(clazz, number))
+//    colocateOptions(Left(clazz, number))
+    spawnColocated(Left(clazz, number), None)
   }
 
-  def colocate(factories: (() => MobileActor)*) = colocateOptions(Right(factories))//new {
-
-  private def colocateOptions(constructor: Either[Tuple2[Class[_ <: MobileActor], Int], Seq[() => MobileActor]]) = new {
-    // TODO os atores nesse caso tem que ter o groupId do ator que eles estao sendo colocados juntos
-    def nextTo(ref: MobileActorRef): List[MobileActorRef] = {
-      spawnColocated(constructor, Some(ref.node))
-    }
-
-    def at(node: TheaterNode): List[MobileActorRef] = {
-      spawnColocated(constructor, Some(node))
-    }
-
-    def here: List[MobileActorRef] = {
-      spawnColocated(constructor, Some(LocalTheater.node))
-    }
-
-    def ! : List[MobileActorRef] = {
-      spawnColocated(constructor, None)
-    }
+  def colocate(factories: (() => MobileActor)*) = // TODO factories pode ser vazio
+    //colocateOptions(Right(factories))
+    spawnColocated(Right(factories), None)
+    
+  /**
+   * Co-locate at local node
+   */
+  def colocateHere[T <: MobileActor : Manifest](number: Int) = {
+    val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
+    spawnColocated(Left(clazz, number), Some(LocalTheater.node))
   }
+
+  def colocateHere(factories: (() => MobileActor)*) = 
+    spawnColocated(Right(factories), Some(LocalTheater.node))
+
+  /**
+   * Co-locate at the specified node
+   */
+  def colocateAt[T <: MobileActor : Manifest](number: Int, node: TheaterNode) = {
+    val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
+    spawnColocated(Left(clazz, number), Some(node))
+  }
+
+  def colocateAt(factories: (() => MobileActor)*)(node: TheaterNode) = 
+    spawnColocated(Right(factories), Some(node))
+  
+  /**
+   * Co-locate next to some specified actor ref
+   */
+  def colocateNextTo[T <: MobileActor : Manifest](number: Int, ref: MobileActorRef) = {
+    val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
+    spawnColocated(Left(clazz, number), Some(ref.node))
+  }
+
+  def colocateNextTo(factories: (() => MobileActor)*)(ref: MobileActorRef) = 
+    spawnColocated(Right(factories), Some(ref.node))
+
 
   private def spawnColocated(
       constructor: Either[Tuple2[Class[_ <: MobileActor], Int], Seq[() => MobileActor]],
@@ -163,6 +166,37 @@ object Mobile extends Logging {
       }
       mobileRefs.toList
     } else TheaterHelper.spawnColocatedActorsRemotely(constructor, node) // TODO spawn remoto
+  }
+
+  /*
+   * OUTRA VERSAO
+   */
+  
+  def colocateOps[T <: MobileActor : Manifest](number: Int) = {
+    val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
+    colocateOptions(Left(clazz, number))
+  }
+
+  def colocateOps(factories: (() => MobileActor)*) = 
+    colocateOptions(Right(factories))
+
+  private def colocateOptions(constructor: Either[Tuple2[Class[_ <: MobileActor], Int], Seq[() => MobileActor]]) = new {
+    // TODO os atores nesse caso tem que ter o groupId do ator que eles estao sendo colocados juntos
+    def nextTo(ref: MobileActorRef): List[MobileActorRef] = {
+      spawnColocated(constructor, Some(ref.node))
+    }
+
+    def at(node: TheaterNode): List[MobileActorRef] = {
+      spawnColocated(constructor, Some(node))
+    }
+
+    def here: List[MobileActorRef] = {
+      spawnColocated(constructor, Some(LocalTheater.node))
+    }
+
+    def apply() : List[MobileActorRef] = {
+      spawnColocated(constructor, None)
+    }
   }
 
 
