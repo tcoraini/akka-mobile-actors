@@ -45,10 +45,12 @@ private[mobile] trait Theater extends Logging {
   private var mobTrack = false
   private var mobTrackNode: Option[TheaterNode] = None
 
+  // Description of the node (name, node, which services are running)
+  private var _description: TheaterDescription = _
+  def description = _description
   // The address of this Theater
-  private var _node: TheaterNode = _
-  def node = _node
-
+  def node: TheaterNode = description.node
+  
   private var _isRunning = false
   def isRunning = _isRunning
 
@@ -77,16 +79,14 @@ private[mobile] trait Theater extends Logging {
   }
   
   private def start(description: TheaterDescription): Boolean = {
-    import description.{node => descriptionNode, name, profiling, hasNameServer}
+    _description = description
 
-    val profilingLabel = if (profiling) "Enabled" else "Disabled"
-    val nameServerLabel = if (hasNameServer) "Enabled" else "Disabled"
+    val profilingLabel = if (description.profiling) "Enabled" else "Disabled"
+    val nameServerLabel = if (description.hasNameServer) "Enabled" else "Disabled"
     log.info("Starting theater at %s with...\n" + 
 	     "\t name: %s\n" + 
 	     "\t name server: %s\n" + 
-	     "\t profiling: %s", descriptionNode.format, name, profilingLabel, nameServerLabel)
-
-    _node = descriptionNode
+	     "\t profiling: %s", node.format, description.name, profilingLabel, nameServerLabel)
 
     server.setPipelineFactoryCreator(_pipelineFactoryCreator)
     server.start(node.hostname, node.port)

@@ -2,7 +2,7 @@ package se.scalablesolutions.akka.mobile.actor
 
 import se.scalablesolutions.akka.mobile.theater.Theater
 import se.scalablesolutions.akka.mobile.util.messages._
-
+import se.scalablesolutions.akka.mobile.util.UUID
 import se.scalablesolutions.akka.actor.Actor
 
 import java.net.InetSocketAddress
@@ -14,6 +14,7 @@ trait MobileActor extends Actor {
 //  def groupId = _groupId
 //  private[mobile] def groupId_=(id: Option[String]) = { _groupId = id }
 
+  self.uuid = UUID.newUuid.toString
   self.id = self.uuid
 
   // TODO so' funciona pq o codigo esta dentro do pacote akka.

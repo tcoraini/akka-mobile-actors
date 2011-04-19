@@ -194,7 +194,7 @@ object Mobile extends Logging {
       spawnColocated(constructor, Some(LocalTheater.node))
     }
 
-    def apply() : List[MobileActorRef] = {
+    def ! : List[MobileActorRef] = {
       spawnColocated(constructor, None)
     }
   }

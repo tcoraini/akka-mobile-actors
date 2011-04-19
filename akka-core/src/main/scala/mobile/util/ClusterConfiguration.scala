@@ -10,6 +10,7 @@ import se.scalablesolutions.akka.config.Config.config
 import se.scalablesolutions.akka.util.Logging
 
 object ClusterConfiguration extends Logging {
+  lazy val nodeNames: Seq[String] = config.getList("cluster.nodes")
 
   lazy val nodes = loadConfiguration()
 
@@ -18,12 +19,10 @@ object ClusterConfiguration extends Logging {
   def loadConfiguration(): HashMap[String, TheaterDescription] = {
     log.debug("Reading the cluster description from configuration file") 
 
-    val nodesNames: Seq[String] = config.getList("cluster.nodes")
-
     var _nodes = new HashMap[String, TheaterDescription]
     
     for {
-      nodeName <- nodesNames
+      nodeName <- nodeNames
       label = "cluster." + nodeName
       
       hostname = config.getString(label + ".hostname")

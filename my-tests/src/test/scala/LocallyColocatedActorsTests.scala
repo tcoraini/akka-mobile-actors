@@ -24,9 +24,9 @@ object LocallyColocatedActorsTests {
   @BeforeClass def initialize() {
     Mobile.startTheater(thisNode.hostname, thisNode.port) // Local Theater
 
-    atRefs = Mobile.colocate[GroupIdAnswererActor](3) at LocalTheater.node
-    hereRefs = Mobile.colocate[GroupIdAnswererActor](4).here
-    nextToRefs = Mobile.colocate[GroupIdAnswererActor](2) nextTo (hereRefs(0))
+    atRefs = Mobile.colocateOps[GroupIdAnswererActor](3) at LocalTheater.node
+    hereRefs = Mobile.colocateOps[GroupIdAnswererActor](4).here
+    nextToRefs = Mobile.colocateOps[GroupIdAnswererActor](2) nextTo (hereRefs(0))
   }
 
   @AfterClass def close() {
@@ -84,30 +84,30 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
     val listAt = grps.get(atRefs(0).groupId.get)
     val listHere = grps.get(hereRefs(0).groupId.get)
     
-    listNextTo should not be (null)
-    listAt should not be (null)
-    listHere should not be (null)
+    listNextTo should not be (None)
+    listAt should not be (None)
+    listHere should not be (None)
 
-    listNextTo should have size (2)
-    listAt should have size (3)
-    listHere should have size (4)
+    listNextTo.get should have size (2)
+    listAt.get should have size (3)
+    listHere.get should have size (4)
 
-    listNextTo should contain (nextToRefs(0))
-    listNextTo should contain (nextToRefs(1))
+    listNextTo.get should contain (nextToRefs(0))
+    listNextTo.get should contain (nextToRefs(1))
 
-    listAt should contain (atRefs(0))
-    listAt should contain (atRefs(1))
-    listAt should contain (atRefs(2))
+    listAt.get should contain (atRefs(0))
+    listAt.get should contain (atRefs(1))
+    listAt.get should contain (atRefs(2))
 
-    listHere should contain (hereRefs(0))
-    listHere should contain (hereRefs(1))
-    listHere should contain (hereRefs(2))
-    listHere should contain (hereRefs(3))
+    listHere.get should contain (hereRefs(0))
+    listHere.get should contain (hereRefs(1))
+    listHere.get should contain (hereRefs(2))
+    listHere.get should contain (hereRefs(3))
   }
 
   @Test
   def testRemotelyColocatedByClassNameActors {
-    val refs = Mobile.colocate[GroupIdAnswererActor](3) at thatNode
+    val refs = Mobile.colocateOps[GroupIdAnswererActor](3) at thatNode
     
     refs(0) should not be ('local)
     refs(1) should not be ('local)
@@ -124,7 +124,7 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
 
   @Test
   def testRemotelyColocatedWithFactoriesActors {
-    val refs = Mobile.colocate(
+    val refs = Mobile.colocateOps(
       () => new GroupIdAnswererActor,
       () => new GroupIdAnswererActor,
       () => new GroupIdAnswererActor) at thatNode
@@ -146,7 +146,7 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
 
   @Test
   def testGroupMigration {
-    val refs: List[MobileActorRef] = Mobile.colocate[GroupIdAnswererActor](3).here
+    val refs: List[MobileActorRef] = Mobile.colocateOps[GroupIdAnswererActor](3).here
     val groupId = refs(0).groupId
 
     refs(0).node should be ('local)
@@ -170,7 +170,7 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
   
   @Test
   def testPartialGroupMigration {
-    val refs: List[MobileActorRef] = Mobile.colocate[SleepyActor](3).here
+    val refs: List[MobileActorRef] = Mobile.colocateOps[SleepyActor](3).here
     
     refs(0) ! Sleep(8000)
     refs(1) ! Sleep(3000)
@@ -192,8 +192,9 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
     def group = GroupManagement.groups.get(groupId)
     
     // Before migration
-    group should have size (4)
-    group should contain (actorToMigrate)
+    group should not be (None)
+    group.get should have size (4)
+    group.get should contain (actorToMigrate)
     actorToMigrate.groupId should equal (Some(groupId))
     
     // Migration
@@ -201,8 +202,8 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
     while(actorToMigrate.isLocal) { Thread.sleep(100) }
 
     // After migration
-    group should have size (3)
-    group should not contain (actorToMigrate)
+    group.get should have size (3)
+    group.get should not contain (actorToMigrate)
     actorToMigrate.groupId should equal (None)
     
     // Ensuring that the groupId of the actor, on the remote node, is None

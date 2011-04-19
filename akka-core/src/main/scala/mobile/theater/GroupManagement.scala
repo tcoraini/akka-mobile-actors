@@ -3,7 +3,7 @@ package se.scalablesolutions.akka.mobile.theater
 import se.scalablesolutions.akka.mobile.actor.MobileActorRef
 import se.scalablesolutions.akka.mobile.util.messages._
 import se.scalablesolutions.akka.config.Config
-import se.scalablesolutions.akka.util.UUID
+import se.scalablesolutions.akka.mobile.util.UUID
 
 import collection.mutable.SynchronizedMap
 import collection.mutable.HashMap
