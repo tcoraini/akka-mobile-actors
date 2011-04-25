@@ -23,6 +23,8 @@ case class IMRecord(uuid: String, from: TheaterNode) {
    * Two IMRecord's are equal if their 'uuid' and 'from' fields are equal, regardless
    * of the 'count' field.
    */
+   // TODO isso provavelmente eh desnecessario, o equals do case class acho que ja vai cuidar disso (por algum
+   // motivo eu achava que nao)
   override def equals(that: Any): Boolean = that match {
     case imr: IMRecord => 
       imr.uuid == this.uuid && imr.from == this.from

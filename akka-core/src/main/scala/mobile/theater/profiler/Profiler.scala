@@ -37,6 +37,9 @@ class Profiler(val localNode: TheaterNode) extends Logging {
   
   private var _resetMode: ResetMode.Value = parseResetModeFromConfigurationFile
   
+  if (_resetMode == ResetMode.AUTOMATIC) {
+     initializeResetService()
+  }    
 
   def resetMode: ResetMode.Value = _resetMode
   
@@ -120,13 +123,14 @@ class Profiler(val localNode: TheaterNode) extends Logging {
   }
 
   private def initializeResetService(): Unit = {
-    val resetInterval = 60 // In Minutes
-    new Thread {
+    new Thread("Profiler Reset Service") {
       override def run() {
 	while(_resetMode == ResetMode.AUTOMATIC) {
-	  Thread.sleep(resetInterval * 60 * 1000)
-	  log.debug("Resetting all profiling data now...")
-	  reset()
+	  Thread.sleep(resetInterval * 60 * 1000) // Sleep for 'resetInterval' minutes
+	  if (_resetMode == ResetMode.AUTOMATIC) {
+	    log.debug("Resetting all profiling data now...")
+	    reset()
+	  }
 	}
       }
     } start()
