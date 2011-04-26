@@ -20,7 +20,8 @@ object Profiler {
   // Default value for the minimum amount of messages that an actor should receive from a node before
   // entering in the priority queue. Can be set in the configuration file.
   val MESSAGES_RECEIVED_THRESHOLD: Int = 5
-
+  
+  val DEFAULT_RESET_MODE: ResetMode.Value = ResetMode.MANUAL
   val DEFAULT_RESET_INTERVAL = 60 // In Minutes
 }
 
@@ -96,12 +97,13 @@ class Profiler(val localNode: TheaterNode) extends Logging {
   }
   
   private def parseResetModeFromConfigurationFile: ResetMode.Value =
-    Config.config.getString("cluster.profiling.reset-mode", "MANUAL").toUpperCase match {
+    Config.config.getString("cluster.profiling.reset-mode", "").toUpperCase match {
       case "MANUAL" => ResetMode.MANUAL
       case "AUTOMATIC" => ResetMode.AUTOMATIC
-      case _ => { // Manual is default
-	log.warning("Invalid value for profiling reset mode in the configuration file. Using 'MANUAL' as default.")
-	ResetMode.MANUAL
+      case _ => { 
+	log.warning("Invalid value for profiling reset mode in the configuration file. Using '" + 
+		    DEFAULT_RESET_MODE.toString + "' as default.")
+	DEFAULT_RESET_MODE
       }
   }
        
@@ -115,11 +117,6 @@ class Profiler(val localNode: TheaterNode) extends Logging {
       innerMap.values.foreach(record => priorityQueue.remove(record))
       incomingMessages.remove(uuid)
     }
-  }
-
-  private[mobile] def reset(): Unit = {
-    incomingMessages.clear()
-    priorityQueue.clear()
   }
 
   private def initializeResetService(): Unit = {
@@ -163,4 +160,13 @@ class Profiler(val localNode: TheaterNode) extends Logging {
   // each node, a IMRecord with the number of messages that actor received from that node
   def incomingMessagesRecords(uuid: String): HashMap[TheaterNode, IMRecord] = incomingMessages.get(uuid)
 
+  /**
+   * Resets all data of this Profiler. Useful for keeping only up-to-date information. A better
+   * solution, though, would be to continuously erase the "expired" data (based on some time-to-live
+   * parameter).
+   */
+  def reset(): Unit = {
+    incomingMessages.clear()
+    priorityQueue.clear()
+  }
 }
