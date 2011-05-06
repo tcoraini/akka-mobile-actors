@@ -11,11 +11,8 @@ import java.net.InetSocketAddress
 trait MobileActor extends Actor {
 
   protected[actor] var groupId: Option[String] = None
-//  def groupId = _groupId
-//  private[mobile] def groupId_=(id: Option[String]) = { _groupId = id }
 
   self.uuid = UUID.newUuid.toString
-  self.id = self.uuid
 
   // TODO so' funciona pq o codigo esta dentro do pacote akka.
   // Na trait Actor o metodo apply() e' privated[akka]

@@ -97,7 +97,7 @@ trait RemoteMobileActor extends InnerReference with MessageHolder {
       log.debug("Lost connection to remote node %s. Actor with UUID [%s] was there and migrated to %s. Updating the reference.", 
 		TheaterNode(remoteActorRef.hostname, remoteActorRef.port).format, 
 		uuid, 
-		TheaterNode(newAddress.hostname, newAddress.port).format)
+		newAddress.format)
       outerRef.updateRemoteAddress(newAddress)
     }
 

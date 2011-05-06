@@ -5,15 +5,15 @@ import se.scalablesolutions.akka.mobile.theater.TheaterNode
 /**
  * Migration-related messages
  */
-
+sealed abstract class MigrationMessage
 // Message that request an actor to migrate to some node
-case class MoveTo(hostname: String, port: Int)
+case class MoveTo(hostname: String, port: Int) extends MigrationMessage
 
 // Message that request all actors from a group to migrate together to some node
-case class MoveGroupTo(hostname: String, port: Int)
+case class MoveGroupTo(hostname: String, port: Int) extends MigrationMessage
 
 // Internal message for the group migration process
-private[mobile] case object PrepareToMigrate
+private[mobile] case object PrepareToMigrate extends MigrationMessage
 
 
 /**

@@ -19,7 +19,7 @@ object ResetMode extends Enumeration {
 object Profiler {
   // Default value for the minimum amount of messages that an actor should receive from a node before
   // entering in the priority queue. Can be set in the configuration file.
-  val MESSAGES_RECEIVED_THRESHOLD: Int = 5
+  val QUEUE_THRESHOLD: Int = 5
   
   val DEFAULT_RESET_MODE: ResetMode.Value = ResetMode.MANUAL
   val DEFAULT_RESET_INTERVAL = 60 // In Minutes
@@ -27,14 +27,14 @@ object Profiler {
 
 // TODO tratamento especial para atores co-locados?
 class Profiler(val localNode: TheaterNode) extends Logging {
+  import Profiler._
   // TODO privates
   /*private*/ val incomingMessages = new ConcurrentHashMap[String, HashMap[TheaterNode, IMRecord]]
 
   // 11 is the default initial capacity for the PriorityQueue Java class
   /*private*/ val priorityQueue = new PriorityBlockingQueue[IMRecord](11, IMRecord.comparator)
   
-  private val messagesReceivedThreshold = 
-    Config.config.getInt("cluster.profiling.messages-received-threshold", Profiler.MESSAGES_RECEIVED_THRESHOLD)
+  private val queueThreshold = Config.config.getInt("cluster.profiling.queue-threshold", Profiler.QUEUE_THRESHOLD)
   
   private var _resetMode: ResetMode.Value = parseResetModeFromConfigurationFile
   
@@ -51,7 +51,7 @@ class Profiler(val localNode: TheaterNode) extends Logging {
     }
   }
   
-  private var _resetInterval = Config.config.getInt("cluster.profiling.reset-interval", Profiler.DEFAULT_RESET_INTERVAL)
+  private var _resetInterval = Config.config.getInt("cluster.profiling.reset-interval", DEFAULT_RESET_INTERVAL)
   
   def resetInterval = _resetInterval
 
@@ -88,9 +88,9 @@ class Profiler(val localNode: TheaterNode) extends Logging {
   }
 
   private def updatePriorityQueue(imRecord: IMRecord): Unit = {
-    if (imRecord.count == messagesReceivedThreshold) {
+    if (imRecord.count == queueThreshold) {
       priorityQueue.add(imRecord)
-    } else if (imRecord.count > messagesReceivedThreshold) {
+    } else if (imRecord.count > queueThreshold) {
       priorityQueue.remove(imRecord)
       priorityQueue.add(imRecord)
     }

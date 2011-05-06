@@ -141,12 +141,8 @@ trait LocalMobileActor extends InnerReference with MessageHolder {
     }
   }
 
-  private def hasPriority(message: Any): Boolean = message match {
-    case m: MoveTo => true
-
-    case _ => false
-  }
-
+  private def hasPriority(message: Any): Boolean = message.isInstanceOf[MigrationMessage]
+    
   /**
    * When a mobile actor is started, we have to ensure it is running with a proper mobile
    * dispatcher.
