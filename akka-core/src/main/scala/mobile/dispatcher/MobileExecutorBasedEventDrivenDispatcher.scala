@@ -75,8 +75,6 @@ class MobileExecutorBasedEventDrivenDispatcher(
               finishedBeforeMailboxEmpty = processMailbox(receiver)
             } finally {
               lock.unlock
-	      // TODO: Essa chamada recursiva parece desnecessaria, já que a condição do while tb testa
-	      // isso. Remover um dos dois e testar.
               if (finishedBeforeMailboxEmpty) dispatch(receiver)
             }
           }
@@ -108,7 +106,7 @@ class MobileExecutorBasedEventDrivenDispatcher(
       // we stop processing the messages
       if (receiver.isMigrating) return false
       // check if we simply continue with other messages, or reached the throughput limit
-      else if (throughput <= 0 || processedMessages < throughput) messageInvocation = mailbox.poll
+      if (throughput <= 0 || processedMessages < throughput) messageInvocation = mailbox.poll
       else {
         messageInvocation = null
         return !mailbox.isEmpty
