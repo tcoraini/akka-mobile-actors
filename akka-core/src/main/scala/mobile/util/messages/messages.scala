@@ -34,7 +34,7 @@ trait TheaterMessage {
 }
 
 case class MovingActor(bytes: Array[Byte]) extends TheaterMessage
-case class MobileActorsRegistered(uuids: Array[String]) extends TheaterMessage // TODO List para case generico?
+case class MobileActorsRegistered(uuids: Array[String]) extends TheaterMessage 
 
 case class MovingGroup(bytes: Array[Array[Byte]]) extends TheaterMessage
 

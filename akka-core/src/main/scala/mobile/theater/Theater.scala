@@ -28,7 +28,7 @@ import collection.JavaConversions._
 
 object LocalTheater extends Theater
 
-private[mobile] trait Theater extends Logging {
+private[mobile] class Theater extends Logging {
   
   private val server = new RemoteServer
   
@@ -40,7 +40,7 @@ private[mobile] trait Theater extends Logging {
   private var _profiler: Profiler = _
   
 //  var _protocol: TheaterProtocol = new AgentProtobufProtocol(this)
-  var _protocol: TheaterProtocol = new AgentProtocol(this)
+  private val protocol: TheaterProtocol = loadTheaterProtocol()
 
   private var mobTrack = false
   private var mobTrackNode: Option[TheaterNode] = None
@@ -91,9 +91,7 @@ private[mobile] trait Theater extends Logging {
     server.setPipelineFactoryCreator(_pipelineFactoryCreator)
     server.start(node.hostname, node.port)
 
-    // TODO configurar por arquivo de conf
-    _protocol.init()
-
+    protocol.init(this)
     NameService.init()
 
     _profiler = new Profiler(this.node)
@@ -430,8 +428,21 @@ private[mobile] trait Theater extends Logging {
   /**
    * PRIVATE METHODS
    */
-  private def sendTo(node: TheaterNode, message: TheaterMessage): Unit = {
-    _protocol.sendTo(node, message)
+  private def loadTheaterProtocol(): TheaterProtocol = {
+    lazy val defaultProtocol = new AgentProtocol // TODO Parametrizar esses defaults em classes carregadas
+    try {
+      ClusterConfiguration.instanceOf[TheaterProtocol, AgentProtocol]("cluster.theater-protocol")
+    } catch {
+      case cce: ClassCastException =>
+	val classname = Config.config.getString("cluster.theater-protocol", "")
+	log.warning("The class [%s] does not extend the TheaterProtocol abstract class. Using the default protocol [%s] instead.", 
+                    classname, defaultProtocol.getClass.getName)
+	defaultProtocol
+    }
+  }
+
+  private[theater] def sendTo(node: TheaterNode, message: TheaterMessage): Unit = {
+    protocol.sendTo(node, message)
   }
 
   /*
@@ -457,14 +468,6 @@ private[mobile] trait Theater extends Logging {
    * SETTERS AND GETTERS 
    */
   
-  def protocol: TheaterProtocol = _protocol
-
-  def protocol_=(protocol: TheaterProtocol): Unit = {
-    if (!_isRunning) {
-      _protocol = protocol
-    }
-  }
-
   def pipelineFactoryCreator = _pipelineFactoryCreator
 
   def pipelineFactoryCreator_=(creator: PipelineFactoryCreator): Unit = {

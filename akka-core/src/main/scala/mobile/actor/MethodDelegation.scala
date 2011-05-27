@@ -105,7 +105,7 @@ trait MethodDelegation extends ActorRef with ScalaActorRef {
   def linkedActors: JMap[String, ActorRef] = unsupported
   def linkedActorsAsList: List[ActorRef] = unsupported
 
-  private def unsupported = throw new UnsupportedOperationException("This method can't be invoked on a MobileActorRef.")  
+  private def unsupported = throw new UnsupportedOperationException("This method cannot be invoked on a MobileActorRef.")  
   
   /* 
    * ActorRefShared

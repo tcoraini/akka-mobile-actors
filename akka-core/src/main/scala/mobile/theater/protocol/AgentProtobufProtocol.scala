@@ -10,11 +10,13 @@ import se.scalablesolutions.akka.remote.RemoteClient
 
 import scala.collection.mutable.HashMap
 
-class AgentProtobufProtocol(theater: Theater) extends ProtobufProtocol(theater) {
+class AgentProtobufProtocol extends ProtobufProtocol {
 
   private lazy val agents = new HashMap[TheaterNode, ActorRef]
 
-  def init(): Unit = {
+  override def init(theater: Theater): Unit = {
+    super.init(theater)
+
     val agent = Actor.actor {
       case proto: TheaterMessageProtocol => 
         super.processMessage(proto)

@@ -27,7 +27,7 @@ object TheaterHelper extends Logging {
     constructor match {
       case Left(clazz) => 
 	val requestId = newRequestId
-	LocalTheater.protocol.sendTo(node, StartMobileActorRequest(requestId, clazz.getName))
+	LocalTheater.sendTo(node, StartMobileActorRequest(requestId, clazz.getName))
 	MobileActorRef(requestId.toString, node.hostname, node.port, true)
 
       case Right(factory) =>
@@ -54,7 +54,7 @@ object TheaterHelper extends Logging {
     constructor match {
       case Left((clazz, n)) => 
 	val requestId = newRequestId
-	LocalTheater.protocol.sendTo(node, StartColocatedActorsRequest(requestId, clazz.getName, n))
+	LocalTheater.sendTo(node, StartColocatedActorsRequest(requestId, clazz.getName, n))
 	(for {
 	  i <- 0 to (n - 1)
 	  temporaryId = requestId + "_" + i

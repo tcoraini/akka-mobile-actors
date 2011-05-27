@@ -12,7 +12,7 @@ import com.google.protobuf.Message
 
 import collection.JavaConversions._
 
-abstract class ProtobufProtocol(theater: Theater) extends TheaterProtocol(theater) {
+abstract class ProtobufProtocol extends TheaterProtocol {
   
   /**
    * Abstract method, should be overriden by the subclasses.
