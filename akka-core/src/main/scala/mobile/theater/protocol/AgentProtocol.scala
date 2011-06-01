@@ -10,8 +10,7 @@ import se.scalablesolutions.akka.actor.ActorRef
 import se.scalablesolutions.akka.remote.RemoteClient
 
 import scala.collection.mutable.HashMap
-// TODO nao vai funcionar carregar a classe via arquivo de configuração com esse parametro
-// de classe. Acho que o teatro deve ser passado em init()
+
 class AgentProtocol extends TheaterProtocol {
   
   private lazy val agents = new HashMap[TheaterNode, ActorRef]

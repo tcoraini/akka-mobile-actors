@@ -130,8 +130,10 @@ abstract class ProtobufProtocol extends TheaterProtocol {
         StartMobileActorReply(reply.getRequestId, reply.getActorUuid)
 
       case MOBILE_ACTORS_REGISTERED =>
-	val uuids = message.getMobileActorsRegistered.getUuidsList.asInstanceOf[List[String]]
-        MobileActorsRegistered(uuids.toArray)
+	val uuids = message.getMobileActorsRegistered.getUuidsList
+	var uuidsArray = new Array[String](uuids.size)
+	uuids.toArray(uuidsArray)
+        MobileActorsRegistered(uuidsArray)
       
       case ACTOR_NEW_LOCATION_NOTIFICATION =>
         val notification = message.getActorNewLocationNotification
