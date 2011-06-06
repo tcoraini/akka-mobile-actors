@@ -6,6 +6,8 @@ import se.scalablesolutions.akka.mobile.util.messages._
 import se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheaterMessages._
 
 import se.scalablesolutions.akka.util.Logging
+import se.scalablesolutions.akka.actor.Actor
+import se.scalablesolutions.akka.actor.ActorRef
 
 import java.net.InetSocketAddress
 import java.util.concurrent.Executors
@@ -21,6 +23,8 @@ import org.jboss.netty.handler.codec.protobuf.{ProtobufDecoder, ProtobufEncoder}
 
 import scala.collection.mutable.HashMap
 
+final case class SendTo(node: TheaterNode, message: TheaterMessageProtocol)
+
 class NettyTheaterProtocol extends ProtobufProtocol {
   
   private val port = 2005 // TODO Parametrizar
@@ -33,8 +37,13 @@ class NettyTheaterProtocol extends ProtobufProtocol {
 
   private val clientChannels = new HashMap[TheaterNode, Channel]
 
+  private[protocol] var upstreamActor: ActorRef = _
+  private var downstreamActor: ActorRef = _
+
   override def init(theater: Theater) {
     super.init(theater)
+
+    startActors()
 
     hostname = theater.node.hostname
     
@@ -49,7 +58,20 @@ class NettyTheaterProtocol extends ProtobufProtocol {
   }
   
   def sendTo(node: TheaterNode, message: TheaterMessageProtocol) {
-    channelFor(node).write(message)
+    //channelFor(node).write(message)
+    downstreamActor ! SendTo(node, message)
+  }
+
+  private def startActors() {
+    upstreamActor = Actor.actor {
+      case message: TheaterMessageProtocol => processMessage(message)
+      case any => () // discard
+    }
+
+    downstreamActor = Actor.actor {
+      case SendTo(node, message) => channelFor(node).write(message)
+      case any => () // discard
+    }
   }
 
   private def channelFor(node: TheaterNode): Channel = clientChannels.get(node) match {
@@ -113,7 +135,8 @@ class NettyTheaterProtocolHandler(val protocol: NettyTheaterProtocol) extends Si
     val message = event.getMessage
     if (message eq null) throw new /*IllegalActorState*/ RuntimeException("Message received by theater through Netty protocol is null: " + event)
     message match {
-      case m: TheaterMessageProtocol => protocol.processMessage(m)
+      case m: TheaterMessageProtocol => //protocol.processMessage(m)
+	protocol.upstreamActor ! m
       
       case _ => () // discard
     }
