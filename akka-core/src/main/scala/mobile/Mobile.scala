@@ -110,7 +110,19 @@ object Mobile extends Logging {
   def colocate(factories: (() => MobileActor)*) = // TODO factories pode ser vazio
     //colocateOptions(Right(factories))
     spawnColocated(Right(factories), None)
-    
+
+  def test(factory1: => () => MobileActor,
+	    factory2: => () => MobileActor,
+	    factories: (() => MobileActor)*) = { // TODO factories pode ser vazio
+    //colocateOptions(Right(factories))
+    //val allFactories = factory1 :: factory2 :: factories.toList
+    //spawnColocated(Right(allFactories), None)
+    "segundo metodo"
+  }
+
+  def test(factory: () => MobileActor) = "primeiro metodo"
+
+  
   /**
    * Co-locate at local node
    */

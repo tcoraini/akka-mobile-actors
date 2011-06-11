@@ -19,20 +19,20 @@ trait InnerReference extends ActorRef with ScalaActorRef with Logging {
     if (_outerRef != null) _outerRef.isMigrating 
     else false
   
-  private var _groupId: Option[String] = None
+  /**
+   * Abstract methods, to be overriden by subclasses
+   */
+  protected[actor] def isLocal: Boolean
 
-  def groupId: Option[String] = None
-  
+  protected[actor] def node: TheaterNode
+
   /**
    * Should be overriden only by local references.
    *
    * The group ID field only makes sense for local actors, it would be too hard to keep
    * track of group IDs for remote actors
    */
+  def groupId: Option[String] = None
   protected[mobile] def groupId_=(id: Option[String]) { }
-
-  protected[actor] def isLocal: Boolean
-
-  protected[actor] def node: TheaterNode
 
 }

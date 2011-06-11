@@ -315,18 +315,14 @@ private[mobile] class Theater extends Logging {
     }
   }
 
-  /* Complete the actor migration in the sender theater */
-  def finishMigration(uuids: Array[String], destination: TheaterNode): Unit = {
+  /* Complete the actor migration in the origin theater */
+  def completeMigration(uuids: Array[String], destination: TheaterNode): Unit = {
     uuids.foreach { uuid =>
-      log.debug("Finishing the migration process of actor with UUID [%s]", uuid)
+      log.debug("Completing the migration process of actor with UUID [%s]", uuid)
       profiler.remove(uuid)
       val actor = mobileActors.get(uuid)
       if (actor != null) {
-	//println("RETAINED MESSAGES: " + actor.retained)
-	//println("MAILBOX: " + actor.mb)
-	actor.endMigration(destination)
-	//      this.unregister(actor, true)
-	// TODO destruir instancia
+	actor.completeMigration(destination)
       }
     }
   }
@@ -343,6 +339,7 @@ private[mobile] class Theater extends Logging {
         node.format, sender.get.format)
 
       val mobileRef = MobileSerialization.mobileFromBinary(bytes)(DefaultActorFormat)
+      mobileRef.afterMigration()
       mobileRef.groupId.foreach(id => GroupManagement.insert(mobileRef, id))
 //      register(mobileRef, true)
 //      NameService.put(mobileRef.uuid, this.node)
@@ -360,7 +357,7 @@ private[mobile] class Theater extends Logging {
       sendTo(message.sender.get, MobileActorsRegistered(Array(uuid)))
 
     case MobileActorsRegistered(uuids) =>
-      finishMigration(uuids, message.sender.get)
+      completeMigration(uuids, message.sender.get)
 
     case MovingGroup(actorsBytes) =>
       val uuids = for { 

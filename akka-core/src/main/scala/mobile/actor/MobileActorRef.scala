@@ -140,20 +140,6 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
   
   innerRef.outerRef = this
 
-  /* DEBUG ONLY */
-/*  def retained: java.util.concurrent.ConcurrentLinkedQueue[RetainedMessage] = 
-    if (isLocal) 
-      innerRef.asInstanceOf[LocalMobileActor].retainedMessagesQueue
-    else
-      throw new RuntimeException("Não existem mensagens retidas para atores remotos")
-*/
-  def mb: java.util.Queue[se.scalablesolutions.akka.dispatch.MessageInvocation] =
-    if (isLocal)
-      innerRef.mailbox.asInstanceOf[java.util.Queue[se.scalablesolutions.akka.dispatch.MessageInvocation]]
-    else
-      throw new RuntimeException("Não existe mailbox para atores remotos")
-  /* * * * * */
-
   private var _isMigrating = false
   
   def isMigrating = _isMigrating
@@ -165,13 +151,19 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
   
   def isLocal = innerRef.isLocal
 
-  // To be called by the actor when it receives a MoveTo message
-  private[mobile] def moveTo(hostname: String, port: Int): Unit = {
+  /**
+   * This methods should be called by the MobileActor trait, when the
+   * actor receives a migration-related message
+   */
+  
+  // Individual migration
+  private[actor] def moveTo(hostname: String, port: Int): Unit = {
     groupId = None
     LocalTheater.migrate(this, TheaterNode(hostname, port))
   }
 
-  private[mobile] def moveGroupTo(hostname: String, port: Int): Unit = {
+  // Group migration (for co-located actors only)
+  private[actor] def moveGroupTo(hostname: String, port: Int): Unit = {
     if (groupId.isDefined) {
       GroupManagement.startGroupMigration(groupId.get, TheaterNode(hostname, port))
     } else {
@@ -179,8 +171,9 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
       moveTo(hostname, port)
     }
   }
-
-  private[mobile] def prepareToMigrate(): Unit = {
+  
+  // Group migration, used only internally by the infrastructure
+  private[actor] def prepareToMigrate(): Unit = {
     if (groupId.isDefined) {
       GroupManagement.readyToMigrate(this)
     }
@@ -190,7 +183,7 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
    * Changes the actor reference behind this proxy.
    * Returns true if the new actor is local, false otherwise.
    */ 
-  protected def switchActorRef(newRef: InnerReference): Unit = { // TODO encerrar algumas coisas na referencia anterior?
+  protected def switchActorRef(newRef: InnerReference): Unit = {
     innerRef.stop
     innerRef = newRef
     innerRef.outerRef = this
@@ -199,10 +192,13 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
     log.debug("Switching mobile reference for actor with UUID [%s] to a %s reference.", uuid, label)  
   }
 
-  /* TODO protected[mobile]*/ def startMigration(): Array[Byte] = {
+  /**
+   * This methods is should be called by the local theater, after a migration is initiated.
+   * It returns an array of bytes containing the serialized actor
+   */
+  protected[mobile] def startMigration(): Array[Byte] = {
     if (!isLocal) throw new RuntimeException("The method 'startMigration' should be call only on local actors")
     
-    // TODO receber 2 MoveTo seguidos
     _isMigrating = true
     
     // The mailbox won't be serialized if the actor has not been started yet. In this case, there will be
@@ -211,23 +207,34 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
     val serializeMailbox = 
       if (isRunning) {
         // Sinalizing the start of the migration process
-        innerRef.asInstanceOf[LocalMobileActor].initMigration()
+        innerRef.asInstanceOf[LocalMobileActor].beforeMigration()
         true
       } else false
 
     ActorSerialization.toBinary(innerRef, serializeMailbox)(DefaultActorFormat)
   }
 
-  protected[mobile] def endMigration(destination: TheaterNode): Unit = {
+  /**
+   * Completes the migration of the actor in the origin theater of that actor.
+   */
+  protected[mobile] def completeMigration(destination: TheaterNode): Unit = {
     if (isLocal && isMigrating) {
+      // New inner reference (a remote one), will act as a proxy for the actor in its new theater
       val remoteActorRef = MobileActorRef.remoteMobileActor(uuid, destination.hostname, destination.port, innerRef.timeout)
       
-      innerRef.asInstanceOf[LocalMobileActor].endMigration(remoteActorRef)
-      innerRef.groupId = None
+      innerRef.asInstanceOf[LocalMobileActor].completeMigration(remoteActorRef)
       switchActorRef(remoteActorRef)
 
       _isMigrating = false
     }
+  }
+
+  /**
+   * Calls the afterMigration() callback in the actor implementation, defined by the user.
+   * This method will be called in the destination theater, after the migrating actor arrives.
+   */
+  protected[mobile] def afterMigration(): Unit = if (isLocal) {
+    innerRef.asInstanceOf[LocalMobileActor].afterMigration()
   }
 
   protected[mobile] def updateRemoteAddress(newAddress: TheaterNode): Unit = {
@@ -240,6 +247,4 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
 
     switchActorRef(newReference)
   }
-  
-
 }

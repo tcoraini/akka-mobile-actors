@@ -47,7 +47,6 @@ object GroupManagement {
     val task = migrationTasks.get(groupId)
     (group, task) match {
       case (Some(group), None) =>
-//    if (group.isDefined && !task.isDefined) {
 	val task = new GroupMigrationTask(groupId, destination)
 	migrationTasks.put(groupId, task)
 	group.foreach(actor => actor ! PrepareToMigrate)
@@ -58,18 +57,18 @@ object GroupManagement {
   }
 
   private[mobile] def readyToMigrate(actor: MobileActorRef): Unit = {
-    val task = migrationTasks.get(actor.groupId.get)
-    if (task.isDefined) {
-      task.get.addActorBytes(actor.startMigration())
+    migrationTasks.get(actor.groupId.get).foreach {
+      _.addActorBytes(actor.startMigration())
     }
   }
   
   private[mobile] def migrationPerformed(groupId: String): Unit = {
-    groups.get(groupId).foreach { group =>
-      // If the actor didn't respond, it gets behind and is removed from group
-      group.foreach(actor => actor.groupId = None)
-    }
+    val group = groups.get(groupId)
     groups.remove(groupId)
+    group.foreach {
+      // If the actor didn't respond, it gets behind and is removed from group
+      _.foreach(actor => actor.groupId = None)
+    }
   }
 }
 

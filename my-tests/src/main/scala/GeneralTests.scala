@@ -148,11 +148,11 @@ class SenderActor(destination: ActorRef) extends Actor {
   }
 
   override def beforeMigration() {
-    show("StatefulActor starting a migration")
+    show("### StatefulActor starting a migration ###")
   }
 
   override def afterMigration() {
-    show("StatefulActor finalizing a migration")
+    show("### StatefulActor finalizing a migration ###")
   }
 }
 
@@ -350,32 +350,32 @@ object GeneralTests {
     MobTrackGUI.migrate("A_12345", node2, node1)
   }
 
-  def compareSerializations() {
-    Mobile.startTheater("node_1")
-    val sizes = List(0, 1024, 10240, 102400, 1048576, 10485760)
+  // def compareSerializations() {
+  //   Mobile.startTheater("node_1")
+  //   val sizes = List(0, 1024, 10240, 102400, 1048576, 10485760)
     
-    println("ARRAY SIZE\t\tWITH REF\t\tWITHOUT REF\t\tDIFFERENCE")
-    for (size <- sizes) {
-      val (size1, size2) = createAndSerializeActor(size)
-      println(size + "\t\t\t" + size1 + "\t\t\t" + size2 + "\t\t\t" + (size1 - size2))
-    }
-  }
+  //   println("ARRAY SIZE\t\tWITH REF\t\tWITHOUT REF\t\tDIFFERENCE")
+  //   for (size <- sizes) {
+  //     val (size1, size2) = createAndSerializeActor(size)
+  //     println(size + "\t\t\t" + size1 + "\t\t\t" + size2 + "\t\t\t" + (size1 - size2))
+  //   }
+  // }
 
-  def createAndSerializeActor(size: Int): Tuple2[Int, Int] = {
-    val format = DefaultActorFormat
+  // def createAndSerializeActor(size: Int): Tuple2[Int, Int] = {
+  //   val format = DefaultActorFormat
 
-    lazy val actor = new HeavyActor(size)
-    val ref = Mobile.spawnHere(actor)
+  //   lazy val actor = new HeavyActor(size)
+  //   val ref = Mobile.spawnHere(actor)
 
-    val bytes_1 = ref.startMigration()
+  //   val bytes_1 = ref.startMigration()
     
-    val builder = MovingActorProtocol.newBuilder
-      .setActorBytes(ByteString.copyFrom(format.toBinary(actor)))
-      .build
-    val bytes_2 = builder.toByteArray
+  //   val builder = MovingActorProtocol.newBuilder
+  //     .setActorBytes(ByteString.copyFrom(format.toBinary(actor)))
+  //     .build
+  //   val bytes_2 = builder.toByteArray
 
-    (bytes_1.size, bytes_2.size)
-  }
+  //   (bytes_1.size, bytes_2.size)
+  // }
 }
 
 class TestActor extends Actor {
