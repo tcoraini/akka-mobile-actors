@@ -309,9 +309,9 @@ object GeneralTests {
   }
   
   def testRemoteSpawn(): MobileActorRef = {
-    LocalTheater.start("node_2") // localhost:2312
-    val node = TheaterNode("ubuntu-tcoraini", 1810)
-    val ref = Mobile.spawnAt[StatefulActor](node)
+    LocalTheater.start(node2) // localhost:2312
+//    val node = TheaterNode("ubuntu-tcoraini", 1810)
+    val ref = Mobile.spawnAt[StatefulActor](node1)
     ref ! Ping
     ref ! ShowCount
     ref

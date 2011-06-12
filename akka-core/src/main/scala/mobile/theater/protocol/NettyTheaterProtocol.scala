@@ -58,8 +58,15 @@ class NettyTheaterProtocol extends ProtobufProtocol {
   }
   
   def sendTo(node: TheaterNode, message: TheaterMessageProtocol) {
-    //channelFor(node).write(message)
     downstreamActor ! SendTo(node, message)
+  }
+  
+  def stop(): Unit = {
+    clientChannels.values.foreach(_.close())
+    bootstrap.releaseExternalResources()
+    upstreamActor.stop()
+    downstreamActor.stop()
+    // TODO call releaseExternalResources() in each client bootstrap
   }
 
   private def startActors() {

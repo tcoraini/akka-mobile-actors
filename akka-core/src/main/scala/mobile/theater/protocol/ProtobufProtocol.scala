@@ -139,7 +139,7 @@ abstract class ProtobufProtocol extends TheaterProtocol {
         val notification = message.getActorNewLocationNotification
         ActorNewLocationNotification(notification.getUuid, notification.getHostname, notification.getPort)
     }
-    theaterMessage.sender = Some(TheaterNode(message.getSender.getHostname, message.getSender.getPort))
+    theaterMessage.sender = TheaterNode(message.getSender.getHostname, message.getSender.getPort)
     theater.processMessage(theaterMessage)
   }
 }

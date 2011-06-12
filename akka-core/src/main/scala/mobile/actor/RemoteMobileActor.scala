@@ -20,7 +20,7 @@ import java.nio.channels.ClosedChannelException
 import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.Actor._
 
-trait RemoteMobileActor extends InnerReference with MessageHolder {
+trait RemoteMobileActor extends InnerReference {
   /*
    * Só funciona pq estamos dentro do pacote Akka. Quando não for o caso, como resolver?
    *
@@ -29,39 +29,39 @@ trait RemoteMobileActor extends InnerReference with MessageHolder {
    */
   remoteActorRef: RemoteActorRef =>
 
-  private var _holdMessages = false
-  def holdMessages = _holdMessages
-  def holdMessages_=(hold: Boolean) = { 
-    _holdMessages = hold 
-    if (hold == false) {
-      processHeldMessages(hm => this.postMessageToMailbox(hm.message, hm.sender))
-    }
-  }
+  // To be used, at first, by the DetachedRemoteActor trait
+  protected var holdMessages = false
 
   override def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = {
-    if (_holdMessages) {
-      holdMessage(message, senderOption)
+    if (holdMessages) {
+      holder.holdMessage(message, senderOption)
     } else {
       val newMessage = MobileActorMessage(LocalTheater.node.hostname, LocalTheater.node.port, message)
       val senderIsMobile = senderOption.isDefined && senderOption.get.isInstanceOf[InnerReference]
       
+      // If the sender is a mobile actor, we encode this information (the sender reference) in
+      // a different way. Basically, mobile actors can be found only with its UUID, via the
+      // name service
       val requestBuilder = 
 	if (senderIsMobile) 
 	  createRemoteRequestProtocolBuilder(this, newMessage, true, None)
 	else 
 	  createRemoteRequestProtocolBuilder(this, newMessage, true, senderOption)
       
+      // Special actor type (MOBILE_ACTOR) so the destination remote server recognizes the
+      // message recipient as a mobile actor
       val actorInfo = requestBuilder.getActorInfo.toBuilder
       actorInfo.setActorType(ActorType.MOBILE_ACTOR)
       requestBuilder.setActorInfo(actorInfo.build)
       
+      // All we really need here is the UUID (but the other fields are set as 'required' in 
+      // the .proto file
       if (senderIsMobile) {
 	val senderRef = senderOption.get.asInstanceOf[InnerReference]
 	val senderBuilder = RemoteActorRefProtocol.newBuilder
 	  .setUuid(senderRef.uuid)
 	  .setActorClassname(senderRef.actorClass.getName)
 	  .setHomeAddress(AddressProtocol.newBuilder.setHostname(senderRef.node.hostname).setPort(senderRef.node.port).build)
-	  .setTimeout(senderRef.timeout)
 	  .build
 	requestBuilder.setSender(senderBuilder)
       }
@@ -81,17 +81,28 @@ trait RemoteMobileActor extends InnerReference with MessageHolder {
     ReferenceManagement.unregisterForRemoteClientEvents(this, remoteActorRef.remoteClient)
   }
   
+  /**
+   * InnerReference methods implementation
+   */
+  protected[actor] def isLocal = false
+  
+  protected[actor] def node = TheaterNode(remoteActorRef.hostname, remoteActorRef.port)
+
+  /**
+   * Private methods
+   */
   private[mobile] def handleRemoteClientEvent(message: RemoteClientLifeCycleEvent): Unit = message match {
     case rmd: RemoteClientDisconnected => tryToUpdateReference()
     
-    case other => log.debug("RemoteActorRef received a notification from its remote client: " + other)
+    case other => () // Discard it. Should log?
+      // log.debug("RemoteActorRef received a notification from its remote client: " + other)
   }
 
   private def tryToUpdateReference(): Unit = NameService.get(uuid) match {
     case Some(TheaterNode(remoteActorRef.hostname, remoteActorRef.port)) => 
       log.debug("Lost connection to remote node %s. Actor with UUID [%s] was there and did not migrate.", 
 		TheaterNode(remoteActorRef.hostname, remoteActorRef.port).format, uuid)
-      () // Actor did not migrate TODO O que fazer?
+    () // TODO: Actor did not migrate. What to do?
 
     case Some(newAddress) => {
       log.debug("Lost connection to remote node %s. Actor with UUID [%s] was there and migrated to %s. Updating the reference.", 
@@ -103,8 +114,4 @@ trait RemoteMobileActor extends InnerReference with MessageHolder {
 
     case None => ()
   }
-
-  protected[actor] def isLocal = false
-  
-  protected[actor] def node = TheaterNode(remoteActorRef.hostname, remoteActorRef.port)
 }

@@ -13,8 +13,6 @@ object DistributedNameService extends Logging {
 
   private val numberOfNodes = nodes.size
 
-  private lazy val defaultHashFunction = new DefaultHashFunction
-
   private val hashFunction: HashFunction = {
     lazy val defaultHashFunction = new DefaultHashFunction
     try {
@@ -50,12 +48,10 @@ class DistributedNameService extends NameService {
 
   private var initialized = false
 
-  def init(): Unit = {
+  def init(runServer: Boolean): Unit = {
     if (!initialized) {
       // In case there is a local name server, we start a NameServiceAgent
-      if (nodes.exists(node => node.isLocal)) {
-        NameServiceAgent.startLocalAgent()
-      }
+      if (runServer) NameServiceAgent.startLocalAgent()
       initialized = true
     }
   }

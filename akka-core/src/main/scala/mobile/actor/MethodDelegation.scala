@@ -14,6 +14,16 @@ import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicReference
 import java.util.{Map => JMap}
 
+/**
+ * TODO's:
+ *   - Add some special implementation of some of the following methods in the inner refs. Example:
+ *     - makeRemote() -> maybe send a MoveTo message?
+ *     - homeAddress() -> address of the theater that hosts the actor
+ *     - remoteAddress()
+ *     - etc
+ *   First check exaclty where and how those methods are used, so nothing is broken.
+ */
+
 trait MethodDelegation extends ActorRef with ScalaActorRef {
   
   protected var innerRef: InnerReference

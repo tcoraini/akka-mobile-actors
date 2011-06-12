@@ -15,6 +15,9 @@ import se.scalablesolutions.akka.config.Config
 
 import java.net.InetAddress
 
+// TODO acho que seria interessante verificar, nos metodos spawn(), se há um teatro local rodando
+// Acho bom fazer isso em MobileActorRef tb, para atores instanciados sem o spawn. Ou nao devo permitir isso?
+
 object Mobile extends Logging {
   
   // Implicit conversion to make it easier to spawn co-located actors from factories (non-default

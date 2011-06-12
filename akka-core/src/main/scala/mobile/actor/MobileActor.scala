@@ -10,13 +10,11 @@ import java.net.InetSocketAddress
 @serializable 
 trait MobileActor extends Actor {
 
-  protected[actor] var groupId: Option[String] = None
+  private[actor] var groupId: Option[String] = None
 
   self.uuid = UUID.newUuid.toString
 
-  // TODO so' funciona pq o codigo esta dentro do pacote akka.
-  // Na trait Actor o metodo apply() e' privated[akka]
-  override def apply(msg: Any): Unit = {
+  override private[akka] def apply(msg: Any): Unit = {
     if (specialBehavior.isDefinedAt(msg)) specialBehavior(msg)
     else super.apply(msg)
   }
@@ -33,7 +31,7 @@ trait MobileActor extends Actor {
   }
 
   private def outerRef: Option[MobileActorRef] = self match {
-    case mobile: InnerReference => mobile.outerRef match {
+    case inner: InnerReference => inner.outerRef match {
       case null => None
       case ref => Some(ref)
     }

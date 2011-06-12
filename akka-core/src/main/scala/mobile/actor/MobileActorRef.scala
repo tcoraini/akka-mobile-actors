@@ -65,14 +65,6 @@ object MobileActorRef {
   }
 
   /**
-   * Creates a local reference for a mobile actor which the class has the name specified.
-   */
-  /*def apply(classname: String): MobileActorRef = {
-    val clazz = Class.forName(classname).asInstanceOf[Class[_ <: MobileActor]]
-    MobileActorRef(clazz)
-  }*/
-  
-  /**
    * Creates a reference from the UUID of the actor. The reference can be either local or remote.
    */
   def apply(uuid: String): Option[MobileActorRef] = {
@@ -238,12 +230,10 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
   }
 
   protected[mobile] def updateRemoteAddress(newAddress: TheaterNode): Unit = {
-    log.debug("Updating the remote address for actor with UUID [%s] to theater %s.", uuid, TheaterNode(newAddress.hostname, newAddress.port).format)
-    val newReference =
-      if (newAddress.isLocal)
-        throw new RuntimeException("THIS SHOULD NOT BE HAPPENING. THE REFERENCE SHOULD BE UPDATED AT THE MIGRATION") // TODO
-      else
-        MobileActorRef.remoteMobileActor(uuid, newAddress.hostname, newAddress.port, timeout)
+    log.debug("Updating the remote address for actor with UUID [%s] to theater %s.", uuid, newAddress.format)
+
+    assert(!newAddress.isLocal) // TODO
+    val newReference = MobileActorRef.remoteMobileActor(uuid, newAddress.hostname, newAddress.port, timeout)
 
     switchActorRef(newReference)
   }

@@ -7,21 +7,21 @@ import scala.collection.mutable.SynchronizedQueue
 
 case class HeldMessage(message: Any, sender: Option[ActorRef])
 
-trait MessageHolder {
+class MessageHolder {
   private val lock = new Object
 
-  protected val heldMessages = new SynchronizedQueue[HeldMessage]
+  private val heldMessages = new SynchronizedQueue[HeldMessage]
 
-  protected def holdMessage(message: Any, senderOption: Option[ActorRef]): Unit = lock.synchronized {
+  def holdMessage(message: Any, senderOption: Option[ActorRef]): Unit = lock.synchronized {
     heldMessages.enqueue(HeldMessage(message, senderOption))
   }
 
-  protected def processHeldMessages(p: HeldMessage => Unit): Unit = lock.synchronized {
+  def processHeldMessages(p: HeldMessage => Unit): Unit = lock.synchronized {
     heldMessages.foreach(p)
     heldMessages.clear()
   }
 
-  protected def forwardHeldMessages(to: ActorRef): Unit = {
+  def forwardHeldMessages(to: ActorRef): Unit = {
     while (!heldMessages.isEmpty) {
       val hm = heldMessages.dequeue()
       to.!(hm.message)(hm.sender)

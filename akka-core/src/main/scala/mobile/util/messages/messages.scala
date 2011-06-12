@@ -1,5 +1,6 @@
 package se.scalablesolutions.akka.mobile.util.messages
 
+import se.scalablesolutions.akka.mobile.theater.LocalTheater
 import se.scalablesolutions.akka.mobile.theater.TheaterNode
 
 /**
@@ -30,7 +31,7 @@ case object ActorNotFound
  * Inter-theater messages
  */
 trait TheaterMessage {
-  var sender: Option[TheaterNode] = None
+  private[mobile] var sender: TheaterNode = LocalTheater.node
 }
 
 case class MovingActor(bytes: Array[Byte]) extends TheaterMessage
@@ -43,9 +44,6 @@ case class StartMobileActorReply(requestId: Long, uuid: String) extends TheaterM
 
 case class StartColocatedActorsRequest(requestId: Long, className: String, number: Int) extends TheaterMessage
 case class StartColocatedActorsReply(requestId: Long, uuids: Array[String]) extends TheaterMessage
-
-case class StartMobileActorsGroupRequest(requestId: Long, constructor: Either[Tuple2[String, Int], List[Array[Byte]]]) extends TheaterMessage
-case class StartMobileActorsGroupReply(requestId: Long, uuids: List[String]) extends TheaterMessage
 
 case class ActorNewLocationNotification(uuid: String, hostname: String, port: Int) extends TheaterMessage
 

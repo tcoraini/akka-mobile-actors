@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit
  *   - !! and !!! methods
  */
 
-trait LocalMobileActor extends InnerReference with MessageHolder {
+trait LocalMobileActor extends InnerReference {
 
   // Check some conditions that must hold for the proper instantiation of the actor
   checkConditions()
@@ -63,11 +63,11 @@ trait LocalMobileActor extends InnerReference with MessageHolder {
     val msg = message match {
       // Message from remote actor received and forwarded by local theater
       case remoteMsg: MobileActorMessage =>
-	profiler.remoteMessageArrived(uuid, remoteMsg)
+	profiler.foreach(_.remoteMessageArrived(uuid, remoteMsg))
 	remoteMsg.message
       
       case localMsg =>
-	profiler.localMessageArrived(uuid)
+	profiler.foreach(_.localMessageArrived(uuid))
 	localMsg
     }
 
@@ -76,7 +76,7 @@ trait LocalMobileActor extends InnerReference with MessageHolder {
 	
   override def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = {
     if (isMigrating) {
-      holdMessage(message, senderOption)
+      holder.holdMessage(message, senderOption)
     }
     else {
       //super.postMessageToMailbox(message, senderOption)
@@ -98,7 +98,7 @@ trait LocalMobileActor extends InnerReference with MessageHolder {
   protected[actor] def afterMigration(): Unit = actor.afterMigration()
 
   // To be called in the origin theater, after the migration is complete
-  protected[actor] def completeMigration(newActor: ActorRef): Unit = forwardHeldMessages(newActor)
+  protected[actor] def completeMigration(newActor: ActorRef): Unit = holder.forwardHeldMessages(newActor)
 
 
   /**

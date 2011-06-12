@@ -9,15 +9,14 @@ import se.scalablesolutions.akka.mobile.theater.LocalTheater
 import se.scalablesolutions.akka.mobile.theater.TheaterNode
 
 trait InnerReference extends ActorRef with ScalaActorRef with Logging {
-  private var _outerRef: MobileActorRef = null
 
-  protected[mobile] def outerRef: MobileActorRef = _outerRef
+  protected[actor] var outerRef: MobileActorRef = _
 
-  protected[mobile] def outerRef_=(ref: MobileActorRef) = { _outerRef = ref }
-  
   def isMigrating = 
-    if (_outerRef != null) _outerRef.isMigrating 
+    if (outerRef != null) outerRef.isMigrating 
     else false
+
+  protected lazy val holder = new MessageHolder
   
   /**
    * Abstract methods, to be overriden by subclasses

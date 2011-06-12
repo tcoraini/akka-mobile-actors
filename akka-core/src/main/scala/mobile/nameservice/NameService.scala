@@ -12,9 +12,9 @@ object NameService extends Logging {
   
   private var service: NameService = _
 
-  def init() = {
+  def init(runServer: Boolean) = {
     this.service = chooseNameService
-    service.init()
+    service.init(runServer)
     isRunning = true
   }
 
@@ -65,7 +65,7 @@ object NameService extends Logging {
 }
 
 trait NameService {
-  def init(): Unit
+  def init(runServer: Boolean): Unit
 
   def put(uuid: String, node: TheaterNode): Unit
 

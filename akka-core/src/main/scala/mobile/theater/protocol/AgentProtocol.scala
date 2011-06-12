@@ -15,24 +15,23 @@ class AgentProtocol extends TheaterProtocol {
   
   private lazy val agents = new HashMap[TheaterNode, ActorRef]
   
+  private lazy val localAgent = Actor.actor {
+    case message: TheaterMessage => 
+      theater.processMessage(message)
+    
+    case message => 
+      println("\n\nMESSAGE RECEIVED BY THEATER AGENT UNKNOWN: " + message + "\n\n")
+  }
+  private val agentName = "theaterAgent@" + theater.node.hostname + ":" + theater.node.port  
+
   override def init(theater: Theater): Unit = {
     super.init(theater)
 
-    val agent = Actor.actor {
-      case message: TheaterMessage => 
-        theater.processMessage(message)
-      
-      case message => 
-        println("\n\nMESSAGE RECEIVED BY THEATER AGENT UNKNOWN: " + message + "\n\n")
-    }
-    val name = "theaterAgent@" + theater.node.hostname + ":" + theater.node.port
-
-    theater.registerAgent(name, agent)
-    agents += theater.node -> agent
+    theater.registerAgent(agentName, localAgent)
+    agents += theater.node -> localAgent
   }
 
   def sendTo(node: TheaterNode, message: TheaterMessage): Unit = {
-    message.sender = Some(theater.node)
     try {
       agentFor(node) ! message
     } catch {
@@ -45,8 +44,14 @@ class AgentProtocol extends TheaterProtocol {
         }).start()
     }
   }
+
+  def stop(): Unit = {
+    theater.unregisterAgent(agentName)
+    localAgent.stop()
+    agents.clear
+  }
     
-  def agentFor(node: TheaterNode): ActorRef = agents.get(node) match {
+  private def agentFor(node: TheaterNode): ActorRef = agents.get(node) match {
     case Some(agent) => agent
       
     case None => 
