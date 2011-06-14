@@ -302,7 +302,6 @@ object GeneralTests {
   def testClient(uuid: String) = {
     LocalTheater.start("localhost", 2222)
     val ref = MobileActorRef(uuid, node1.hostname, node1.port)
-//    val ref = MobileActorRef(uuid, "ubuntu-tcoraini", 1810)
     ref ! Ping
     ref ! ShowCount
     ref

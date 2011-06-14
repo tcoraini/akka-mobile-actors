@@ -37,14 +37,14 @@ object LocallyColocatedActorsTests {
 class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit {
   import LocallyColocatedActorsTests._
 
-  @Test
+//  @Test
   def testLocallyColocatedActorsSize {
     nextToRefs should have size (2)
     atRefs should have size (3)
     hereRefs should have size (4)
   }
 
-  @Test
+//  @Test
   def testLocallyColocatedActorsGroupIds {
     nextToRefs(0).groupId should be === nextToRefs(1).groupId
 
@@ -60,7 +60,7 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
     atRefs(0).groupId should not be (hereRefs(0).groupId)
   }
     
-  @Test
+//  @Test
   def testLocallyColocatedActorsIsAtLocalNode {
     nextToRefs(0).node should be ('local)
     nextToRefs(1).node should be ('local)
@@ -75,7 +75,7 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
     hereRefs(3).node should be ('local)
   }
   
-  @Test
+//  @Test
   def isGroupManagementProperlySet {
     import GroupManagement.{groups => grps}
     grps should have size (3)
@@ -105,7 +105,7 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
     listHere.get should contain (hereRefs(3))
   }
 
-  @Test
+//  @Test
   def testRemotelyColocatedByClassNameActors {
     val refs = Mobile.colocateOps[GroupIdAnswererActor](3) at thatNode
     
@@ -122,7 +122,7 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
     for (answer <- answers) answer.get should equal (groupId)
   }
 
-  @Test
+//  @Test
   def testRemotelyColocatedWithFactoriesActors {
     val refs = Mobile.colocateOps(
       () => new GroupIdAnswererActor,
@@ -139,12 +139,13 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
     val requestIds = for (ref <- refs) yield RemoteActorsTesting.testRemoteActor(ref, GroupId)
     def answers: Seq[Option[Any]] = for (id <- requestIds) yield RemoteActorsTesting.getAnswer(id)
     while (!answers.forall(_.isDefined)) { Thread.sleep(500) }
+  
     val groupId = answers(0).get
     groupId should not be (None)
     for (answer <- answers) answer.get should equal (groupId)
   }
 
-  @Test
+//  @Test
   def testGroupMigration {
     val refs: List[MobileActorRef] = Mobile.colocateOps[GroupIdAnswererActor](3).here
     val groupId = refs(0).groupId
@@ -167,8 +168,120 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
     while (!answers.forall(_.isDefined)) { Thread.sleep(500) }
     for (answer <- answers) answer.get should equal (groupId)
   }
-  
+
   @Test
+  def testRemoteColocatedActorsNextToSingleRef {
+    // Implicit conversion for co-located spawn with factories
+    import Mobile._
+
+    val controlRef = Mobile.spawnAt(new GroupIdAnswererActor, thatNode)
+    
+    while(controlRef.isLocal) { Thread.sleep(100) }
+
+    // Refs spawned by class
+    val refsC: List[MobileActorRef] = Mobile.colocateNextTo[GroupIdAnswererActor](2, controlRef)
+    // Refs spawned by factories
+    val refsF: List[MobileActorRef] = Mobile.colocateNextTo(new GroupIdAnswererActor, new GroupIdAnswererActor)(controlRef)
+
+    while(refsF(1).isLocal) { Thread.sleep(100) }
+
+    refsC(0).node should be === controlRef.node
+    refsC(1).node should be === controlRef.node
+    refsF(0).node should be === controlRef.node
+    refsF(1).node should be === controlRef.node
+
+    val allRefs = refsC ::: refsF
+    // Checking that the group id of the actors are maintained in the new node
+    val requestIds = for (ref <- (controlRef :: allRefs)) yield RemoteActorsTesting.testRemoteActor(ref, GroupId)
+    def answers: Seq[Option[Any]] = for (id <- requestIds) yield RemoteActorsTesting.getAnswer(id)
+    while (!answers.forall(_.isDefined)) { Thread.sleep(500) }
+
+    val groupId = answers(0).get
+    groupId should not equal None
+    for (answer <- answers) answer.get should equal (groupId)
+  }
+
+  @Test
+  def testRemoteColocatedActorsNextToExistingGroup {
+    // Implicit conversion for co-located spawn with factories
+    import Mobile._
+
+    val controlRefs = Mobile.colocateAt(new GroupIdAnswererActor, new GroupIdAnswererActor)(thatNode)
+    
+    while(controlRefs(0).isLocal) { Thread.sleep(100) }
+
+    // Refs spawned by class
+    val refsC: List[MobileActorRef] = Mobile.colocateNextTo[GroupIdAnswererActor](2, controlRefs(0))
+    // Refs spawned by factories
+    val refsF: List[MobileActorRef] = Mobile.colocateNextTo(new GroupIdAnswererActor, new GroupIdAnswererActor)(controlRefs(1))
+
+    while(refsF(1).isLocal) { Thread.sleep(100) }
+
+    refsC(0).node should be === controlRefs(0).node
+    refsC(1).node should be === controlRefs(0).node
+    refsF(0).node should be === controlRefs(0).node
+    refsF(1).node should be === controlRefs(0).node
+
+    val allRefs = refsC ::: refsF
+    // Checking that the group id of the actors are maintained in the new node
+    val requestIds = for (ref <- (controlRefs ::: allRefs)) yield RemoteActorsTesting.testRemoteActor(ref, GroupId)
+    def answers: Seq[Option[Any]] = for (id <- requestIds) yield RemoteActorsTesting.getAnswer(id)
+    while (!answers.forall(_.isDefined)) { Thread.sleep(500) }
+
+    val groupId = answers(0).get
+    groupId should not equal None
+    for (answer <- answers) answer.get should equal (groupId)
+  }
+
+  @Test
+  def testLocalColocatedActorsNextToSingleRef {
+    // Implicit conversion for co-located spawn with factories
+    import Mobile._
+
+    val controlRef = Mobile.spawnHere(new GroupIdAnswererActor)
+    
+    // Refs spawned by class
+    val refsC: List[MobileActorRef] = Mobile.colocateNextTo[GroupIdAnswererActor](2, controlRef)
+    // Refs spawned by factories
+    val refsF: List[MobileActorRef] = Mobile.colocateNextTo(new GroupIdAnswererActor, new GroupIdAnswererActor)(controlRef)
+
+    refsC(0).node should be === controlRef.node
+    refsC(1).node should be === controlRef.node
+    refsF(0).node should be === controlRef.node
+    refsF(1).node should be === controlRef.node
+
+    val allRefs = refsC ::: refsF
+    val groupId = controlRef.groupId
+    groupId should not equal None
+    for (ref <- allRefs) ref.groupId should equal (groupId)
+  }
+
+  @Test
+  def testLocalColocatedActorsNextToExistingGroup {
+    // Implicit conversion for co-located spawn with factories
+    import Mobile._
+
+    val controlRefs = Mobile.colocateHere(new GroupIdAnswererActor, new GroupIdAnswererActor)
+    val groupId = controlRefs(0).groupId
+
+    groupId should not equal None
+    controlRefs(1).groupId should equal (groupId)
+    
+    // Refs spawned by class
+    val refsC: List[MobileActorRef] = Mobile.colocateNextTo[GroupIdAnswererActor](2, controlRefs(0))
+    // Refs spawned by factories
+    val refsF: List[MobileActorRef] = Mobile.colocateNextTo(new GroupIdAnswererActor, new GroupIdAnswererActor)(controlRefs(1))
+
+    refsC(0).node should be === controlRefs(0).node
+    refsC(1).node should be === controlRefs(0).node
+    refsF(0).node should be === controlRefs(0).node
+    refsF(1).node should be === controlRefs(0).node
+
+    val allRefs = refsC ::: refsF
+    for (ref <- allRefs) ref.groupId should equal (groupId)
+  }
+  
+//  @Test
   def testPartialGroupMigration {
     val refs: List[MobileActorRef] = Mobile.colocateOps[SleepyActor](3).here
     
@@ -185,7 +298,7 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
     refs(0).node should be ('local)
   }
 
-  @Test
+//  @Test
   def isActorRemovedFromGroupAfterMigration {
     val actorToMigrate = hereRefs(2)
     val groupId = hereRefs(0).groupId.get
