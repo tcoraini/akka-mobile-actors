@@ -47,13 +47,20 @@ class DistributedNameService extends NameService {
   import DistributedNameService._
 
   private var initialized = false
+  
+  private var runningServer: Boolean = _
 
   def init(runServer: Boolean): Unit = {
     if (!initialized) {
+      runningServer = runServer
       // In case there is a local name server, we start a NameServiceAgent
       if (runServer) NameServiceAgent.startLocalAgent()
       initialized = true
     }
+  }
+
+  def stop(): Unit = {
+    if (runningServer) NameServiceAgent.stop()
   }
 
   def put(uuid: String, node: TheaterNode): Unit = {

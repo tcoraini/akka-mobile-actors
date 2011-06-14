@@ -10,7 +10,9 @@ import java.net.InetSocketAddress
 @serializable 
 trait MobileActor extends Actor {
 
-  private[actor] var groupId: Option[String] = None
+  private var _groupId: Option[String] = None
+  private[actor] def groupId_=(newId: Option[String]) = { _groupId = newId }
+  def groupId = _groupId
 
   self.uuid = UUID.newUuid.toString
 
@@ -23,8 +25,8 @@ trait MobileActor extends Actor {
     case MoveTo(hostname, port) =>
       outerRef.foreach(_.moveTo(hostname, port))
 
-    case MoveGroupTo(hostname, port) =>
-      outerRef.foreach(_.moveGroupTo(hostname, port))
+    case MoveGroupTo(hostname, port, nextTo) =>
+      outerRef.foreach(_.moveGroupTo(hostname, port, nextTo))
 
     case PrepareToMigrate =>
       outerRef.foreach(_.prepareToMigrate())

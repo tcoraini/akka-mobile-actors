@@ -11,7 +11,7 @@ sealed abstract class MigrationMessage
 case class MoveTo(hostname: String, port: Int) extends MigrationMessage
 
 // Message that request all actors from a group to migrate together to some node
-case class MoveGroupTo(hostname: String, port: Int) extends MigrationMessage
+case class MoveGroupTo(hostname: String, port: Int, nextTo: Option[String] = None) extends MigrationMessage
 
 // Internal message for the group migration process
 private[mobile] case object PrepareToMigrate extends MigrationMessage
@@ -35,14 +35,14 @@ trait TheaterMessage {
 }
 
 case class MovingActor(bytes: Array[Byte]) extends TheaterMessage
-case class MobileActorsRegistered(uuids: Array[String]) extends TheaterMessage 
+case class MovingGroup(bytes: Array[Array[Byte]], nextTo: Option[String]) extends TheaterMessage
 
-case class MovingGroup(bytes: Array[Array[Byte]]) extends TheaterMessage
+case class MobileActorsRegistered(uuids: Array[String]) extends TheaterMessage 
 
 case class StartMobileActorRequest(requestId: Long, className: String) extends TheaterMessage
 case class StartMobileActorReply(requestId: Long, uuid: String) extends TheaterMessage
 
-case class StartColocatedActorsRequest(requestId: Long, className: String, number: Int) extends TheaterMessage
+case class StartColocatedActorsRequest(requestId: Long, className: String, number: Int, nextTo: Option[String]) extends TheaterMessage
 case class StartColocatedActorsReply(requestId: Long, uuids: Array[String]) extends TheaterMessage
 
 case class ActorNewLocationNotification(uuid: String, hostname: String, port: Int) extends TheaterMessage

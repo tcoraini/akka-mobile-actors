@@ -24,7 +24,6 @@ object Mobile extends Logging {
   // constructor)
   implicit def fromByNameToFunctionLiteral(byName: => MobileActor): () => MobileActor = { () => byName }
   
-  // TODO configurar via arquivo de conf
   private lazy val algorithm: DistributionAlgorithm = {
     lazy val defaultAlgorithm = new RoundRobinAlgorithm
     try {
@@ -74,11 +73,12 @@ object Mobile extends Logging {
     spawn(Right(() => factory), Some(node))
   }
 
-  // TODO tem como unificar os metodos de spawn normal e co-locados?
+  /**
+   * Methods that actually spawns the actor
+   */
   private def spawn(
       constructor: Either[Class[_ <: MobileActor], () => MobileActor], 
-      where: Option[TheaterNode] = None,
-      groupId: Option[String] = None): MobileActorRef = {
+      where: Option[TheaterNode] = None): MobileActorRef = {
 
     val node: TheaterNode = where.getOrElse(algorithm.chooseTheater)
   
@@ -88,13 +88,44 @@ object Mobile extends Logging {
 
         case Right(factory) => MobileActorRef(factory())
       }
-      mobileRef.groupId = groupId
       mobileRef.start
-//      LocalTheater.register(mobileRef)
       mobileRef
     } else {
       TheaterHelper.spawnActorRemotely(constructor, node)
     }
+  }
+
+  private def spawnColocated(
+      constructor: Either[Tuple2[Class[_ <: MobileActor], Int], Seq[() => MobileActor]],
+      where: Option[TheaterNode] = None,
+      nextTo: Option[MobileActorRef] = None): List[MobileActorRef] = {
+
+    val node: TheaterNode = where.getOrElse(algorithm.chooseTheater)
+    
+    if (node.isLocal) {
+      val mobileRefs: Seq[MobileActorRef] = constructor match {
+	case Left((clazz, n)) =>
+	  for (i <- 1 to n) yield MobileActorRef(clazz) //spawn(Left(clazz), Some(LocalTheater.node))
+	
+	case Right(factories) =>
+	  for (factory <- factories) yield MobileActorRef(factory()) //spawn(Right(factory), Some(LocalTheater.node))
+      }
+      val groupId = 
+	if (nextTo.isDefined && nextTo.get.groupId.isDefined)
+	  nextTo.get.groupId.get
+	else if (nextTo.isDefined) {
+	  val newId = GroupManagement.newGroupId
+	  nextTo.get.groupId = Some(newId)
+	  newId
+	} else 
+	  GroupManagement.newGroupId
+
+      mobileRefs.foreach { ref => 
+	ref.groupId = Some(groupId)
+	ref.start
+      }
+      mobileRefs.toList
+    } else TheaterHelper.spawnColocatedActorsRemotely(constructor, node, nextTo) 
   }
 
   /**
@@ -113,17 +144,6 @@ object Mobile extends Logging {
   def colocate(factories: (() => MobileActor)*) = // TODO factories pode ser vazio
     //colocateOptions(Right(factories))
     spawnColocated(Right(factories), None)
-
-  def test(factory1: => () => MobileActor,
-	    factory2: => () => MobileActor,
-	    factories: (() => MobileActor)*) = { // TODO factories pode ser vazio
-    //colocateOptions(Right(factories))
-    //val allFactories = factory1 :: factory2 :: factories.toList
-    //spawnColocated(Right(allFactories), None)
-    "segundo metodo"
-  }
-
-  def test(factory: () => MobileActor) = "primeiro metodo"
 
   
   /**
@@ -153,35 +173,12 @@ object Mobile extends Logging {
    */
   def colocateNextTo[T <: MobileActor : Manifest](number: Int, ref: MobileActorRef) = {
     val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
-    spawnColocated(Left(clazz, number), Some(ref.node))
+    spawnColocated(Left(clazz, number), Some(ref.node), Some(ref))
   }
 
   def colocateNextTo(factories: (() => MobileActor)*)(ref: MobileActorRef) = 
-    spawnColocated(Right(factories), Some(ref.node))
+    spawnColocated(Right(factories), Some(ref.node), Some(ref))
 
-
-  private def spawnColocated(
-      constructor: Either[Tuple2[Class[_ <: MobileActor], Int], Seq[() => MobileActor]],
-      where: Option[TheaterNode] = None): List[MobileActorRef] = {
-
-    val node: TheaterNode = where.getOrElse(algorithm.chooseTheater)
-    
-    if (node.isLocal) {
-      val mobileRefs: Seq[MobileActorRef] = constructor match {
-	case Left((clazz, n)) =>
-	  for (i <- 1 to n) yield spawn(Left(clazz), Some(LocalTheater.node))
-	
-	case Right(factories) =>
-	  for (factory <- factories) yield spawn(Right(factory), Some(LocalTheater.node))
-      }
-      val groupId = GroupManagement.newGroupId
-      mobileRefs.foreach { ref => 
-	ref.groupId = Some(groupId)
-	ref.start
-      }
-      mobileRefs.toList
-    } else TheaterHelper.spawnColocatedActorsRemotely(constructor, node) // TODO spawn remoto
-  }
 
   /*
    * OUTRA VERSAO
@@ -196,7 +193,6 @@ object Mobile extends Logging {
     colocateOptions(Right(factories))
 
   private def colocateOptions(constructor: Either[Tuple2[Class[_ <: MobileActor], Int], Seq[() => MobileActor]]) = new {
-    // TODO os atores nesse caso tem que ter o groupId do ator que eles estao sendo colocados juntos
     def nextTo(ref: MobileActorRef): List[MobileActorRef] = {
       spawnColocated(constructor, Some(ref.node))
     }
@@ -216,6 +212,8 @@ object Mobile extends Logging {
 
 
   def startTheater(nodeName: String): Boolean = LocalTheater.start(nodeName)
+
+  def startTheater(node: TheaterNode): Boolean = startTheater(node.hostname, node.port)
 
   def startTheater(hostname: String, port: Int): Boolean = LocalTheater.start(hostname, port)
   

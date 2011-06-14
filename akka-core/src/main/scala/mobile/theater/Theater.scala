@@ -128,9 +128,9 @@ private[mobile] class Theater extends Logging {
     mobileActors.clear
     
     // TODO
-    // profiler.foreach(_.stop())
     // protocol.stop()
-    // NameService.stop
+    profiler.foreach(_.stop())
+    NameService.stop
 
     server.shutdown
     _isRunning = false
@@ -270,11 +270,11 @@ private[mobile] class Theater extends Logging {
     sendTo(destination, MovingActor(actorBytes))
   }
 
-  private[theater] def migrateGroup(actorsBytes: Array[Array[Byte]], destination: TheaterNode): Unit = {
+  private[theater] def migrateGroup(actorsBytes: Array[Array[Byte]], destination: TheaterNode, nextTo: Option[String]): Unit = {
     log.info("Theater at %s performing migration of %d actors to theater at %s.", 
 	     node.format, actorsBytes.size, destination.format)
 
-    sendTo(destination, MovingGroup(actorsBytes))
+    sendTo(destination, MovingGroup(actorsBytes, nextTo))
   }
 
   /*
@@ -290,21 +290,18 @@ private[mobile] class Theater extends Logging {
 
     // Serialized actor arriving
     case MovingActor(bytes) =>
-      val uuid = receiveActor(bytes, message.sender)
+      val ref = receiveActor(bytes, message.sender)
       // Notifying the sender that the actor is now registered in this theater
-      sendTo(message.sender, MobileActorsRegistered(Array(uuid)))
+      sendTo(message.sender, MobileActorsRegistered(Array(ref.uuid)))
     
     // Notification that a migration is completed (common message for single and group migration)
     case MobileActorsRegistered(uuids) =>
       completeMigration(uuids, message.sender)
 
     // Serialized group of co-located actors arriving
-    case MovingGroup(actorsBytes) =>
-      val uuids = for { 
-	bytes <- actorsBytes
-	uuid = receiveActor(bytes, message.sender)
-      } yield uuid
-      sendTo(message.sender, MobileActorsRegistered(uuids))
+    case MovingGroup(actorsBytes, nextTo) =>
+      val refs = receiveGroup(actorsBytes, message.sender, nextTo)
+      sendTo(message.sender, MobileActorsRegistered(refs.map(_.uuid)))
 
     // Request to start a mobile actor of the specified class in this theater
     case StartMobileActorRequest(requestId, className) =>
@@ -316,8 +313,8 @@ private[mobile] class Theater extends Logging {
       TheaterHelper.completeActorSpawn(requestId, uuid, message.sender)
     
     // Request to start 'number' co-located actors of the specified class in this theater
-    case StartColocatedActorsRequest(requestId, className, number) => {
-      val uuids = startColocatedActorsByClassName(className, number)
+    case StartColocatedActorsRequest(requestId, className, number, nextTo) => {
+      val uuids = startColocatedActorsByClassName(className, number, nextTo)
       sendTo(message.sender, StartColocatedActorsReply(requestId, uuids))
     }
     
@@ -364,9 +361,22 @@ private[mobile] class Theater extends Logging {
     mobileRef
   } 
 
-  private def startColocatedActorsByClassName(className: String, number: Int): Array[String] = {
+  private def startColocatedActorsByClassName(className: String, number: Int, nextTo: Option[String]): Array[String] = {
     log.debug("Starting %d colocated actors of class %s in theater %s.", number, className, node.format)
-    val groupId = GroupManagement.newGroupId
+
+    val groupId: String = 
+      if (nextTo.isDefined) {
+	val ref = mobileActors.get(nextTo.get)
+	if (ref != null && ref.groupId.isDefined) ref.groupId.get
+	else if (ref != null) {
+	  val newId = GroupManagement.newGroupId
+	  ref.groupId = Some(newId)
+	  newId
+	} else
+	  GroupManagement.newGroupId // actor not found in the theater, just generate a new group ID
+      } else 
+	GroupManagement.newGroupId
+
     val uuids = new Array[String](number)
     for (i <- 0 to (number - 1)) {
       val ref = startActorByClassName(className)
@@ -389,19 +399,41 @@ private[mobile] class Theater extends Logging {
   }
 
   // Instantiates an actor migrating from another theater, starts and registers it.
-  private def receiveActor(bytes: Array[Byte], sender: TheaterNode): String = {
+  private def receiveActor(bytes: Array[Byte], sender: TheaterNode): MobileActorRef = {
     log.debug("Theater at %s just received a migrating actor from %s.", 
               node.format, sender.format)
 
     val mobileRef = MobileSerialization.mobileFromBinary(bytes)(DefaultActorFormat)
     mobileRef.afterMigration()
-    mobileRef.groupId.foreach(id => GroupManagement.insert(mobileRef, id))
 
     if (mobTrack) {
       sendTo(mobTrackNode.get, MobTrackMigrate(mobileRef.uuid, sender, this.node))
     }
 
-    mobileRef.uuid
+    mobileRef
+  }
+
+  private def receiveGroup(actorsBytes: Array[Array[Byte]], sender: TheaterNode, nextTo: Option[String]): Array[MobileActorRef] = {
+    val refs = for { 
+      bytes <- actorsBytes
+      ref = receiveActor(bytes, sender)
+    } yield ref
+
+    val groupId: String = 
+      if (nextTo.isDefined) {
+	val ref = mobileActors.get(nextTo.get)
+	if (ref != null && ref.groupId.isDefined) ref.groupId.get
+	else if (ref != null) {
+	  val newId = GroupManagement.newGroupId
+	  ref.groupId = Some(newId)
+	  newId
+	} else
+	  GroupManagement.newGroupId // actor not found in the theater, just generate a new group ID
+      } else 
+	GroupManagement.newGroupId
+
+    refs.foreach(_.groupId = Some(groupId))
+    refs
   }
 
   /**

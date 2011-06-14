@@ -13,15 +13,29 @@ import scala.collection.mutable.HashMap
 object NameServiceAgent {
   private val agents = new HashMap[TheaterNode, ActorRef]
   
-  def agentName(node: TheaterNode): String = agentName(node.hostname, node.port)
+  private lazy val agent = Actor.actorOf(new NameServiceAgent)
+
+  private[nameservice] def startLocalAgent(): ActorRef = {
+    val name = agentName(LocalTheater.node)
+    LocalTheater.registerAgent(name, agent)
+    agents += (LocalTheater.node -> agent)
+    agent
+  }
+
+  private[nameservice] def stop(): Unit = {
+    agent.stop()
+    agents.clear()
+  }
+
+  private[nameservice] def agentName(node: TheaterNode): String = agentName(node.hostname, node.port)
   
-  def agentName(hostname: String, port: Int): String = {
+  private[nameservice] def agentName(hostname: String, port: Int): String = {
     "nameserver@" + hostname + ":" + port
   }
   
-  def agentFor(hostname: String, port: Int): ActorRef = agentFor(TheaterNode(hostname, port))
+  private[nameservice] def agentFor(hostname: String, port: Int): ActorRef = agentFor(TheaterNode(hostname, port))
 
-  def agentFor(node: TheaterNode): ActorRef = agents.get(node) match {
+  private[nameservice] def agentFor(node: TheaterNode): ActorRef = agents.get(node) match {
     case Some(agent) => agent
       
     case None => 
@@ -29,14 +43,6 @@ object NameServiceAgent {
       val newAgent = RemoteClient.actorFor(name, node.hostname, node.port)
       agents += node -> newAgent
       newAgent
-  }
-
-  private[nameservice] def startLocalAgent(): ActorRef = {
-    val agent = Actor.actorOf(new NameServiceAgent)
-    val name = agentName(LocalTheater.node)
-    LocalTheater.registerAgent(name, agent)
-    agents += (LocalTheater.node -> agent)
-    agent
   }
 }
 
@@ -62,6 +68,10 @@ class NameServiceAgent extends Actor {
         case None =>
           self.reply(ActorNotFound)
       }
+  }
+
+  override def shutdown {
+    actors.clear()
   }
 }
 

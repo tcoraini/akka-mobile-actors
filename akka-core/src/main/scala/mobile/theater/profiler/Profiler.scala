@@ -28,35 +28,33 @@ object Profiler {
 // TODO tratamento especial para atores co-locados?
 class Profiler(val localNode: TheaterNode) extends Logging {
   import Profiler._
-  // TODO privates
-  /*private*/ val incomingMessages = new ConcurrentHashMap[String, HashMap[TheaterNode, IMRecord]]
+  
+  // For each actor (UUID), holds how many messages it received from each theater in the cluster
+  private val incomingMessages = new HashMap[String, HashMap[TheaterNode, IMRecord]] with 
+      SynchronizedMap[String, HashMap[TheaterNode, IMRecord]]
 
   // 11 is the default initial capacity for the PriorityQueue Java class
-  /*private*/ val priorityQueue = new PriorityBlockingQueue[IMRecord](11, IMRecord.comparator)
-  
+  private val priorityQueue = new PriorityBlockingQueue[IMRecord](11, IMRecord.comparator)
+
   private val queueThreshold = Config.config.getInt("cluster.profiling.queue-threshold", Profiler.QUEUE_THRESHOLD)
   
   private var _resetMode: ResetMode.Value = parseResetModeFromConfigurationFile
-  
-  if (_resetMode == ResetMode.AUTOMATIC) {
-     initializeResetService()
-  }    
-
   def resetMode: ResetMode.Value = _resetMode
-  
   def resetMode_=(mode: ResetMode.Value) = {
     _resetMode = mode
     if (mode == ResetMode.AUTOMATIC) {
       initializeResetService()
     }
-  }
-  
-  private var _resetInterval = Config.config.getInt("cluster.profiling.reset-interval", DEFAULT_RESET_INTERVAL)
-  
-  def resetInterval = _resetInterval
+  }  
 
+  private var _resetInterval = Config.config.getInt("cluster.profiling.reset-interval", DEFAULT_RESET_INTERVAL)
+  def resetInterval = _resetInterval 
   def resetInterval_=(interval: Int) = { _resetInterval = interval }
 
+  if (_resetMode == ResetMode.AUTOMATIC) {
+     initializeResetService()
+  }    
+  
   private[mobile] def localMessageArrived(uuid: String): Unit = {
     messageArrived(uuid, localNode, false)
   }
@@ -65,12 +63,15 @@ class Profiler(val localNode: TheaterNode) extends Logging {
     messageArrived(uuid, TheaterNode(message.senderHostname, message.senderPort), true)
   }
 
-  private def messageArrived(uuid: String, from: TheaterNode, usePriorityQueue: Boolean): Unit = {  
-    val newMap = new HashMap[TheaterNode, IMRecord] with SynchronizedMap[TheaterNode, IMRecord]
-    var innerMap: HashMap[TheaterNode, IMRecord] = incomingMessages.putIfAbsent(uuid, newMap)
-    if (innerMap == null)
-      innerMap = newMap
+  private[theater] def stop() {
+    resetMode = ResetMode.MANUAL
+    this.reset()
+  }
 
+  // TODO synchronize correctly this method
+  private def messageArrived(uuid: String, from: TheaterNode, usePriorityQueue: Boolean): Unit = {  
+    lazy val newMap = new HashMap[TheaterNode, IMRecord] with SynchronizedMap[TheaterNode, IMRecord]
+    val innerMap = incomingMessages.getOrElseUpdate(uuid, newMap)
     val imRecord = innerMap.getOrElseUpdate(from, IMRecord(uuid, from))
 
     imRecord.increment()
@@ -109,11 +110,8 @@ class Profiler(val localNode: TheaterNode) extends Logging {
        
   // Removes all the records regarding the actor with UUID 'uuid', from both the Hash Map and 
   // the Priority Queue
-
-  // TODO remover ao migrar ator
   private[mobile] def remove(uuid: String): Unit = {
-    val innerMap: HashMap[TheaterNode, IMRecord] = incomingMessages.get(uuid)
-    if (innerMap != null) {
+    incomingMessages.get(uuid).foreach { innerMap =>
       innerMap.values.foreach(record => priorityQueue.remove(record))
       incomingMessages.remove(uuid)
     }
@@ -146,19 +144,28 @@ class Profiler(val localNode: TheaterNode) extends Logging {
   }
 
   // Gets the number of local messages the actor with UUID 'uuid' received
-  def localMessagesCount(uuid: String): Int = incomingMessages.get(uuid) match {
-    case null => 0
+  def localMessagesCount(uuid: String): Int = {
+    // Just as an exercise, but not very clear, I admit :-)
+    incomingMessages.get(uuid).flatMap(innerMap => innerMap.get(localNode)).map(record => record.count).getOrElse(0)
+
+    // Without flat map, this is scary!
+    //incomingMessages.get(uuid).map(innerMap => innerMap.get(localNode)).map(option => option.map(record => record.count)).getOrElse(None).getOrElse(0)
+
+    // More readable version
+    // incomingMessages.get(uuid) match {
+    //   case None => 0
     
-    case innerMap => 
-      val record = innerMap.get(localNode)
-      if (record.isDefined) 
-	record.get.count
-      else 0
+    //   case Some(innerMap) => 
+    // 	val record = innerMap.get(localNode)
+    // 	if (record.isDefined) 
+    // 	  record.get.count
+    // 	else 0
+    // }
   }
 
   // Gets the complete table of IMRecord's for the actor with UUID 'uuid'. This table contains, for
   // each node, a IMRecord with the number of messages that actor received from that node
-  def incomingMessagesRecords(uuid: String): HashMap[TheaterNode, IMRecord] = incomingMessages.get(uuid)
+  def incomingMessagesRecords(uuid: String): Option[HashMap[TheaterNode, IMRecord]] = incomingMessages.get(uuid)
 
   /**
    * Resets all data of this Profiler. Useful for keeping only up-to-date information. A better

@@ -46,7 +46,8 @@ object TheaterHelper extends Logging {
 
   private[mobile] def spawnColocatedActorsRemotely(
       constructor: Either[Tuple2[Class[_ <: MobileActor], Int], Seq[() => MobileActor]], 
-      node: TheaterNode): List[MobileActorRef] = {
+      node: TheaterNode,
+      nextTo: Option[MobileActorRef] = None): List[MobileActorRef] = {
     
     val hostname = node.hostname
     val port = node.port
@@ -54,7 +55,7 @@ object TheaterHelper extends Logging {
     constructor match {
       case Left((clazz, n)) => 
 	val requestId = newRequestId
-	LocalTheater.sendTo(node, StartColocatedActorsRequest(requestId, clazz.getName, n))
+	LocalTheater.sendTo(node, StartColocatedActorsRequest(requestId, clazz.getName, n, nextTo.map(_.uuid)))
 	(for {
 	  i <- 0 to (n - 1)
 	  temporaryId = requestId + "_" + i
@@ -68,7 +69,7 @@ object TheaterHelper extends Logging {
 	  ref.groupId = Some(groupId)
 	  ref.start
 	}
-	refs(0) ! MoveGroupTo(hostname, port)
+	refs(0) ! MoveGroupTo(hostname, port, nextTo.map(_.uuid))
         refs.toList
     }
   }

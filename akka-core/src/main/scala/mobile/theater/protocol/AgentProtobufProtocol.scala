@@ -21,7 +21,7 @@ class AgentProtobufProtocol extends ProtobufProtocol {
     case message: Any => 
       println("\n\nMESSAGE RECEIVED BY THEATER AGENT UNKNOWN: " + message + "\n\n")
   }
-  private val agentName = "theaterAgent@" + theater.node.hostname + ":" + theater.node.port
+  private lazy val agentName = "theaterAgent@" + theater.node.hostname + ":" + theater.node.port
 
   override def init(theater: Theater): Unit = {
     super.init(theater)

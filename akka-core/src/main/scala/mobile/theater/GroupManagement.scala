@@ -42,12 +42,12 @@ object GroupManagement {
 
   def group(groupId: String): Option[List[MobileActorRef]] = groups.get(groupId)
   
-  private[mobile] def startGroupMigration(groupId: String, destination: TheaterNode): Unit = this.synchronized {
+  private[mobile] def startGroupMigration(groupId: String, destination: TheaterNode, nextTo: Option[String]): Unit = this.synchronized {
     val group = groups.get(groupId)
     val task = migrationTasks.get(groupId)
     (group, task) match {
       case (Some(group), None) =>
-	val task = new GroupMigrationTask(groupId, destination)
+	val task = new GroupMigrationTask(groupId, destination, nextTo)
 	migrationTasks.put(groupId, task)
 	group.foreach(actor => actor ! PrepareToMigrate)
 	timer.schedule(task, migrationTimeout)
@@ -72,14 +72,14 @@ object GroupManagement {
   }
 }
 
-class GroupMigrationTask(groupId: String, destination: TheaterNode) extends TimerTask {
+class GroupMigrationTask(groupId: String, destination: TheaterNode, nextTo: Option[String]) extends TimerTask {
   var done = false
   var builder: ArrayBuilder[Array[Byte]] = null
   private val _lock = new Object
   
   override def run(): Unit = {
     _lock.synchronized { done = true }
-    LocalTheater.migrateGroup(builder.result, destination)
+    LocalTheater.migrateGroup(builder.result, destination, nextTo)
     GroupManagement.migrationPerformed(groupId)
   }
 

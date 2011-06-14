@@ -12,10 +12,14 @@ object NameService extends Logging {
   
   private var service: NameService = _
 
-  def init(runServer: Boolean) = {
+  def init(runServer: Boolean) {
     this.service = chooseNameService
     service.init(runServer)
     isRunning = true
+  }
+
+  def stop() {
+    service.stop()
   }
 
   def put(actor: MobileActorRef, node: TheaterNode): Unit = {
@@ -65,11 +69,13 @@ object NameService extends Logging {
 }
 
 trait NameService {
-  def init(runServer: Boolean): Unit
+  def init(runServer: Boolean)
 
-  def put(uuid: String, node: TheaterNode): Unit
+  def put(uuid: String, node: TheaterNode)
 
   def get(uuid: String): Option[TheaterNode] 
 
-  def remove(uuid: String): Unit
+  def remove(uuid: String)
+  
+  def stop()
 }

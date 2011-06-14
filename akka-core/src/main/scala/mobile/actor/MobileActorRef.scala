@@ -34,7 +34,7 @@ object MobileActorRef {
    * reference already exists for this actor (which would be a proxy for a remote mobile
    * actor), then it is updated with this new reference.
    */
-  def apply(reference: InnerReference): MobileActorRef = {
+  private[mobile] def apply(reference: InnerReference): MobileActorRef = {
     ReferenceManagement.get(reference.uuid) match {
       case Some(mobileRef) =>
         mobileRef.switchActorRef(reference)
@@ -51,7 +51,7 @@ object MobileActorRef {
   /**
    * Creates a local reference for the mobile actor instantiated with the factory provided.
    */
-  def apply(factory: => MobileActor): MobileActorRef = {
+  private[mobile] def apply(factory: => MobileActor): MobileActorRef = {
     val localRef = new LocalActorRef(() => factory) with LocalMobileActor
     register(new MobileActorRef(localRef))
   }
@@ -59,7 +59,7 @@ object MobileActorRef {
   /**
    * Creates a local reference for a mobile actor of the class specified.
    */
-  def apply(clazz: Class[_ <: MobileActor]): MobileActorRef = {
+  private[mobile] def apply(clazz: Class[_ <: MobileActor]): MobileActorRef = {
     val localRef = new LocalActorRef(clazz) with LocalMobileActor
     register(new MobileActorRef(localRef))
   }
@@ -130,6 +130,9 @@ object MobileActorRef {
 
 class MobileActorRef private(protected var innerRef: InnerReference) extends MethodDelegation with Logging {
   
+  if (!LocalTheater.isRunning) 
+    throw new RuntimeException("There must be a Local Theater running before you can instantiate mobile actors.")
+
   innerRef.outerRef = this
 
   private var _isMigrating = false
@@ -155,9 +158,9 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
   }
 
   // Group migration (for co-located actors only)
-  private[actor] def moveGroupTo(hostname: String, port: Int): Unit = {
+  private[actor] def moveGroupTo(hostname: String, port: Int, nextTo: Option[String]): Unit = {
     if (groupId.isDefined) {
-      GroupManagement.startGroupMigration(groupId.get, TheaterNode(hostname, port))
+      GroupManagement.startGroupMigration(groupId.get, TheaterNode(hostname, port), nextTo)
     } else {
       // If not in a group, migrate the actor alone
       moveTo(hostname, port)
