@@ -33,7 +33,7 @@ class MobileActorTests extends JUnitSuite with ShouldMatchersForJUnit {
 
   @Test
   def testReplyToSender {
-    val remoteRef = Mobile.spawnAt[AnswererActor](thatNode)
+    val remoteRef = Mobile.spawn[AnswererActor] at thatNode
     
     val requestId = RemoteActorsTesting.testRemoteActor(remoteRef, 12)
 

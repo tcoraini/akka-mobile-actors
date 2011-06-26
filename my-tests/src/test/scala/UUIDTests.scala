@@ -30,7 +30,7 @@ class UUIDTests extends JUnitSuite with ShouldMatchersForJUnit {
 
   @Test
   def testNodeInformationInUUID {
-    val ref = Mobile.spawnHere[StatefulActor]
+    val ref = Mobile.spawn[StatefulActor] here
     val uuid: Long = ref.uuid.toLong
 
     val nodeIndexInUUID = nodeIndex + 1

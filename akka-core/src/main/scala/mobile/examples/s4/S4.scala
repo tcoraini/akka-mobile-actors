@@ -89,7 +89,7 @@ object S4 {
     }
     
     val constructor = peClass.getConstructor(event.getClass)
-    Mobile.spawn(constructor.newInstance(event))
+    Mobile.spawn(constructor.newInstance(event)) here
     
 //    val ref = Mobile.spawn(peClass.newInstance())
 //    ref ! StartPEFor(event)

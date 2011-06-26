@@ -83,7 +83,7 @@ object MobileActorRef {
   /**
    * Creates a remote reference for the actor with the specified UUID running in the Theater at hostname:port.
    */
-  def apply(
+  private[mobile] def apply(
       uuid: String, 
       hostname: String, 
       port: Int, 

@@ -59,7 +59,7 @@ object RemoteActorsTesting {
 
   private def newRequestId = UUID.newUuid.toString
 
-  private val inquirer = Mobile.spawnHere[InquirerActor]
+  private val inquirer = Mobile.spawn[InquirerActor] here
 
   def testRemoteActor(who: ActorRef, question: Any): String = {
     val requestId = newRequestId

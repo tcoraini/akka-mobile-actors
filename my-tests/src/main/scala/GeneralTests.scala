@@ -248,14 +248,14 @@ object GeneralTests {
   }   
 
   def testMigration(): Unit = {
-    LocalTheater.start("ubuntu-tcoraini", 1810)
+    Mobile.startTheater(node1)
 
-    val ref = Mobile.spawn[MyActor]
+    val ref = Mobile.spawn[MyActor] here
 
     //ref ! Wait(20)
     //ref ! Message("APÓS MIGRAÇÃO")
     //LocalTheater.migrate(ref.uuid) to ("localhost", 2312)
-    ref ! MoveTo("localhost", 2312)
+    ref ! MoveTo(node2.hostname, node2.port)
     ref ! Message("RETIDA")
 
   }
@@ -284,7 +284,7 @@ object GeneralTests {
   def testServer1(migrate: Boolean = false) = {
     //LocalTheater.start("localhost", 2312)
     Mobile.startTheater(node1.hostname, node1.port)
-    val ref = Mobile.spawnHere[StatefulActor]
+    val ref = Mobile.spawn[StatefulActor].here
     ref ! Ping
     ref ! ShowCount
     if (migrate) {
@@ -301,7 +301,8 @@ object GeneralTests {
 
   def testClient(uuid: String) = {
     LocalTheater.start("localhost", 2222)
-    val ref = MobileActorRef(uuid, node1.hostname, node1.port)
+    val refOpt = MobileActorRef(uuid) //, node1.hostname, node1.port)
+    val ref = refOpt.getOrElse(throw new RuntimeException("Could not find an actor with UUID [" + uuid + "] running in the cluster."))
     ref ! Ping
     ref ! ShowCount
     ref
@@ -310,7 +311,7 @@ object GeneralTests {
   def testRemoteSpawn(): MobileActorRef = {
     LocalTheater.start(node2) // localhost:2312
 //    val node = TheaterNode("ubuntu-tcoraini", 1810)
-    val ref = Mobile.spawnAt[StatefulActor](node1)
+    val ref = Mobile.spawn[StatefulActor] at node1
     ref ! Ping
     ref ! ShowCount
     ref
@@ -318,7 +319,7 @@ object GeneralTests {
 
   def testDelayedMigration() =  {
     LocalTheater.start("ubuntu-tcoraini", 1810)
-    val ref = Mobile.spawnHere[MyActor]
+    val ref = Mobile.spawn[MyActor].here
 //    ref ! Wait(3)
 //    ref ! Wait(3)
     ref ! MoveTo("localhost", 2312)

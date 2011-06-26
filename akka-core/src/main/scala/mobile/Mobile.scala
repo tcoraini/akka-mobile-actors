@@ -15,9 +15,6 @@ import se.scalablesolutions.akka.config.Config
 
 import java.net.InetAddress
 
-// TODO acho que seria interessante verificar, nos metodos spawn(), se há um teatro local rodando
-// Acho bom fazer isso em MobileActorRef tb, para atores instanciados sem o spawn. Ou nao devo permitir isso?
-
 object Mobile extends Logging {
   
   // Implicit conversion to make it easier to spawn co-located actors from factories (non-default
@@ -38,47 +35,97 @@ object Mobile extends Logging {
   }
 
   /**
-   * Spawn in some node chosen by the distribution algorithm
+   * Infrastructure API - Allows users to instantiate mobile actors in two ways:
+   *
+   *   Launch: Creates the actor in some node chosen by the infrastrucuture, using some algorithm defined
+   *   in the configuration file (e.g. round-robin). Usage:
+   *     val ref1  = Mobile.launch[MyActor]
+   *     val ref2  = Mobile.launch(new MyActor(state))
+   *     val refs1 = Mobile.launch[MyActor](3) // 3 co-located actors
+   *     val refs2 = Mobile.launch(new MyActor(state1), new MyActor(state2)) // co-located actors
+   *
+   *   Spawn: Expects a specifier to tell the infrastructure where to put the actor. This specifier can be
+   *   'here', 'at' or 'nextTo' (only for co-located actors). Usage:
+   *
+   *     val ref1  = Mobile.spawn[MyActor] here
+   *     val ref2  = Mobile.spawn(new MyActor(state)) at TheaterNode(hostname, port)
+   *     val refs1 = Mobile.spawn[MyActor](3) nextTo (ref2)
+   *     val refs2 = Mobile.spawn(new MyActor(state1), new MyActor(state2)) at (refs1(0).node)
    */
-  def spawn[T <: MobileActor : Manifest]: MobileActorRef = {
+
+  /**
+   * Launches the actor(s) in some node chosen by the distribution algorithm
+   */
+  def launch[T <: MobileActor : Manifest]: MobileActorRef = {
     val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
     spawn(Left(clazz))
   }
 
-  def spawn(factory: => MobileActor): MobileActorRef = {
+  def launch(factory: => MobileActor): MobileActorRef = {
     spawn(Right(() => factory))
   }
 
-  /**
-    * Spawn at the local node
-    */
-  def spawnHere[T <: MobileActor : Manifest]: MobileActorRef = {
+  // Co-located
+  def launch[T <: MobileActor : Manifest](number: Int) = {
     val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
-    spawn(Left(clazz), Some(LocalTheater.node))
+    spawnColocated(Left(clazz, number), None)
   }
 
-  def spawnHere(factory: => MobileActor): MobileActorRef = {
-    spawn(Right(() => factory), Some(LocalTheater.node))
-  }
-
-  /**
-    * Spawn at the specified node
-    */
-  def spawnAt[T <: MobileActor : Manifest](node: TheaterNode): MobileActorRef = {
-    val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
-    spawn(Left(clazz), Some(node))
-  }
-
-  def spawnAt(factory: => MobileActor, node: TheaterNode): MobileActorRef = {
-    spawn(Right(() => factory), Some(node))
+  // Co-located
+  def launch(factory1: () => MobileActor, factory2: () => MobileActor, factories: (() => MobileActor)*) = {
+    spawnColocated(Right(factory1 :: factory2 :: factories.toList), None)
   }
 
   /**
-   * Methods that actually spawns the actor
+   * Spawns the actor(s) in the specified node
    */
+
+  def spawn[T <: MobileActor : Manifest] = {
+    val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
+    new SpawnOps(Left(clazz))
+  }
+
+  def spawn(factory: => MobileActor) = {
+    new SpawnOps(Right(() => factory))
+  }
+  
+  // Co-located
+  def spawn[T <: MobileActor : Manifest](number: Int) = {
+    val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
+    new ColocateOps(Left(clazz, number))
+  }
+
+  // Co-located
+  def spawn(factory1: () => MobileActor, factory2: () => MobileActor, factories: (() => MobileActor)*) = {
+    new ColocateOps(Right(factory1 :: factory2 :: factories.toList))
+  }
+
+  /**
+   * Private helper methods and inner classes
+   */
+
+  // Specifiers for the 'spawn' method (for individual actors)
+  private[Mobile] class SpawnOps(constructor: Either[Class[_ <: MobileActor], () => MobileActor]) {
+    // def nextTo(ref: MobileActorRef): List[MobileActorRef] = {
+    //   spawnColocated(constructor, Some(ref.node), Some(ref))
+    // }
+
+    def at(node: TheaterNode): MobileActorRef = {
+      spawn(constructor, Some(node))
+    }
+
+    def here: MobileActorRef = {
+      spawn(constructor, Some(LocalTheater.node))
+    }
+  }
+
+  // Methods that actually spawns the actor
   private def spawn(
       constructor: Either[Class[_ <: MobileActor], () => MobileActor], 
       where: Option[TheaterNode] = None): MobileActorRef = {
+
+    if (!LocalTheater.isRunning) throw new RuntimeException("You must start a local theater before creating mobile " +
+							    "actors. See Mobile.startTheater(..) methods.")
 
     val node: TheaterNode = where.getOrElse(algorithm.chooseTheater)
   
@@ -95,20 +142,39 @@ object Mobile extends Logging {
     }
   }
 
+  // Specifiers for the 'spawn' method (for co-located actors)
+  private[Mobile] class ColocateOps(constructor: Either[Tuple2[Class[_ <: MobileActor], Int], Seq[() => MobileActor]]) {
+    def nextTo(ref: MobileActorRef): List[MobileActorRef] = {
+      spawnColocated(constructor, Some(ref.node), Some(ref))
+    }
+
+    def at(node: TheaterNode): List[MobileActorRef] = {
+      spawnColocated(constructor, Some(node))
+    }
+
+    def here: List[MobileActorRef] = {
+      spawnColocated(constructor, Some(LocalTheater.node))
+    }
+  }
+  
+  // Method that actually spawns co-located actors
   private def spawnColocated(
       constructor: Either[Tuple2[Class[_ <: MobileActor], Int], Seq[() => MobileActor]],
       where: Option[TheaterNode] = None,
       nextTo: Option[MobileActorRef] = None): List[MobileActorRef] = {
+
+    if (!LocalTheater.isRunning) throw new RuntimeException("You must start a local theater before creating mobile " +
+							    "actors. See Mobile.startTheater(..) methods.")
 
     val node: TheaterNode = where.getOrElse(algorithm.chooseTheater)
     
     if (node.isLocal) {
       val mobileRefs: Seq[MobileActorRef] = constructor match {
 	case Left((clazz, n)) =>
-	  for (i <- 1 to n) yield MobileActorRef(clazz) //spawn(Left(clazz), Some(LocalTheater.node))
+	  for (i <- 1 to n) yield MobileActorRef(clazz) 
 	
 	case Right(factories) =>
-	  for (factory <- factories) yield MobileActorRef(factory()) //spawn(Right(factory), Some(LocalTheater.node))
+	  for (factory <- factories) yield MobileActorRef(factory()) 
       }
       val groupId = 
 	if (nextTo.isDefined && nextTo.get.groupId.isDefined)
@@ -129,88 +195,8 @@ object Mobile extends Logging {
   }
 
   /**
-   * Co-located actors
+   * Methods for starting a local theater in this node
    */
-
-  /**
-   * Co-locate at some node chosen by algorithm
-   */
-  def colocate[T <: MobileActor : Manifest](number: Int) = {
-    val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
-//    colocateOptions(Left(clazz, number))
-    spawnColocated(Left(clazz, number), None)
-  }
-
-  def colocate(factories: (() => MobileActor)*) = // TODO factories pode ser vazio
-    //colocateOptions(Right(factories))
-    spawnColocated(Right(factories), None)
-
-  
-  /**
-   * Co-locate at local node
-   */
-  def colocateHere[T <: MobileActor : Manifest](number: Int) = {
-    val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
-    spawnColocated(Left(clazz, number), Some(LocalTheater.node))
-  }
-
-  def colocateHere(factories: (() => MobileActor)*) = 
-    spawnColocated(Right(factories), Some(LocalTheater.node))
-
-  /**
-   * Co-locate at the specified node
-   */
-  def colocateAt[T <: MobileActor : Manifest](number: Int, node: TheaterNode) = {
-    val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
-    spawnColocated(Left(clazz, number), Some(node))
-  }
-
-  def colocateAt(factories: (() => MobileActor)*)(node: TheaterNode) = 
-    spawnColocated(Right(factories), Some(node))
-  
-  /**
-   * Co-locate next to some specified actor ref
-   */
-  def colocateNextTo[T <: MobileActor : Manifest](number: Int, ref: MobileActorRef) = {
-    val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
-    spawnColocated(Left(clazz, number), Some(ref.node), Some(ref))
-  }
-
-  def colocateNextTo(factories: (() => MobileActor)*)(ref: MobileActorRef) = 
-    spawnColocated(Right(factories), Some(ref.node), Some(ref))
-
-
-  /*
-   * OUTRA VERSAO
-   */
-  
-  def colocateOps[T <: MobileActor : Manifest](number: Int) = {
-    val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
-    colocateOptions(Left(clazz, number))
-  }
-
-  def colocateOps(factories: (() => MobileActor)*) = 
-    colocateOptions(Right(factories))
-
-  private def colocateOptions(constructor: Either[Tuple2[Class[_ <: MobileActor], Int], Seq[() => MobileActor]]) = new {
-    def nextTo(ref: MobileActorRef): List[MobileActorRef] = {
-      spawnColocated(constructor, Some(ref.node))
-    }
-
-    def at(node: TheaterNode): List[MobileActorRef] = {
-      spawnColocated(constructor, Some(node))
-    }
-
-    def here: List[MobileActorRef] = {
-      spawnColocated(constructor, Some(LocalTheater.node))
-    }
-
-    def ! : List[MobileActorRef] = {
-      spawnColocated(constructor, None)
-    }
-  }
-
-
   def startTheater(nodeName: String): Boolean = LocalTheater.start(nodeName)
 
   def startTheater(node: TheaterNode): Boolean = startTheater(node.hostname, node.port)
