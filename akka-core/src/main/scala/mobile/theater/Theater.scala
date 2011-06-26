@@ -397,7 +397,8 @@ private[mobile] class Theater extends Logging {
       }
     }
   }
-
+  
+  // TODO o afterMigration() deveria ocorrer antes do ator começar a processar msgs
   // Instantiates an actor migrating from another theater, starts and registers it.
   private def receiveActor(bytes: Array[Byte], sender: TheaterNode): MobileActorRef = {
     log.debug("Theater at %s just received a migrating actor from %s.", 
@@ -419,18 +420,19 @@ private[mobile] class Theater extends Logging {
       ref = receiveActor(bytes, sender)
     } yield ref
 
+    // This will be used unless there is a 'nextTo' parameter and that actor has a groupId value set.
+    lazy val newGroupId = refs(0).groupId.getOrElse(GroupManagement.newGroupId)
     val groupId: String = 
       if (nextTo.isDefined) {
 	val ref = mobileActors.get(nextTo.get)
 	if (ref != null && ref.groupId.isDefined) ref.groupId.get
 	else if (ref != null) {
-	  val newId = GroupManagement.newGroupId
-	  ref.groupId = Some(newId)
-	  newId
+	  ref.groupId = Some(newGroupId)
+	  newGroupId
 	} else
-	  GroupManagement.newGroupId // actor not found in the theater, just generate a new group ID
+	  newGroupId // actor not found in the theater, just generate a new group ID
       } else 
-	GroupManagement.newGroupId
+	newGroupId
 
     refs.foreach(_.groupId = Some(groupId))
     refs

@@ -145,7 +145,7 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
     for (answer <- answers) answer.get should equal (groupId)
   }
 
-//  @Test
+  @Test
   def testGroupMigration {
     val refs: List[MobileActorRef] = Mobile.colocateOps[GroupIdAnswererActor](3).here
     val groupId = refs(0).groupId
@@ -169,7 +169,7 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
     for (answer <- answers) answer.get should equal (groupId)
   }
 
-  @Test
+//  @Test
   def testRemoteColocatedActorsNextToSingleRef {
     // Implicit conversion for co-located spawn with factories
     import Mobile._
@@ -201,7 +201,7 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
     for (answer <- answers) answer.get should equal (groupId)
   }
 
-  @Test
+//  @Test
   def testRemoteColocatedActorsNextToExistingGroup {
     // Implicit conversion for co-located spawn with factories
     import Mobile._
@@ -233,7 +233,7 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
     for (answer <- answers) answer.get should equal (groupId)
   }
 
-  @Test
+//  @Test
   def testLocalColocatedActorsNextToSingleRef {
     // Implicit conversion for co-located spawn with factories
     import Mobile._
@@ -256,7 +256,7 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
     for (ref <- allRefs) ref.groupId should equal (groupId)
   }
 
-  @Test
+//  @Test
   def testLocalColocatedActorsNextToExistingGroup {
     // Implicit conversion for co-located spawn with factories
     import Mobile._

@@ -47,7 +47,7 @@ object GroupManagement {
     val task = migrationTasks.get(groupId)
     (group, task) match {
       case (Some(group), None) =>
-	val task = new GroupMigrationTask(groupId, destination, nextTo)
+	val task = new GroupMigrationTask(groupId, group.size, destination, nextTo)
 	migrationTasks.put(groupId, task)
 	group.foreach(actor => actor ! PrepareToMigrate)
 	timer.schedule(task, migrationTimeout)
@@ -72,8 +72,10 @@ object GroupManagement {
   }
 }
 
-class GroupMigrationTask(groupId: String, destination: TheaterNode, nextTo: Option[String]) extends TimerTask {
+class GroupMigrationTask(groupId: String, groupSize: Int, destination: TheaterNode, nextTo: Option[String]) extends TimerTask {
   var done = false
+  private var actorsReady = 0
+
   var builder: ArrayBuilder[Array[Byte]] = null
   private val _lock = new Object
   
@@ -88,5 +90,10 @@ class GroupMigrationTask(groupId: String, destination: TheaterNode, nextTo: Opti
       builder = ArrayBuilder.make[Array[Byte]]
     }
     _lock.synchronized { if (!done) builder += bytes }
+    
+    actorsReady = actorsReady + 1
+    // If all actors are ready, execute the task immediately. Note that 'cancel()' will
+    // return true if the task has not yet run.
+    if (actorsReady == groupSize && cancel()) run()
   }
 }
