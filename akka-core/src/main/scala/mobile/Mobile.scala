@@ -6,7 +6,7 @@ import se.scalablesolutions.akka.mobile.actor.MobileActor
 import se.scalablesolutions.akka.mobile.actor.MobileActorRef
 import se.scalablesolutions.akka.mobile.theater.LocalTheater
 import se.scalablesolutions.akka.mobile.theater.TheaterNode
-import se.scalablesolutions.akka.mobile.theater.TheaterHelper
+import se.scalablesolutions.akka.mobile.theater.RemoteSpawnHelper
 import se.scalablesolutions.akka.mobile.theater.GroupManagement
 import se.scalablesolutions.akka.mobile.util.ClusterConfiguration
 
@@ -138,7 +138,7 @@ object Mobile extends Logging {
       mobileRef.start
       mobileRef
     } else {
-      TheaterHelper.spawnActorRemotely(constructor, node)
+      RemoteSpawnHelper.spawnActor(constructor, node)
     }
   }
 
@@ -191,7 +191,7 @@ object Mobile extends Logging {
 	ref.start
       }
       mobileRefs.toList
-    } else TheaterHelper.spawnColocatedActorsRemotely(constructor, node, nextTo) 
+    } else RemoteSpawnHelper.spawnColocatedActors(constructor, node, nextTo) 
   }
 
   /**

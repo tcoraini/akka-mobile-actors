@@ -310,7 +310,7 @@ private[mobile] class Theater extends Logging {
 
     // Notification that an actor was successfully instantiated in the remote theater
     case StartMobileActorReply(requestId, uuid) =>
-      TheaterHelper.completeActorSpawn(requestId, uuid, message.sender)
+      RemoteSpawnHelper.completeActorSpawn(requestId, uuid, message.sender)
     
     // Request to start 'number' co-located actors of the specified class in this theater
     case StartColocatedActorsRequest(requestId, className, number, nextTo) => {
@@ -320,7 +320,7 @@ private[mobile] class Theater extends Logging {
     
     // Notification that a group of co-located actors was successfully instantiated in the remote theater
     case StartColocatedActorsReply(requestId, uuids) =>
-      TheaterHelper.completeColocatedActorsSpawn(requestId, uuids, message.sender)
+      RemoteSpawnHelper.completeColocatedActorsSpawn(requestId, uuids, message.sender)
     
     // Notification that an actor migrated and this theater has an outdated reference
     case ActorNewLocationNotification(uuid, newHostname, newPort) =>

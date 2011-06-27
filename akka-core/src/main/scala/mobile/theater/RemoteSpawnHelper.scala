@@ -13,11 +13,11 @@ import se.scalablesolutions.akka.util.Logging
 
 import scala.collection.mutable.HashMap
 
-object TheaterHelper extends Logging {
+object RemoteSpawnHelper extends Logging {
 
   private var requestId: Long = 1
 
-  private[mobile] def spawnActorRemotely(
+  private[mobile] def spawnActor(
       constructor: Either[Class[_ <: MobileActor], () => MobileActor], 
       node: TheaterNode): MobileActorRef = {
 
@@ -44,7 +44,7 @@ object TheaterHelper extends Logging {
     ReferenceManagement.attachRefToActor(requestId.toString, uuid)
   }
 
-  private[mobile] def spawnColocatedActorsRemotely(
+  private[mobile] def spawnColocatedActors(
       constructor: Either[Tuple2[Class[_ <: MobileActor], Int], Seq[() => MobileActor]], 
       node: TheaterNode,
       nextTo: Option[MobileActorRef] = None): List[MobileActorRef] = {
