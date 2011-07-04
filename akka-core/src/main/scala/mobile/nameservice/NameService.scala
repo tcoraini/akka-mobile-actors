@@ -12,21 +12,21 @@ object NameService extends Logging {
   
   private var service: NameService = _
 
-  def init(runServer: Boolean) {
+  private[mobile] def init(runServer: Boolean) {
     this.service = chooseNameService
     service.init(runServer)
     isRunning = true
   }
 
-  def stop() {
+  private[mobile] def stop() {
     service.stop()
   }
 
-  def put(actor: MobileActorRef, node: TheaterNode): Unit = {
+  private[mobile] def put(actor: MobileActorRef, node: TheaterNode): Unit = {
     put(actor.uuid, node)
   }
 
-  def put(uuid: String, node: TheaterNode): Unit = ifRunning {
+  private[mobile] def put(uuid: String, node: TheaterNode): Unit = ifRunning {
     service.put(uuid, node)
   }
     
@@ -38,11 +38,11 @@ object NameService extends Logging {
     service.get(uuid)
   }
 
-  def remove(actor: MobileActorRef): Unit = {
+  private[mobile] def remove(actor: MobileActorRef): Unit = {
     remove(actor.uuid)
   }
   
-  def remove(uuid: String): Unit = ifRunning {
+  private[mobile] def remove(uuid: String): Unit = ifRunning {
     service.remove(uuid)
   }
 

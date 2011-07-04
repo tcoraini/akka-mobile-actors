@@ -19,7 +19,7 @@ object GroupManagement {
 
   private val timer = new Timer("Group Management Timer")
 
-  /* TODO private */ val groups = new HashMap[String, List[MobileActorRef]] with SynchronizedMap[String, List[MobileActorRef]]
+  private val groups = new HashMap[String, List[MobileActorRef]] with SynchronizedMap[String, List[MobileActorRef]]
   private val migrationTasks = new HashMap[String, GroupMigrationTask] with SynchronizedMap[String, GroupMigrationTask]
   
   def newGroupId = UUID.newUuid.toString

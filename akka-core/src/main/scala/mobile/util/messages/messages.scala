@@ -10,8 +10,16 @@ sealed abstract class MigrationMessage
 // Message that request an actor to migrate to some node
 case class MoveTo(hostname: String, port: Int) extends MigrationMessage
 
-// Message that request all actors from a group to migrate together to some node
-case class MoveGroupTo(hostname: String, port: Int, nextTo: Option[String] = None) extends MigrationMessage
+/**
+ * Message that request all actors from a group to migrate together to some node
+ * Note that the constructor is private to the infrastructure, to protect the 'nextTo' use of the
+ * migration.
+ * To allow access for users to this message, we define an 'apply' method in the companion object.
+ */
+case class MoveGroupTo private[mobile] (hostname: String, port: Int, nextTo: Option[String]) extends MigrationMessage
+object MoveGroupTo {
+  def apply(hostname: String, port: Int) = new MoveGroupTo(hostname, port, None)
+}
 
 // Internal message for the group migration process
 private[mobile] case object PrepareToMigrate extends MigrationMessage
