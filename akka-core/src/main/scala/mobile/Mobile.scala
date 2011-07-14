@@ -167,7 +167,7 @@ object Mobile extends Logging {
 							    "actors. See Mobile.startTheater(..) methods.")
 
     val node: TheaterNode = where.getOrElse(algorithm.chooseTheater)
-    
+    log.debug("Spawing colocated actors at %s", node.format)
     if (node.isLocal) {
       val mobileRefs: Seq[MobileActorRef] = constructor match {
 	case Left((clazz, n)) =>
@@ -185,7 +185,7 @@ object Mobile extends Logging {
 	  newId
 	} else 
 	  GroupManagement.newGroupId
-
+      log.debug("Setting groupId for spawned actors: %s", groupId)
       mobileRefs.foreach { ref => 
 	ref.groupId = Some(groupId)
 	ref.start

@@ -14,6 +14,8 @@ import se.scalablesolutions.akka.mobile.theater.GroupManagement
 import se.scalablesolutions.akka.mobile.util.messages._
 
 object LocallyColocatedActorsTests {
+  var localActor: MobileActorRef = _
+
   var nextToRefs: List[MobileActorRef] = _
   var atRefs: List[MobileActorRef] = _
   var hereRefs: List[MobileActorRef] = _
@@ -24,11 +26,17 @@ object LocallyColocatedActorsTests {
   @BeforeClass def initialize() {
     Mobile.startTheater(thisNode.hostname, thisNode.port) // Local Theater
 
+    localActor = Mobile.spawn[GroupIdAnswererActor] here
+
     atRefs = Mobile.spawn[GroupIdAnswererActor](3) at LocalTheater.node
     hereRefs = Mobile.spawn[GroupIdAnswererActor](4).here
-    nextToRefs = Mobile.spawn[GroupIdAnswererActor](2) nextTo (hereRefs(0))
+    nextToRefs = Mobile.spawn[GroupIdAnswererActor](2) nextTo (localActor)
   }
 
+  def nextToGroupId = nextToRefs(0).groupId.get
+  def atGroupId = atRefs(0).groupId.get
+  def hereGroupId = hereRefs(0).groupId.get
+  
   @AfterClass def close() {
     LocalTheater.shutdown()
   }
@@ -77,18 +85,17 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
   
 //  @Test
   def isGroupManagementProperlySet {
-    import GroupManagement.{groups => grps}
-    grps should have size (3)
+    GroupManagement.numberOfGroups should be === (3)
     
-    val listNextTo = grps.get(nextToRefs(0).groupId.get)
-    val listAt = grps.get(atRefs(0).groupId.get)
-    val listHere = grps.get(hereRefs(0).groupId.get)
+    val listNextTo = GroupManagement.group(nextToGroupId) 
+    val listAt = GroupManagement.group(atGroupId) 
+    val listHere = GroupManagement.group(hereGroupId) 
     
     listNextTo should not be (None)
     listAt should not be (None)
     listHere should not be (None)
 
-    listNextTo.get should have size (2)
+    listNextTo.get should have size (3)
     listAt.get should have size (3)
     listHere.get should have size (4)
 
@@ -145,7 +152,7 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
     for (answer <- answers) answer.get should equal (groupId)
   }
 
-  @Test
+//  @Test
   def testGroupMigration {
     val refs: List[MobileActorRef] = Mobile.spawn[GroupIdAnswererActor](3).here
     val groupId = refs(0).groupId
@@ -281,11 +288,11 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
     for (ref <- allRefs) ref.groupId should equal (groupId)
   }
   
-//  @Test
+  @Test
   def testPartialGroupMigration {
     val refs: List[MobileActorRef] = Mobile.spawn[SleepyActor](3).here
     
-    refs(0) ! Sleep(8000)
+    refs(0) ! Sleep(10000)
     refs(1) ! Sleep(3000)
     
     refs(2) ! MoveGroupTo(thatNode.hostname, thatNode.port)
@@ -296,13 +303,17 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
     refs(2).node should not be ('local)
     
     refs(0).node should be ('local)
+
+    while(refs(0).isLocal) { Thread.sleep(100) }
+    refs(0).node should not be ('local)
+    
   }
 
 //  @Test
   def isActorRemovedFromGroupAfterMigration {
     val actorToMigrate = hereRefs(2)
     val groupId = hereRefs(0).groupId.get
-    def group = GroupManagement.groups.get(groupId)
+    def group = GroupManagement.group(groupId)
     
     // Before migration
     group should not be (None)

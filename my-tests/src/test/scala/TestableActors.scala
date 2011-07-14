@@ -40,7 +40,7 @@ class SleepyActor extends MobileActor with Printer {
     case Sleep(time) =>
       show("Sleepy actor going to sleep for " + time + " milliseconds...")
       Thread.sleep(time)
-      show("Sleepy actor woke up!")
+      show("Sleepy actor woke up after " + time + " miliseconds!")
 
     case msg =>
       show("Sleepy actor received an unknown message: " + msg)

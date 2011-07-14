@@ -41,6 +41,7 @@ object GroupManagement {
   }
 
   def group(groupId: String): Option[List[MobileActorRef]] = groups.get(groupId)
+  def numberOfGroups = groups.size
   
   private[mobile] def startGroupMigration(groupId: String, destination: TheaterNode, nextTo: Option[String]): Unit = this.synchronized {
     val group = groups.get(groupId)

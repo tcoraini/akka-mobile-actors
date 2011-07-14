@@ -248,7 +248,7 @@ private[mobile] class Theater extends Logging {
         }
 
       case None =>
-        log.debug("The actor with UUID [%s] not found in the cluster.", uuid)
+        log.debug("The actor with UUID [%s] was not found in the cluster.", uuid)
         ()
     }
   }

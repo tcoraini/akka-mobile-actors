@@ -102,7 +102,7 @@ trait RemoteMobileActor extends InnerReference {
     case Some(TheaterNode(remoteActorRef.hostname, remoteActorRef.port)) => 
       log.debug("Lost connection to remote node %s. Actor with UUID [%s] was there and did not migrate.", 
 		TheaterNode(remoteActorRef.hostname, remoteActorRef.port).format, uuid)
-    () // TODO: Actor did not migrate. What to do?
+      () // TODO: Actor did not migrate. What to do?
 
     case Some(newAddress) => {
       log.debug("Lost connection to remote node %s. Actor with UUID [%s] was there and migrated to %s. Updating the reference.", 
