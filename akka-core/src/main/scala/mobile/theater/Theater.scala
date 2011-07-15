@@ -400,13 +400,16 @@ private[mobile] class Theater extends Logging {
   
   // TODO o afterMigration() deveria ocorrer antes do ator começar a processar msgs
   // Instantiates an actor migrating from another theater, starts and registers it.
-  private def receiveActor(bytes: Array[Byte], sender: TheaterNode): MobileActorRef = {
+  private def receiveActor(bytes: Array[Byte], sender: TheaterNode, fromGroupMigration: Boolean = false): MobileActorRef = {
     log.debug("Theater at %s just received a migrating actor from %s.", 
               node.format, sender.format)
 
     val mobileRef = MobileSerialization.mobileFromBinary(bytes)(DefaultActorFormat)
     mobileRef.afterMigration()
-
+    if (!fromGroupMigration && mobileRef.groupId.isDefined) {
+      GroupManagement.insert(mobileRef, mobileRef.groupId.get)
+    }
+    
     if (mobTrack) {
       sendTo(mobTrackNode.get, MobTrackMigrate(mobileRef.uuid, sender, this.node))
     }
@@ -417,7 +420,7 @@ private[mobile] class Theater extends Logging {
   private def receiveGroup(actorsBytes: Array[Array[Byte]], sender: TheaterNode, nextTo: Option[String]): Array[MobileActorRef] = {
     val refs = for { 
       bytes <- actorsBytes
-      ref = receiveActor(bytes, sender)
+      ref = receiveActor(bytes, sender, true)
     } yield ref
 
     // This will be used unless there is a 'nextTo' parameter and that actor has a groupId value set.

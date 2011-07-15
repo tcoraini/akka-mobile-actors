@@ -2,8 +2,9 @@ package se.scalablesolutions.akka.mobile.theater
 
 import se.scalablesolutions.akka.mobile.actor.MobileActorRef
 import se.scalablesolutions.akka.mobile.util.messages._
-import se.scalablesolutions.akka.config.Config
 import se.scalablesolutions.akka.mobile.util.UUID
+import se.scalablesolutions.akka.mobile.nameservice.NameService
+import se.scalablesolutions.akka.config.Config
 
 import collection.mutable.SynchronizedMap
 import collection.mutable.HashMap
@@ -26,6 +27,8 @@ object GroupManagement {
 
   private[mobile] def insert(ref: MobileActorRef, groupId: String): Unit = this.synchronized {
     val list = groups.getOrElseUpdate(groupId, Nil)
+    // Registering group at the name service
+    if (list == Nil) NameService.put(groupId, LocalTheater.node)
     groups.put(groupId, ref :: list)
   }
   
@@ -36,6 +39,8 @@ object GroupManagement {
 	groups.put(groupId, newGroup)
       } else {
 	groups.remove(groupId)
+	// If every actor has left the group, the group ceases to exist and is removed from the name service
+	NameService.remove(groupId)
       }
     }
   }
@@ -59,42 +64,60 @@ object GroupManagement {
 
   private[mobile] def readyToMigrate(actor: MobileActorRef): Unit = {
     migrationTasks.get(actor.groupId.get).foreach {
-      _.addActorBytes(actor.startMigration())
+      //_.addActorBytes(actor.startMigration())
+      _.actorReady(actor)
     }
   }
   
   private[mobile] def migrationPerformed(groupId: String): Unit = {
-    val group = groups.get(groupId)
+//    val group = groups.get(groupId)
     groups.remove(groupId)
-    group.foreach {
+/*    group.foreach {
       // If the actor didn't respond, it gets behind and is removed from group
       _.foreach(actor => actor.groupId = None)
-    }
-  }
-}
-
-class GroupMigrationTask(groupId: String, groupSize: Int, destination: TheaterNode, nextTo: Option[String]) extends TimerTask {
-  var done = false
-  private var actorsReady = 0
-
-  var builder: ArrayBuilder[Array[Byte]] = null
-  private val _lock = new Object
-  
-  override def run(): Unit = {
-    _lock.synchronized { done = true }
-    LocalTheater.migrateGroup(builder.result, destination, nextTo)
-    GroupManagement.migrationPerformed(groupId)
+    }*/
   }
 
-  def addActorBytes(bytes: => Array[Byte]): Unit = {
-    if (builder == null) {
-      builder = ArrayBuilder.make[Array[Byte]]
-    }
-    _lock.synchronized { if (!done) builder += bytes }
+  class GroupMigrationTask(groupId: String, groupSize: Int, destination: TheaterNode, nextTo: Option[String]) extends TimerTask {
+    private var _done = false
+    private var _migrationPerformed = false
+
+    private var actorsReady = 0
+
+    lazy val builder = ArrayBuilder.make[Array[Byte]]
+    private val _lock = new Object
+
+    def done = _done
+    def migrationPerformed = _migrationPerformed
     
-    actorsReady = actorsReady + 1
-    // If all actors are ready, execute the task immediately. Note that 'cancel()' will
-    // return true if the task has not yet run.
-    if (actorsReady == groupSize && cancel()) run()
+    override def run(): Unit = {
+      _lock.synchronized { _migrationPerformed = true }
+      LocalTheater.migrateGroup(builder.result, destination, nextTo)
+      GroupManagement.migrationPerformed(groupId)
+    }
+
+    private[GroupManagement] def actorReady(actor: MobileActorRef) {
+      var isLate = false
+      _lock.synchronized {
+	actorsReady = actorsReady + 1
+	if (!_migrationPerformed) builder += (actor.startMigration) // addActorBytes(actor.startMigration)
+	else isLate = true
+      }
+      
+      if (!isLate) {
+	// If all actors are ready, execute the task immediately. Note that 'cancel()' will
+	// return true if the task has not yet run.
+	if (actorsReady == groupSize && cancel()) {
+	  run()
+	  migrationTasks.remove(groupId)
+	}
+      } else {
+	NameService.get(groupId) match {
+	  case Some(node) => LocalTheater.migrate(actor, node)
+	  case None => () // TODO cancel prepare to migrate
+	}
+	if (actorsReady == groupSize) migrationTasks.remove(groupId)
+      }
+    }
   }
 }

@@ -291,7 +291,7 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
   @Test
   def testPartialGroupMigration {
     val refs: List[MobileActorRef] = Mobile.spawn[SleepyActor](3).here
-    
+
     refs(0) ! Sleep(10000)
     refs(1) ! Sleep(3000)
     
@@ -306,7 +306,6 @@ class LocallyColocatedActorsTests extends JUnitSuite with ShouldMatchersForJUnit
 
     while(refs(0).isLocal) { Thread.sleep(100) }
     refs(0).node should not be ('local)
-    
   }
 
 //  @Test
