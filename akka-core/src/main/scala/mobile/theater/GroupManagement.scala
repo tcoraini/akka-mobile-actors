@@ -21,7 +21,7 @@ object GroupManagement {
   private val timer = new Timer("Group Management Timer")
 
   private val groups = new HashMap[String, List[MobileActorRef]] with SynchronizedMap[String, List[MobileActorRef]]
-  private val migrationTasks = new HashMap[String, GroupMigrationTask] with SynchronizedMap[String, GroupMigrationTask]
+  /*private*/ val migrationTasks = new HashMap[String, GroupMigrationTask] with SynchronizedMap[String, GroupMigrationTask]
   
   def newGroupId = UUID.newUuid.toString
 
@@ -64,43 +64,43 @@ object GroupManagement {
 
   private[mobile] def readyToMigrate(actor: MobileActorRef): Unit = {
     migrationTasks.get(actor.groupId.get).foreach {
-      //_.addActorBytes(actor.startMigration())
       _.actorReady(actor)
     }
   }
   
-  private[mobile] def migrationPerformed(groupId: String): Unit = {
-//    val group = groups.get(groupId)
-    groups.remove(groupId)
-/*    group.foreach {
-      // If the actor didn't respond, it gets behind and is removed from group
-      _.foreach(actor => actor.groupId = None)
-    }*/
+  private[mobile] def completeMigration(groupId: String) {
+    migrationTasks.get(groupId).foreach {
+      _.migrationCompleted()
+    }
   }
 
   class GroupMigrationTask(groupId: String, groupSize: Int, destination: TheaterNode, nextTo: Option[String]) extends TimerTask {
-    private var _done = false
-    private var _migrationPerformed = false
+    object GroupMigrationStatus extends Enumeration {
+      val Waiting, Migrating, Migrated = Value
+    }
+    import GroupMigrationStatus._
+    private var status: GroupMigrationStatus.Value = Waiting
 
     private var actorsReady = 0
 
     lazy val builder = ArrayBuilder.make[Array[Byte]]
     private val _lock = new Object
-
-    def done = _done
-    def migrationPerformed = _migrationPerformed
     
     override def run(): Unit = {
-      _lock.synchronized { _migrationPerformed = true }
+      _lock.synchronized { status = Migrating }
       LocalTheater.migrateGroup(builder.result, destination, nextTo)
-      GroupManagement.migrationPerformed(groupId)
+      groups.remove(groupId)
+    }
+
+    private[GroupManagement] def migrationCompleted() {
+      status = Migrated
     }
 
     private[GroupManagement] def actorReady(actor: MobileActorRef) {
       var isLate = false
       _lock.synchronized {
 	actorsReady = actorsReady + 1
-	if (!_migrationPerformed) builder += (actor.startMigration) // addActorBytes(actor.startMigration)
+	if (status == Waiting) builder += (actor.startMigration)
 	else isLate = true
       }
       
@@ -112,12 +112,22 @@ object GroupManagement {
 	  migrationTasks.remove(groupId)
 	}
       } else {
-	NameService.get(groupId) match {
-	  case Some(node) => LocalTheater.migrate(actor, node)
-	  case None => () // TODO cancel prepare to migrate
+	currentGroupNode match {
+	  case Some(node) if node != LocalTheater.node => LocalTheater.migrate(actor, node)
+	  case _ => ()
 	}
 	if (actorsReady == groupSize) migrationTasks.remove(groupId)
       }
+    }
+    
+    // Returns the current node of the groups identified by 'groupId'
+    private def currentGroupNode: Option[TheaterNode] = {
+      // If the migration is still going on, return the original destination (the parameter of
+      // MoveGroupTo)
+      if (status == Migrating) 
+	Some(destination)
+      else // If the migration is done, return the current theater based on name service
+	NameService.get(groupId)
     }
   }
 }

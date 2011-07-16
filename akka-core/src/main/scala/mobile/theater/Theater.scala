@@ -388,11 +388,17 @@ private[mobile] class Theater extends Logging {
 
   // Complete the actor migration in the origin theater
   private def completeMigration(uuids: Array[String], destination: TheaterNode): Unit = {
+    var notifyGroupManagement = true
+
     uuids.foreach { uuid =>
       log.debug("Completing the migration process of actor with UUID [%s]", uuid)
       profiler.foreach(_.remove(uuid))
       val actor = mobileActors.get(uuid)
       if (actor != null) {
+	if (notifyGroupManagement && actor.groupId.isDefined) {
+	  GroupManagement.completeMigration(actor.groupId.get)
+	  notifyGroupManagement = false
+	}
 	actor.completeMigration(destination)
       }
     }

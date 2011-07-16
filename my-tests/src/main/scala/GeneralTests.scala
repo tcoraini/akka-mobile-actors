@@ -330,6 +330,17 @@ object GeneralTests {
     ref
   }
   
+  // Depende de 'migrationTasks' e 'status' sem private
+  // def testGroupMigrationStatus() = {
+  //   Mobile.startTheater("node_1")
+  //   val refs = Mobile.spawn[SleepyActor](3) here
+  //   val groupId = refs(0).groupId.get
+  //   refs(1) ! Sleep(60000) // Dormindo por 5 minutos
+  //   refs(0) ! MoveGroupTo("localhost", 2312)
+    
+  //   (groupId, () => GroupManagement.migrationTasks.get(groupId).get.status)
+  // }
+  
   def testGUI() = {
     new Thread {
       override def run() {
