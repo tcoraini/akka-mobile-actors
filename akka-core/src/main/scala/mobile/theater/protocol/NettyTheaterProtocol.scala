@@ -8,12 +8,15 @@ import se.scalablesolutions.akka.mobile.theater.protocol.protobuf.ProtobufTheate
 import se.scalablesolutions.akka.util.Logging
 import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.ActorRef
+import se.scalablesolutions.akka.config.Config
 
 import java.net.InetSocketAddress
 import java.util.concurrent.Executors
 import org.jboss.netty.bootstrap.ServerBootstrap
 import org.jboss.netty.bootstrap.ClientBootstrap
 import org.jboss.netty.channel._
+import org.jboss.netty.channel.group.ChannelGroup
+import org.jboss.netty.channel.group.DefaultChannelGroup
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory
 import org.jboss.netty.handler.codec.frame.{LengthFieldBasedFrameDecoder, LengthFieldPrepender}
@@ -25,16 +28,21 @@ import scala.collection.mutable.HashMap
 
 final case class SendTo(node: TheaterNode, message: TheaterMessageProtocol)
 
+object NettyTheaterProtocol {
+  private val DEFAULT_PORT = 1985
+}
+
 class NettyTheaterProtocol extends ProtobufProtocol {
   
-  private val port = 2005 // TODO Parametrizar
+  private val port = Config.config.getInt("cluster.theater-protocol.port", NettyTheaterProtocol.DEFAULT_PORT)
   private var hostname: String = _
 
   private val factory = new NioServerSocketChannelFactory(
     Executors.newCachedThreadPool,
     Executors.newCachedThreadPool)
   private val bootstrap = new ServerBootstrap(factory)
-
+  
+  private[protocol] val openChannels: ChannelGroup = new DefaultChannelGroup("theater-protocol")
   private val clientChannels = new HashMap[TheaterNode, Channel]
 
   private[protocol] var upstreamActor: ActorRef = _
@@ -53,16 +61,17 @@ class NettyTheaterProtocol extends ProtobufProtocol {
     bootstrap.setOption("child.tcpNoDelay", true)
     bootstrap.setOption("child.keepAlive", true)
     bootstrap.setOption("child.reuseAddress", true)
-    bootstrap.setOption("child.connectTimeoutMillis", 1000) // TODO Parametrizar
-    bootstrap.bind(new InetSocketAddress(hostname, port))
+    bootstrap.setOption("child.connectTimeoutMillis", 1000) // TODO Parametrize
+    openChannels.add(bootstrap.bind(new InetSocketAddress(hostname, port)))
   }
   
   def sendTo(node: TheaterNode, message: TheaterMessageProtocol) {
     downstreamActor ! SendTo(node, message)
   }
   
-  def stop(): Unit = {
-    clientChannels.values.foreach(_.close())
+  override def stop(): Unit = {
+    openChannels.disconnect
+    openChannels.close.awaitUninterruptibly
     bootstrap.releaseExternalResources()
     upstreamActor.stop()
     downstreamActor.stop()
@@ -70,11 +79,13 @@ class NettyTheaterProtocol extends ProtobufProtocol {
   }
 
   private def startActors() {
+    // Receives messages from remote theaters
     upstreamActor = Actor.actor {
       case message: TheaterMessageProtocol => processMessage(message)
       case any => () // discard
     }
-
+    
+    // Sends messages to remote theaters
     downstreamActor = Actor.actor {
       case SendTo(node, message) => channelFor(node).write(message)
       case any => () // discard
@@ -87,6 +98,7 @@ class NettyTheaterProtocol extends ProtobufProtocol {
     case None => 
       val channel = connectToTheater(node)
       clientChannels += node -> channel
+      openChannels.add(channel)
       channel
   }
    
@@ -108,29 +120,19 @@ class NettyTheaterProtocolPipelineFactory(val protocol: NettyTheaterProtocol, up
   def getPipeline: ChannelPipeline = {
     def join(ch: ChannelHandler*) = Array[ChannelHandler](ch:_*)
 
-    // lazy val engine = {
-    //   val e = RemoteServerSslContext.server.createSSLEngine()
-    //   e.setEnabledCipherSuites(e.getSupportedCipherSuites) //TODO is this sensible?
-    //   e.setUseClientMode(false)
-    //   e
-    // }
-
-//    val ssl         = if(RemoteServer.SECURE) join(new SslHandler(engine)) else join()
     val lenDec      = new LengthFieldBasedFrameDecoder(1048576, 0, 4, 0, 4)
     val lenPrep     = new LengthFieldPrepender(4)
     val protobufDec = new ProtobufDecoder(TheaterMessageProtocol.getDefaultInstance)
     val protobufEnc = new ProtobufEncoder
-    // val (enc,dec)   = RemoteServer.COMPRESSION_SCHEME match {
-    //   case "zlib"  => (join(new ZlibEncoder(RemoteServer.ZLIB_COMPRESSION_LEVEL)), join(new ZlibDecoder))
-    //   case       _ => (join(), join())
-    // }
 
-//    val stages = ssl ++ dec ++ join(lenDec, protobufDec) ++ enc ++ join(lenPrep, protobufEnc, remoteServer)
     val stages = 
       if (upstream) {
 	val protocolHandler = new NettyTheaterProtocolHandler(protocol)
 	join(lenDec, protobufDec, protocolHandler)
-      } else join(lenPrep, protobufEnc)
+      } else {
+	val simpleHandler = new SimpleChannelUpstreamHandler
+	join(lenPrep, protobufEnc, simpleHandler)
+      }
 
     new StaticChannelPipeline(stages: _*)
   }
@@ -138,13 +140,12 @@ class NettyTheaterProtocolPipelineFactory(val protocol: NettyTheaterProtocol, up
 
 @ChannelHandler.Sharable
 class NettyTheaterProtocolHandler(val protocol: NettyTheaterProtocol) extends SimpleChannelUpstreamHandler with Logging {
+  override def channelOpen(ctx: ChannelHandlerContext, event: ChannelStateEvent) = protocol.openChannels.add(ctx.getChannel)
+
   override def messageReceived(ctx: ChannelHandlerContext, event: MessageEvent) = {
     val message = event.getMessage
-    if (message eq null) throw new /*IllegalActorState*/ RuntimeException("Message received by theater through Netty protocol is null: " + event)
     message match {
-      case m: TheaterMessageProtocol => //protocol.processMessage(m)
-	protocol.upstreamActor ! m
-      
+      case m: TheaterMessageProtocol => protocol.upstreamActor ! m
       case _ => () // discard
     }
   }

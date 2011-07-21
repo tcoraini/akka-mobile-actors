@@ -57,10 +57,10 @@ object NameService extends Logging {
   private def chooseNameService: NameService = {
     lazy val defaultNameService = new DistributedNameService
     try {
-      ClusterConfiguration.instanceOf[NameService, DistributedNameService]("cluster.name-service.name-service-class")
+      ClusterConfiguration.instanceOf[NameService, DistributedNameService]("cluster.name-service.class")
     } catch {
       case cce: ClassCastException =>
-	val classname = Config.config.getString("cluster.name-service.name-service-class", "")
+	val classname = Config.config.getString("cluster.name-service.class", "")
         log.warning("The class [%s] does not extend the NameService trait. Using the default name service [%s] instead.", 
                     classname, defaultNameService.getClass.getName)
 	defaultNameService

@@ -44,7 +44,7 @@ class AgentProtobufProtocol extends ProtobufProtocol {
     }
   }
   
-  def stop(): Unit = {
+  override def stop(): Unit = {
     theater.unregisterAgent(agentName)
     localAgent.stop()
     agents.clear

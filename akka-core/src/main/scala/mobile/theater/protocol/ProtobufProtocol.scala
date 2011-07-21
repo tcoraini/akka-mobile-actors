@@ -26,12 +26,19 @@ abstract class ProtobufProtocol extends TheaterProtocol {
   def sendTo(node: TheaterNode, message: TheaterMessage): Unit = {
     // Constructs a protobuf message (of the types defined in TheaterProtocol.proto) based
     // on the TheaterMessage received
-    val protobufMessage = message match {
+    val protobufMessage: Message = message match {
 
       case MovingActor(bytes) =>
         MovingActorProtocol.newBuilder
             .setActorBytes(ByteString.copyFrom(bytes))
             .build
+      
+      case MovingGroup(actorsBytes, nextTo) =>
+	
+	val builder = MovingGroupProtocol.newBuilder
+	    .addAllActorsBytes(actorsBytes.map(bytes => ByteString.copyFrom(bytes)).toList)
+	nextTo.foreach(uuidStr => builder.setNextTo(uuidStr))
+	builder.build
 
       case MobileActorsRegistered(uuids: Array[String]) =>
         MobileActorsRegisteredProtocol.newBuilder
@@ -48,6 +55,20 @@ abstract class ProtobufProtocol extends TheaterProtocol {
         StartActorReplyProtocol.newBuilder
             .setRequestId(requestId)
             .setActorUuid(uuid)
+            .build
+		       
+      case StartColocatedActorsRequest(requestId, className, number, nextTo) =>
+	val builder = StartColocatedActorsRequestProtocol.newBuilder
+	    .setRequestId(requestId)
+	    .setClassName(className)
+            .setNumber(number)
+	nextTo.foreach(uuidStr => builder.setNextTo(uuidStr))
+        builder.build
+
+      case StartColocatedActorsReply(requestId, uuids) =>
+        StartColocatedActorsReplyProtocol.newBuilder
+	    .setRequestId(requestId)
+	    .addAllUuids(uuids.toList)
             .build
 
       case ActorNewLocationNotification(uuid, hostname, port) =>
@@ -82,6 +103,12 @@ abstract class ProtobufProtocol extends TheaterProtocol {
           .setMovingActor(msg)
           .build
 
+      case msg: MovingGroupProtocol =>
+	builder
+	  .setMessageType(MessageType.MOVING_GROUP)
+	  .setMovingGroup(msg)
+	  .build
+
       case msg: MobileActorsRegisteredProtocol =>
         builder
           .setMessageType(MessageType.MOBILE_ACTORS_REGISTERED)
@@ -99,6 +126,18 @@ abstract class ProtobufProtocol extends TheaterProtocol {
           .setMessageType(MessageType.START_ACTOR_REPLY)
           .setStartActorReply(msg)
           .build
+
+      case msg: StartColocatedActorsRequestProtocol =>
+	builder
+	  .setMessageType(MessageType.START_COLOCATED_ACTORS_REQUEST)
+	  .setStartColocatedActorsRequest(msg)
+	  .build
+
+      case msg: StartColocatedActorsReplyProtocol =>
+	builder
+	  .setMessageType(MessageType.START_COLOCATED_ACTORS_REPLY)
+	  .setStartColocatedActorsReply(msg)
+	  .build
 
       case msg: ActorNewLocationNotificationProtocol =>
         builder
@@ -121,6 +160,24 @@ abstract class ProtobufProtocol extends TheaterProtocol {
         val bytes = message.getMovingActor.getActorBytes.toByteArray
         MovingActor(bytes)
 
+      case MOVING_GROUP =>
+	val movingGroup = message.getMovingGroup
+	val listOfByteString = movingGroup.getActorsBytesList
+	var arrayOfByteString = new Array[ByteString](listOfByteString.size)
+	listOfByteString.toArray(arrayOfByteString)
+	
+	val nextTo: Option[String] = 
+	  if (movingGroup.hasNextTo) Some(movingGroup.getNextTo)
+	  else None
+      
+	MovingGroup(arrayOfByteString.map(bs => bs.toByteArray), nextTo)
+
+      case MOBILE_ACTORS_REGISTERED =>
+	val uuids = message.getMobileActorsRegistered.getUuidsList
+	var uuidsArray = new Array[String](uuids.size)
+	uuids.toArray(uuidsArray)
+        MobileActorsRegistered(uuidsArray)
+
       case START_ACTOR_REQUEST =>
         val request = message.getStartActorRequest
 	StartMobileActorRequest(request.getRequestId, request.getClassName)
@@ -129,12 +186,22 @@ abstract class ProtobufProtocol extends TheaterProtocol {
         val reply = message.getStartActorReply
         StartMobileActorReply(reply.getRequestId, reply.getActorUuid)
 
-      case MOBILE_ACTORS_REGISTERED =>
-	val uuids = message.getMobileActorsRegistered.getUuidsList
+      case START_COLOCATED_ACTORS_REQUEST =>
+	val request = message.getStartColocatedActorsRequest
+	val nextTo = 
+	  if (request.hasNextTo) Some(request.getNextTo)
+	  else None
+	
+	StartColocatedActorsRequest(
+	  request.getRequestId, request.getClassName, request.getNumber, nextTo)
+      
+      case START_COLOCATED_ACTORS_REPLY =>
+	val reply = message.getStartColocatedActorsReply
+	val uuids = reply.getUuidsList
 	var uuidsArray = new Array[String](uuids.size)
 	uuids.toArray(uuidsArray)
-        MobileActorsRegistered(uuidsArray)
-      
+	StartColocatedActorsReply(reply.getRequestId, uuidsArray)
+
       case ACTOR_NEW_LOCATION_NOTIFICATION =>
         val notification = message.getActorNewLocationNotification
         ActorNewLocationNotification(notification.getUuid, notification.getHostname, notification.getPort)

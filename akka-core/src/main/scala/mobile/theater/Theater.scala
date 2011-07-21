@@ -11,6 +11,7 @@ import se.scalablesolutions.akka.mobile.util.messages._
 import se.scalablesolutions.akka.mobile.theater.protocol.TheaterProtocol
 import se.scalablesolutions.akka.mobile.theater.protocol.AgentProtobufProtocol
 import se.scalablesolutions.akka.mobile.theater.protocol.AgentProtocol
+import se.scalablesolutions.akka.mobile.theater.profiler._
 import se.scalablesolutions.akka.mobile.nameservice.NameService
 import se.scalablesolutions.akka.mobile.nameservice.DistributedNameService
 import se.scalablesolutions.akka.mobile.tools.mobtrack.MobTrackGUI
@@ -455,10 +456,10 @@ private[mobile] class Theater extends Logging {
   private def loadTheaterProtocol(): TheaterProtocol = {
     lazy val defaultProtocol = new AgentProtocol // TODO Parametrizar esses defaults em classes carregadas
     try {
-      ClusterConfiguration.instanceOf[TheaterProtocol, AgentProtocol]("cluster.theater-protocol")
+      ClusterConfiguration.instanceOf[TheaterProtocol, AgentProtocol]("cluster.theater-protocol.class")
     } catch {
       case cce: ClassCastException =>
-	val classname = Config.config.getString("cluster.theater-protocol", "")
+	val classname = Config.config.getString("cluster.theater-protocol.class", "")
 	log.warning("The class [%s] does not extend the TheaterProtocol abstract class. Using the default protocol [%s] instead.", 
                     classname, defaultProtocol.getClass.getName)
 	defaultProtocol

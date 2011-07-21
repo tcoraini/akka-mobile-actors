@@ -14,6 +14,5 @@ abstract class TheaterProtocol {
   
   def sendTo(node: TheaterNode, message: TheaterMessage)
 
-  def stop()
-
+  def stop() { }
 }

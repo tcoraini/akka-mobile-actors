@@ -88,7 +88,12 @@ object GroupManagement {
     
     override def run(): Unit = {
       _lock.synchronized { status = Migrating }
-      LocalTheater.migrateGroup(builder.result, destination, nextTo)
+      val groupBytes = builder.result
+      if (groupBytes.size > 0) 
+	LocalTheater.migrateGroup(groupBytes, destination, nextTo)
+      else
+	migrationCompleted()
+      
       groups.remove(groupId)
     }
 

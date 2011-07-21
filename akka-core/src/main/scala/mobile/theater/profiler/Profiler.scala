@@ -1,5 +1,6 @@
-package se.scalablesolutions.akka.mobile.theater
+package se.scalablesolutions.akka.mobile.theater.profiler
 
+import se.scalablesolutions.akka.mobile.theater.TheaterNode
 import se.scalablesolutions.akka.mobile.util.messages._
 
 import se.scalablesolutions.akka.util.Logging
@@ -156,10 +157,10 @@ class Profiler(val localNode: TheaterNode) extends Logging {
     //   case None => 0
     
     //   case Some(innerMap) => 
-    // 	val record = innerMap.get(localNode)
-    // 	if (record.isDefined) 
-    // 	  record.get.count
-    // 	else 0
+    // 	   val record = innerMap.get(localNode)
+    // 	   if (record.isDefined) 
+    // 	     record.get.count
+    // 	   else 0
     // }
   }
 

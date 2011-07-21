@@ -57,7 +57,7 @@ object ClusterConfiguration extends Logging {
             log.warning("The class [%s] could not be found. Using the default class [%s] instead.", classname, defaultClassName)
             defaultClass
           
-	  // TODO this is not been thrown, apparently because of the parameterized types...Any way to resolve it?
+	  // TODO this is not thrown, apparently because of the parameterized types...Any way to resolve it?
           case cce: ClassCastException =>
             log.warning("The class [%s] does not extend the expected type. Using the default class [%s] instead.", classname, defaultClassName)
             defaultClass

@@ -1,4 +1,6 @@
-package se.scalablesolutions.akka.mobile.theater
+package se.scalablesolutions.akka.mobile.theater.profiler
+
+import se.scalablesolutions.akka.mobile.theater.TheaterNode
 
 import java.util.Comparator
 
@@ -25,14 +27,14 @@ case class IMRecord(uuid: String, from: TheaterNode) {
    */
    // TODO isso provavelmente eh desnecessario, o equals do case class acho que ja vai cuidar disso (por algum
    // motivo eu achava que nao)
-  override def equals(that: Any): Boolean = that match {
-    case imr: IMRecord => 
-      imr.uuid == this.uuid && imr.from == this.from
+  // override def equals(that: Any): Boolean = that match {
+  //   case imr: IMRecord => 
+  //     imr.uuid == this.uuid && imr.from == this.from
 
-    case _ => false
-  }
+  //   case _ => false
+  // }
 
-  override def hashCode = uuid.hashCode * from.hashCode
+  // override def hashCode = uuid.hashCode * from.hashCode
 }
 
 object IMRecord {
