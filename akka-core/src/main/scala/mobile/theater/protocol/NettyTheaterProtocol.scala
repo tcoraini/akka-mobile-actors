@@ -21,8 +21,6 @@ import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory
 import org.jboss.netty.handler.codec.frame.{LengthFieldBasedFrameDecoder, LengthFieldPrepender}
 import org.jboss.netty.handler.codec.protobuf.{ProtobufDecoder, ProtobufEncoder}
-// import org.jboss.netty.handler.codec.compression.{ZlibEncoder, ZlibDecoder}
-// import org.jboss.netty.handler.ssl.SslHandler
 
 import scala.collection.mutable.HashMap
 

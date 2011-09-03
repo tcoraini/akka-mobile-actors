@@ -295,6 +295,17 @@ object GeneralTests {
     ref
   }
 
+  def testColocated() = {
+    Mobile.startTheater(node1.hostname, node1.port)
+    val refs = Mobile.spawn[StatefulActor](10).here
+    refs(4) ! Ping
+    refs(4) ! ShowCount
+    refs(7) ! MoveGroupTo(node2.hostname, node2.port)
+    refs(4) ! Ping
+    refs(4) ! ShowCount
+    refs
+  } 
+
   def testServer2 = {
     LocalTheater.start(node2.hostname, node2.port)
   }

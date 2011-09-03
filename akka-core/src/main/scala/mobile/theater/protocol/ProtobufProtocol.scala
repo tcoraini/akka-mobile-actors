@@ -24,6 +24,7 @@ abstract class ProtobufProtocol extends TheaterProtocol {
    * Constructs a Protobuf message based on the respective case class message.
    */
   def sendTo(node: TheaterNode, message: TheaterMessage): Unit = {
+
     // Constructs a protobuf message (of the types defined in TheaterProtocol.proto) based
     // on the TheaterMessage received
     val protobufMessage: Message = message match {

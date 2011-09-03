@@ -64,6 +64,13 @@ object MobileActorRef {
     register(new MobileActorRef(localRef))
   }
 
+  private[mobile] def apply(clazz: Class[_ <: MobileActor], existingUuid: String): MobileActorRef = {
+    val localRef = new LocalActorRef(clazz) with LocalMobileActor
+    localRef.uuid = existingUuid
+    register(new MobileActorRef(localRef))
+  }
+
+
   /**
    * Creates a reference from the UUID of the actor. The reference can be either local or remote.
    */

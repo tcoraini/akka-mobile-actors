@@ -4,6 +4,8 @@ import se.scalablesolutions.akka.mobile.actor.MobileActor
 import se.scalablesolutions.akka.mobile.actor.MobileActorRef
 import se.scalablesolutions.akka.mobile.Mobile
 import se.scalablesolutions.akka.mobile.util.messages._
+import se.scalablesolutions.akka.mobile.util.UUID
+import se.scalablesolutions.akka.mobile.nameservice.NameService
 
 import se.scalablesolutions.akka.actor.ActorRef
 
@@ -26,8 +28,9 @@ object RemoteSpawnHelper extends Logging {
 
     constructor match {
       case Left(clazz) => 
-	val requestId = newRequestId
-	LocalTheater.sendTo(node, StartMobileActorRequest(requestId, clazz.getName))
+	val requestId = UUID.newUuid
+	NameService.put(requestId.toString, LocalTheater.node)
+      	LocalTheater.sendTo(node, StartMobileActorRequest(requestId, clazz.getName))
 	MobileActorRef(requestId.toString, node.hostname, node.port, true)
 
       case Right(factory) =>
@@ -54,13 +57,17 @@ object RemoteSpawnHelper extends Logging {
 
     constructor match {
       case Left((clazz, n)) => 
-	val requestId = newRequestId
+	val requestId = UUID.newUuid
+	var list: List[MobileActorRef] = Nil
+	for (i <- 0 to (n - 1)) {
+	  val temporaryId = requestId + "_" + i
+	  val ref = MobileActorRef(temporaryId, node.hostname, node.port, true)
+	  list = ref :: list
+	  NameService.put(ref.uuid, LocalTheater.node)
+	}
 	LocalTheater.sendTo(node, StartColocatedActorsRequest(requestId, clazz.getName, n, nextTo.map(_.uuid)))
-	(for {
-	  i <- 0 to (n - 1)
-	  temporaryId = requestId + "_" + i
-	} yield MobileActorRef(temporaryId, node.hostname, node.port, true)).toList
-
+	list
+      
       case Right(factories) =>
 	// We create N local mobile ref's and migrate them right away to the proper node
 	val groupId = GroupManagement.newGroupId

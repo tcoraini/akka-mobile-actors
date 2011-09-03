@@ -66,13 +66,13 @@ object Mobile extends Logging {
   }
 
   // Co-located
-  def launch[T <: MobileActor : Manifest](number: Int) = {
+  def launch[T <: MobileActor : Manifest](number: Int): List[MobileActorRef] = {
     val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
     spawnColocated(Left(clazz, number), None)
   }
 
   // Co-located
-  def launch(factory1: () => MobileActor, factory2: () => MobileActor, factories: (() => MobileActor)*) = {
+  def launch(factory1: () => MobileActor, factory2: () => MobileActor, factories: (() => MobileActor)*): List[MobileActorRef] = {
     spawnColocated(Right(factory1 :: factory2 :: factories.toList), None)
   }
 

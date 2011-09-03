@@ -31,6 +31,7 @@ class AgentProtobufProtocol extends ProtobufProtocol {
   }
 
   def sendTo(node: TheaterNode, message: TheaterMessageProtocol): Unit = {
+
     try {
       agentFor(node) ! message
     } catch {

@@ -11,6 +11,7 @@ import se.scalablesolutions.akka.mobile.util.messages._
 import se.scalablesolutions.akka.mobile.theater.protocol.TheaterProtocol
 import se.scalablesolutions.akka.mobile.theater.protocol.AgentProtobufProtocol
 import se.scalablesolutions.akka.mobile.theater.protocol.AgentProtocol
+import se.scalablesolutions.akka.mobile.theater.protocol.NettyTheaterProtocol
 import se.scalablesolutions.akka.mobile.theater.profiler._
 import se.scalablesolutions.akka.mobile.nameservice.NameService
 import se.scalablesolutions.akka.mobile.nameservice.DistributedNameService
@@ -129,7 +130,7 @@ private[mobile] class Theater extends Logging {
     mobileActors.clear
     
     // TODO
-    // protocol.stop()
+    protocol.stop()
     profiler.foreach(_.stop())
     NameService.stop
 
@@ -202,8 +203,15 @@ private[mobile] class Theater extends Logging {
 
       // The actor is not here. Possibly it has been migrated to some other theater.
       case null =>
-        log.debug("Actor with UUID [%s] not found at theater %s.", uuid, node.format)
-        handleActorNotFound(request)
+	val refOpt = ReferenceManagement.get(uuid, true)
+	if (refOpt.isDefined) {
+	  val message = MessageSerializer.deserialize(request.getMessage)
+	  val sender = findMessageSender(request)
+	  refOpt.get.!(message)(sender)
+	} else {
+      	  log.debug("Actor with UUID [%s] not found at theater %s.", uuid, node.format)
+          handleActorNotFound(request)
+	}
     }
   }
 
@@ -306,7 +314,7 @@ private[mobile] class Theater extends Logging {
 
     // Request to start a mobile actor of the specified class in this theater
     case StartMobileActorRequest(requestId, className) =>
-      val ref = startActorByClassName(className)
+      val ref = startActorByClassName(className, requestId.toString)
       sendTo(message.sender, StartMobileActorReply(requestId, ref.uuid))
 
     // Notification that an actor was successfully instantiated in the remote theater
@@ -315,7 +323,7 @@ private[mobile] class Theater extends Logging {
     
     // Request to start 'number' co-located actors of the specified class in this theater
     case StartColocatedActorsRequest(requestId, className, number, nextTo) => {
-      val uuids = startColocatedActorsByClassName(className, number, nextTo)
+      val uuids = startColocatedActorsByClassName(className, number, nextTo, requestId.toString)
       sendTo(message.sender, StartColocatedActorsReply(requestId, uuids))
     }
     
@@ -355,14 +363,14 @@ private[mobile] class Theater extends Logging {
    *
    * @return the reference of the new actor started
    */
-  private def startActorByClassName(className: String): MobileActorRef = {
+  private def startActorByClassName(className: String, existingUuid: String): MobileActorRef = {
     log.debug("Starting an actor of class %s at theater %s", className, node.format)
-    val mobileRef = MobileActorRef(Class.forName(className).asInstanceOf[Class[_ <: MobileActor]])
+    val mobileRef = MobileActorRef(Class.forName(className).asInstanceOf[Class[_ <: MobileActor]], existingUuid)
     mobileRef.start
     mobileRef
   } 
 
-  private def startColocatedActorsByClassName(className: String, number: Int, nextTo: Option[String]): Array[String] = {
+  private def startColocatedActorsByClassName(className: String, number: Int, nextTo: Option[String], existingUuid: String): Array[String] = {
     log.debug("Starting %d colocated actors of class %s in theater %s.", number, className, node.format)
 
     val groupId: String = 
@@ -380,7 +388,7 @@ private[mobile] class Theater extends Logging {
 
     val uuids = new Array[String](number)
     for (i <- 0 to (number - 1)) {
-      val ref = startActorByClassName(className)
+      val ref = startActorByClassName(className, existingUuid + "_" + i)
       ref.groupId = Some(groupId)
       uuids(i) = ref.uuid
     }
@@ -454,7 +462,7 @@ private[mobile] class Theater extends Logging {
   
   // Loads the type of the inter-theater protocol
   private def loadTheaterProtocol(): TheaterProtocol = {
-    lazy val defaultProtocol = new AgentProtocol // TODO Parametrizar esses defaults em classes carregadas
+    lazy val defaultProtocol = new NettyTheaterProtocol
     try {
       ClusterConfiguration.instanceOf[TheaterProtocol, AgentProtocol]("cluster.theater-protocol.class")
     } catch {

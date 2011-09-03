@@ -14,9 +14,9 @@ import java.util.concurrent.ConcurrentHashMap
 
 object ReferenceManagement {
   
-  val references = new ConcurrentHashMap[String, MobileActorRef]
-  val detachedReferences = new ConcurrentHashMap[String, MobileActorRef]
-  val remoteClients = new ConcurrentHashMap[TheaterNode, ActorRef](ClusterConfiguration.numberOfNodes)
+  private val references = new ConcurrentHashMap[String, MobileActorRef]
+  private val detachedReferences = new ConcurrentHashMap[String, MobileActorRef]
+  private val remoteClients = new ConcurrentHashMap[TheaterNode, ActorRef](ClusterConfiguration.numberOfNodes)
 
   private[mobile] def put(uuid: String, reference: MobileActorRef, detached: Boolean = false): Unit = {
     if (!detached) 

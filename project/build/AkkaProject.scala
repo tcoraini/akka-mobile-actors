@@ -220,7 +220,7 @@ class AkkaParentProject(info: ProjectInfo) extends DefaultProject(info) {
   // -------------------------------------------------------------------------------------------------------------------
 
   lazy val akka_core        = project("akka-core", "akka-core", new AkkaCoreProject(_))
-  lazy val akka_amqp        = project("akka-amqp", "akka-amqp", new AkkaAMQPProject(_), akka_core)
+/*  lazy val akka_amqp        = project("akka-amqp", "akka-amqp", new AkkaAMQPProject(_), akka_core)
   lazy val akka_http        = project("akka-http", "akka-http", new AkkaHttpProject(_), akka_core, akka_camel)
   lazy val akka_camel       = project("akka-camel", "akka-camel", new AkkaCamelProject(_), akka_core)
   lazy val akka_persistence = project("akka-persistence", "akka-persistence", new AkkaPersistenceParentProject(_))
@@ -229,7 +229,7 @@ class AkkaParentProject(info: ProjectInfo) extends DefaultProject(info) {
   lazy val akka_kernel      = project("akka-kernel", "akka-kernel", new AkkaKernelProject(_),
                                       akka_core, akka_http, akka_spring, akka_camel, akka_persistence, akka_amqp)
   lazy val akka_osgi        = project("akka-osgi", "akka-osgi", new AkkaOSGiParentProject(_))
-  lazy val akka_samples     = project("akka-samples", "akka-samples", new AkkaSamplesParentProject(_))
+  lazy val akka_samples     = project("akka-samples", "akka-samples", new AkkaSamplesParentProject(_)) */
 
   lazy val my_tests         = project("my-tests", "my-tests", akka_core)
 
@@ -238,7 +238,7 @@ class AkkaParentProject(info: ProjectInfo) extends DefaultProject(info) {
   // -------------------------------------------------------------------------------------------------------------------
 
   //  override def mainClass = Some("se.scalablesolutions.akka.kernel.Main")
-  override def mainClass = Some("se.scalablesolutions.akka.mobile.MobileActorsInfrastructure")
+  override def mainClass = Some("tests.Armstrong")
 
   override def packageOptions =
     manifestClassPath.map(cp => ManifestAttributes(
@@ -518,7 +518,7 @@ class AkkaParentProject(info: ProjectInfo) extends DefaultProject(info) {
   // OSGi stuff
   // -------------------------------------------------------------------------------------------------------------------
 
-  class AkkaOSGiParentProject(info: ProjectInfo) extends ParentProject(info) {
+/*  class AkkaOSGiParentProject(info: ProjectInfo) extends ParentProject(info) {
     lazy val akka_osgi_dependencies_bundle = project("akka-osgi-dependencies-bundle", "akka-osgi-dependencies-bundle",
       new AkkaOSGiDependenciesBundleProject(_), akka_kernel, akka_jta) // akka_kernel does not depend on akka_jta (why?) therefore we list akka_jta here
     lazy val akka_osgi_assembly = project("akka-osgi-assembly", "akka-osgi-assembly",
@@ -527,7 +527,7 @@ class AkkaParentProject(info: ProjectInfo) extends DefaultProject(info) {
         akka_persistence.akka_persistence_redis, akka_persistence.akka_persistence_mongo,
         akka_persistence.akka_persistence_cassandra)
   }
-
+*/
   class AkkaOSGiDependenciesBundleProject(info: ProjectInfo) extends AkkaDefaultProject(info, distPath) with BNDPlugin {
     override def bndClasspath = compileClasspath
     override def bndPrivatePackage = Seq("")
@@ -681,7 +681,7 @@ class AkkaParentProject(info: ProjectInfo) extends DefaultProject(info) {
     override lazy val bndExportPackage = Nil // Necessary because of mixing-in AkkaDefaultProject which exports all ...akka.* packages!
   }
 
-  class AkkaSamplesParentProject(info: ProjectInfo) extends ParentProject(info) {
+/*  class AkkaSamplesParentProject(info: ProjectInfo) extends ParentProject(info) {
     lazy val akka_sample_ants = project("akka-sample-ants", "akka-sample-ants",
       new AkkaSampleAntsProject(_), akka_core)
     lazy val akka_sample_chat = project("akka-sample-chat", "akka-sample-chat",
@@ -704,7 +704,7 @@ class AkkaParentProject(info: ProjectInfo) extends DefaultProject(info) {
       new AkkaSampleRemoteProject(_), akka_kernel)
     lazy val akka_sample_osgi = project("akka-sample-osgi", "akka-sample-osgi",
       new AkkaSampleOSGiProject(_), akka_core)
-  }
+  }*/
 
   // -------------------------------------------------------------------------------------------------------------------
   // Helpers

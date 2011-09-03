@@ -10,7 +10,7 @@ case class HeldMessage(message: Any, sender: Option[ActorRef])
 class MessageHolder {
   private val lock = new Object
 
-  private val heldMessages = new SynchronizedQueue[HeldMessage]
+  private lazy val heldMessages = new SynchronizedQueue[HeldMessage]
 
   def holdMessage(message: Any, senderOption: Option[ActorRef]): Unit = lock.synchronized {
     heldMessages.enqueue(HeldMessage(message, senderOption))
