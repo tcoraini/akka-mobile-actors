@@ -36,7 +36,7 @@ class ArmstrongActor extends MobileActor {
       }
 
       next = nextOpt.getOrElse(throw new IllegalArgumentException("UUID invalido: " + uuid))
-      logger.debug("%s Executando", actorId)
+      logger.debug("%s Executando -- NEXT: [UUID %s]", actorId, uuid)
 
     case Start(max) =>
       logger.info("%s START recebido", actorId)

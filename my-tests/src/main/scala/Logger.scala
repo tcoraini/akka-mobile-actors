@@ -45,7 +45,7 @@ class Logger(filename: String) {
 
   private def format(message: String): String = {
     dateAndTime + " " + 
-    threadName  + " " +
+//    threadName  + " " +
     currentNode + " - " +
     message
   }
