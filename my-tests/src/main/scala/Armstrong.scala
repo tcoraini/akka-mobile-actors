@@ -25,10 +25,9 @@ class ArmstrongActor extends MobileActor {
   private var maxTries = 5
 
   private def actorId: String = "[UUID " + self.uuid + "] "
-
+  
   def receive = {
     case Next(uuid) => 
-//      println("I'm [" + self.uuid + "] and next is [" + uuid + "]")
       var nextOpt = MobileActorRef(uuid)
       while (!nextOpt.isDefined && tries < maxTries) {
 	Thread.sleep(1000)
@@ -40,7 +39,6 @@ class ArmstrongActor extends MobileActor {
       logger.debug("%s Executando", actorId)
 
     case Start(max) =>
-//      println("I'm [" + self.uuid + "] and I'm the FIRST")
       logger.info("%s START recebido", actorId)
       first = true
       before = System.currentTimeMillis
@@ -49,7 +47,7 @@ class ArmstrongActor extends MobileActor {
       next ! Token
 
     case Token if (next != null) =>
-//      println("I'm [" + self.uuid + "] and I just received a TOKEN")
+      logger.debug("TOKEN chegando em %s", actorId)
       if (first) {
 	var after = System.currentTimeMillis
 	var time = after - before
@@ -58,11 +56,13 @@ class ArmstrongActor extends MobileActor {
 	rounds = rounds + 1
 	
 	if (rounds <= maxRounds) {
+	  logger.debug("* * TOKEN saindo para [UUID %s] * *", next.uuid)
 	  next ! Token
 	} else {
 	  logger.info("%s Terminado", actorId)
 	}
       } else {
+	logger.debug("TOKEN saindo para [UUID %s]", next.uuid)
 	next ! Token
       }
   }
