@@ -13,6 +13,8 @@ case class Start(maxRounds: Int)
 case object Token
 
 class ArmstrongActor extends MobileActor {
+  import Armstrong._
+
   private var next: MobileActorRef = null
   private var first = false
   private var before: Long = _
@@ -35,11 +37,11 @@ class ArmstrongActor extends MobileActor {
       }
 
       next = nextOpt.getOrElse(throw new IllegalArgumentException("UUID invalido: " + uuid))
-      log.debug("%s Executando em %s", actorId, LocalTheater.node.format)
+      logger.debug("%s Executando", actorId)
 
     case Start(max) =>
 //      println("I'm [" + self.uuid + "] and I'm the FIRST")
-      log.info("%s START recebido", actorId)
+      logger.info("%s START recebido", actorId)
       first = true
       before = System.currentTimeMillis
       maxRounds = max
@@ -51,14 +53,14 @@ class ArmstrongActor extends MobileActor {
       if (first) {
 	var after = System.currentTimeMillis
 	var time = after - before
-	log.info("%s Time elapsed: %d ms", actorId, time)
+	logger.info("%s Time elapsed: %s ms", actorId, time)
 	before = System.currentTimeMillis
 	rounds = rounds + 1
 	
 	if (rounds <= maxRounds) {
 	  next ! Token
 	} else {
-	  log.info("%s Terminado", actorId)
+	  logger.info("%s Terminado", actorId)
 	}
       } else {
 	next ! Token
@@ -71,6 +73,8 @@ object Armstrong extends Logging {
   private val NUMBER_OF_ACTORS = 100
   private val MAX_ROUNDS = 3
   private val BATCH_SIZE = 1
+
+  val logger = new Logger("logs/mobile-actors/mobile-actors.log")
 
   class Configuration() {
     var theaterName: String = _
@@ -89,14 +93,14 @@ object Armstrong extends Logging {
     
     if (config.theaterName != null && config.theaterName.trim.size > 0) {
       Mobile.startTheater(config.theaterName)
-      log.info("Iniciando um teatro em %s", LocalTheater.node.format)
+      logger.info("Iniciando um teatro")
     }
     
     if (config.start) {
-      log.info("Executando o desafio de Armstrong com: \n" + 
-		"\tNúmero de atores: %d\n" + 
-		"\tNúmero de rodadas: %d\n" + 
-		"\tTamanho de grupos de atores co-locados: %d",
+      logger.info("Executando o desafio de Armstrong com: \n" + 
+		"\tNúmero de atores: %s\n" + 
+		"\tNúmero de rodadas: %s\n" + 
+		"\tTamanho de grupos de atores co-locados: %s",
 		number, maxRounds, batchSize)
       
       var remaining = number
@@ -114,7 +118,7 @@ object Armstrong extends Logging {
       }
       previous ! Next(first.head.uuid)
       
-      log.info("Começando...")
+      logger.info("Começando...")
       first.head ! Start(maxRounds)
     }
   }
