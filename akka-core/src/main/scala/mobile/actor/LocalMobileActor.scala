@@ -75,11 +75,14 @@ trait LocalMobileActor extends InnerReference {
   }
 	
   override def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = {
+    import se.scalablesolutions.akka.mobile.util._
     if (isMigrating) {
+      DefaultLogger.debug("Mensagem recebida enquanto ator está migrando [UUID %s]: %s", uuid, message)
       holder.holdMessage(message, senderOption)
     }
     else {
       //super.postMessageToMailbox(message, senderOption)
+      DefaultLogger.debug("Mensagem recebida em ator local [UUID %s]: %s", uuid, message)
       val invocation = new MessageInvocation(this, message, senderOption, None, transactionSet.get)
       if (hasPriority(message))
 	dispatcher.asInstanceOf[MobileMessageDispatcher].dispatchWithPriority(invocation)

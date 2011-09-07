@@ -25,14 +25,20 @@ trait DetachedRemoteActor extends RemoteMobileActor {
 
   holdMessages = true
 
-  abstract override def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = message match {
-    case AttachRefToActor(uuid) if holdMessages == true =>
-      _uuid = uuid
-      holdMessages = false
-      // Forwards all the held messages, using processHeldMessages() method from MessageHolder class
-      holder.processHeldMessages(msg => super.postMessageToMailbox(msg.message, msg.sender))
-    
-    case _ => super.postMessageToMailbox(message, senderOption)
+  abstract override def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = { 
+    import se.scalablesolutions.akka.mobile.util._
+    DefaultLogger.debug("Mensagem recebida em ator DETACHED [UUID %s]: %s", remoteActorRef.uuid, message)
+    message match {
+      case AttachRefToActor(uuid) if holdMessages == true =>
+	DefaultLogger.debug("A mensagem é ATTACH REF TO ACTOR")
+
+	_uuid = uuid
+	holdMessages = false
+	// Forwards all the held messages, using processHeldMessages() method from MessageHolder class
+	holder.processHeldMessages(msg => super.postMessageToMailbox(msg.message, msg.sender))
+      
+      case _ => super.postMessageToMailbox(message, senderOption)
+    }
   }
 }
   

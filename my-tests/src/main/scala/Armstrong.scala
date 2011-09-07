@@ -4,6 +4,8 @@ import se.scalablesolutions.akka.mobile.Mobile
 import se.scalablesolutions.akka.mobile.actor.MobileActor
 import se.scalablesolutions.akka.mobile.actor.MobileActorRef
 import se.scalablesolutions.akka.mobile.theater.LocalTheater
+import se.scalablesolutions.akka.mobile.util.DefaultLogger
+import se.scalablesolutions.akka.mobile.util.Logger
 import se.scalablesolutions.akka.actor.ActorRef
 import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.util.Logging
@@ -66,6 +68,14 @@ class ArmstrongActor extends MobileActor {
 	next ! Token
       }
   }
+
+  override def beforeMigration() {
+    logger.debug("%s Antes da migração", actorId)
+  }
+
+  override def afterMigration() {
+    logger.debug("%s Depois da migração", actorId)
+  }
 }
 
 object Armstrong extends Logging {
@@ -74,7 +84,7 @@ object Armstrong extends Logging {
   private val MAX_ROUNDS = 3
   private val BATCH_SIZE = 1
 
-  val logger = new Logger("logs/mobile-actors/mobile-actors.log")
+  lazy val logger = DefaultLogger // new Logger("logs/mobile-actors/mobile-actors.log")
 
   class Configuration() {
     var theaterName: String = _

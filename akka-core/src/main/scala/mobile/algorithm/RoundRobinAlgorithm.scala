@@ -5,15 +5,16 @@ import se.scalablesolutions.akka.mobile.theater.TheaterNode
 
 class RoundRobinAlgorithm extends DistributionAlgorithm {
   
-  private val indexedTheaters = ClusterConfiguration.nodes.toIndexedSeq
+  private val indexedNodes = ClusterConfiguration.nodeNames.toIndexedSeq
 
-  private val numberOfTheaters = indexedTheaters.size
+  private val numberOfTheaters = indexedNodes.size
 
   private var currentTheater = 0
 
   def chooseTheater: TheaterNode = {
     // indexedTheaters(currentTheater) is a Tuple2[String, TheaterDescription]
-    val theaterDescription = indexedTheaters(currentTheater)._2
+    val nodeName = indexedNodes(currentTheater)
+    val theaterDescription = ClusterConfiguration.nodes.get(nodeName).get
 
     currentTheater = (currentTheater + 1) % numberOfTheaters
     

@@ -1,4 +1,4 @@
-package tests
+package se.scalablesolutions.akka.mobile.util
 
 import se.scalablesolutions.akka.mobile.theater.LocalTheater
 import se.scalablesolutions.akka.actor.Actor
@@ -8,13 +8,15 @@ import java.text.SimpleDateFormat
 import java.io.OutputStream
 import java.io.FileOutputStream
 
+object DefaultLogger extends Logger("logs/mobile-actors/mobile-actors-" + LocalTheater.node.hostname + ".log")
+
 class Logger(filename: String) {
 
   private val dateFormat = new SimpleDateFormat("[dd/MM/yyyy - HH:mm:ss.SSS]")
   private val console = System.out
-  private val loggerActor = Actor.actorOf(new FileLoggerActor(filename))
+//  private val loggerActor = Actor.actorOf(new FileLoggerActor(filename))
 
-  loggerActor.start()
+//  loggerActor.start()
   
   def debug(message: String, args: Any*) = {
     var result = message + "\n"
@@ -24,9 +26,10 @@ class Logger(filename: String) {
 
     val formatted = format(result)
     
-    /*outputStream.write(formatted.getBytes)
-    outputStream.flush()*/
-    loggerActor ! Log(formatted)
+    val outputStream = new FileOutputStream(filename, true)
+    outputStream.write(formatted.getBytes)
+    outputStream.flush()
+    outputStream.close()
   }
   
   def info(message: String, args: Any*) = {
@@ -38,9 +41,10 @@ class Logger(filename: String) {
     val formatted = format(result)
 
     console.print(formatted)
-    loggerActor ! Log(formatted)
-/*    outputStream.write(formatted.getBytes)
-    outputStream.flush()*/
+    val outputStream = new FileOutputStream(filename, true)
+    outputStream.write(formatted.getBytes)
+    outputStream.flush()
+    outputStream.close()
   }
 
   private def format(message: String): String = {

@@ -25,7 +25,14 @@ object ReferenceManagement {
       detachedReferences.put(uuid, reference)
   }
 
-  def get(uuid: String, detached: Boolean = false): Option[MobileActorRef] = {
+  def get(uuid: String): Option[MobileActorRef] = {
+    get(uuid, false) match {
+      case None => get(uuid, true)
+      case some => some
+    }
+  }
+   
+  def get(uuid: String, detached: Boolean): Option[MobileActorRef] = {
     val map = 
       if (detached) detachedReferences
       else references
