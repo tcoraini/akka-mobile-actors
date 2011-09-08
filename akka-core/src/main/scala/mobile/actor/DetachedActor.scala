@@ -1,9 +1,9 @@
 package se.scalablesolutions.akka.mobile.actor
 
-import se.scalablesolutions.akka.actor.RemoteActorRef
 import se.scalablesolutions.akka.actor.ActorRef
+import se.scalablesolutions.akka.mobile.theater.TheaterNode
 
-case class AttachRefToActor(uuid: String)
+case class AttachRefToActor(node: TheaterNode)
 
 /**
  * This trait is supposed to be used with a remote internal reference in the following way:
@@ -20,25 +20,15 @@ case class AttachRefToActor(uuid: String)
  * with UUID == 'uuid' in the address it already has. Then, it forwards all held messages to this actor, and
  * starts to behave like a usual remote internal reference.
  */
-trait DetachedRemoteActor extends RemoteMobileActor {
-  remoteActorRef: RemoteActorRef =>
+trait DetachedActor extends LocalMobileActor {
 
-  holdMessages = true
+  override def isMigrating = true
 
-  abstract override def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = { 
-    import se.scalablesolutions.akka.mobile.util._
-    DefaultLogger.debug("Mensagem recebida em ator DETACHED [UUID %s]: %s", remoteActorRef.uuid, message)
-    message match {
-      case AttachRefToActor(uuid) if holdMessages == true =>
-	DefaultLogger.debug("A mensagem é ATTACH REF TO ACTOR")
-
-	_uuid = uuid
-	holdMessages = false
-	// Forwards all the held messages, using processHeldMessages() method from MessageHolder class
-	holder.processHeldMessages(msg => super.postMessageToMailbox(msg.message, msg.sender))
-      
-      case _ => super.postMessageToMailbox(message, senderOption)
-    }
+  abstract override def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = message match {
+    case AttachRefToActor(node) =>
+      outerRef.completeMigration(node)
+    
+    case _ => super.postMessageToMailbox(message, senderOption)
   }
 }
   

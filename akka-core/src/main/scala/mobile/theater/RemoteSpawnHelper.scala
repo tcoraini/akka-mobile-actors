@@ -2,6 +2,7 @@ package se.scalablesolutions.akka.mobile.theater
 
 import se.scalablesolutions.akka.mobile.actor.MobileActor
 import se.scalablesolutions.akka.mobile.actor.MobileActorRef
+import se.scalablesolutions.akka.mobile.actor.AttachRefToActor
 import se.scalablesolutions.akka.mobile.Mobile
 import se.scalablesolutions.akka.mobile.util.messages._
 import se.scalablesolutions.akka.mobile.util.UUID
@@ -29,9 +30,10 @@ object RemoteSpawnHelper extends Logging {
     constructor match {
       case Left(clazz) => 
 	val requestId = UUID.newUuid
-	NameService.put(requestId.toString, LocalTheater.node)
-      	LocalTheater.sendTo(node, StartMobileActorRequest(requestId, clazz.getName))
-	MobileActorRef(requestId.toString, node.hostname, node.port, true)
+	val ref = MobileActorRef(clazz, requestId.toString, true)
+	LocalTheater.sendTo(node, StartMobileActorRequest(requestId, clazz.getName))
+	ref.start
+	ref
 
       case Right(factory) =>
 	// We create a local mobile ref and migrate it right away to the proper node
@@ -44,7 +46,11 @@ object RemoteSpawnHelper extends Logging {
 
   private[mobile] def completeActorSpawn(requestId: Long, uuid: String, node: TheaterNode): Unit = {
     log.debug("Mobile actor with UUID [%s] started in remote theater at %s.", uuid, node.format)
-    ReferenceManagement.attachRefToActor(requestId.toString, uuid)
+    //ReferenceManagement.attachRefToActor(requestId.toString, uuid)
+    MobileActorRef(uuid) match {
+      case Some(ref) => ref ! AttachRefToActor(node)
+      case None => throw new RuntimeException("Detached actor with UUID " + uuid + " not found")
+    }
   }
 
   private[mobile] def spawnColocatedActors(
@@ -58,15 +64,13 @@ object RemoteSpawnHelper extends Logging {
     constructor match {
       case Left((clazz, n)) => 
 	val requestId = UUID.newUuid
-	var list: List[MobileActorRef] = Nil
-	for (i <- 0 to (n - 1)) {
-	  val temporaryId = requestId + "_" + i
-	  val ref = MobileActorRef(temporaryId, node.hostname, node.port, true)
-	  list = ref :: list
-	  NameService.put(ref.uuid, LocalTheater.node)
-	}
+	val refs = (for {
+	  i <- 0 to (n - 1)
+	  actorId = requestId + "_" + i
+	} yield MobileActorRef(clazz, actorId, true)).toList
+	refs.foreach(_.start)
 	LocalTheater.sendTo(node, StartColocatedActorsRequest(requestId, clazz.getName, n, nextTo.map(_.uuid)))
-	list
+	refs
       
       case Right(factories) =>
 	// We create N local mobile ref's and migrate them right away to the proper node

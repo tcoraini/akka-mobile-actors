@@ -50,12 +50,9 @@ class NameServiceAgent extends Actor {
 
   private val actors = new HashMap[String, TheaterNode]
 
-  Actor.log.debug("# # # # # Name Service Agent iniciando # # # # # # # # #")
-
   def receive = {
     // Register a new actor in the name service
     case ActorRegistrationRequest(actorUuid, hostname, port) =>
-      Actor.log.debug("# # # # # Registering actor with UUID [%s] at [%s]", actorUuid, TheaterNode(hostname, port).format)
       actors += (actorUuid -> TheaterNode(hostname, port))
   
     // Unregister an actor from the name service
@@ -64,7 +61,6 @@ class NameServiceAgent extends Actor {
 
     // Request the location of a certain actor in the cluster
     case ActorLocationRequest(actorUuid) =>
-      Actor.log.debug("# # # # # Name service agente recebeu Location Request to UUID [%s]", actorUuid)
       actors.get(actorUuid) match {
         case Some(node) =>
           self.reply(ActorLocationResponse(node.hostname, node.port))

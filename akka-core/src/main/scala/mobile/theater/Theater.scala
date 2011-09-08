@@ -315,7 +315,8 @@ private[mobile] class Theater extends Logging {
     // Request to start a mobile actor of the specified class in this theater
     case StartMobileActorRequest(requestId, className) =>
       val ref = startActorByClassName(className, requestId.toString)
-      sendTo(message.sender, StartMobileActorReply(requestId, ref.uuid))
+//      sendTo(message.sender, StartMobileActorReply(requestId, ref.uuid))
+      sendTo(message.sender, MobileActorsRegistered(Array(ref.uuid)))
 
     // Notification that an actor was successfully instantiated in the remote theater
     case StartMobileActorReply(requestId, uuid) =>
@@ -324,7 +325,9 @@ private[mobile] class Theater extends Logging {
     // Request to start 'number' co-located actors of the specified class in this theater
     case StartColocatedActorsRequest(requestId, className, number, nextTo) => {
       val uuids = startColocatedActorsByClassName(className, number, nextTo, requestId.toString)
-      sendTo(message.sender, StartColocatedActorsReply(requestId, uuids))
+      //      sendTo(message.sender, StartColocatedActorsReply(requestId, uuids))
+      sendTo(message.sender, MobileActorsRegistered(uuids))
+      
     }
     
     // Notification that a group of co-located actors was successfully instantiated in the remote theater
@@ -365,7 +368,7 @@ private[mobile] class Theater extends Logging {
    */
   private def startActorByClassName(className: String, existingUuid: String): MobileActorRef = {
     log.debug("Starting an actor of class %s at theater %s", className, node.format)
-    val mobileRef = MobileActorRef(Class.forName(className).asInstanceOf[Class[_ <: MobileActor]], existingUuid)
+    val mobileRef = MobileActorRef(Class.forName(className).asInstanceOf[Class[_ <: MobileActor]], existingUuid, false)
     mobileRef.start
     mobileRef
   } 

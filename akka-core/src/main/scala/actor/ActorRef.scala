@@ -1562,11 +1562,7 @@ trait ScalaActorRef extends ActorRefShared { ref: ActorRef =>
    * <p/>
    */
   def !(message: Any)(implicit sender: Option[ActorRef] = None): Unit = {
-    if (isRunning) {
-      import se.scalablesolutions.akka.mobile.util.DefaultLogger
-      DefaultLogger.debug("Mensagem chegou em [UUID %s]: %s", ref.uuid, message)
-      postMessageToMailbox(message, sender)
-    }
+    if (isRunning) postMessageToMailbox(message, sender)
     else throw new ActorInitializationException(
       "Actor has not been started, you need to invoke 'actor.start' before using it")
   }

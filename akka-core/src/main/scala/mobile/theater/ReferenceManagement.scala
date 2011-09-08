@@ -53,7 +53,7 @@ object ReferenceManagement {
 
   private[mobile] def attachRefToActor(temporaryId: String, actorUuid: String): Unit = {
     get(temporaryId, true).foreach { ref => 
-      ref ! AttachRefToActor(actorUuid)
+//      ref ! AttachRefToActor(actorUuid)
       remove(temporaryId, true)
       put(actorUuid, ref)
     }

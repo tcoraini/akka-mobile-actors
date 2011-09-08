@@ -28,12 +28,7 @@
     </rollingPolicy>
   </appender>
   
-  <!--
-  <logger name="se.scalablesolutions" level="WARN"/>
-  <logger name="se.scalablesolutions.akka.mobile" level="DEBUG"/> 
-  -->
-  <logger name="se.scalablesolutions" level="OFF"/>
-  
+  <logger name="se.scalablesolutions.akka.mobile" level="OFF"/> 
   <logger name="tests" level="DEBUG" />
 
   <root level="OFF">

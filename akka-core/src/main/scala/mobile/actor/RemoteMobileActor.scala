@@ -36,10 +36,8 @@ trait RemoteMobileActor extends InnerReference {
 
   override def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = {
     if (holdMessages) {
-      DefaultLogger.debug("Retendo mensagem em [UUID %s]: %s", remoteActorRef.uuid, message)
       holder.holdMessage(message, senderOption)
     } else {
-      DefaultLogger.debug("Recebida mensagem em proxy para [UUID %s]: %s", remoteActorRef.uuid, message)
       val newMessage = MobileActorMessage(LocalTheater.node.hostname, LocalTheater.node.port, message)
       val senderIsMobile = senderOption.isDefined && senderOption.get.isInstanceOf[InnerReference]
       
@@ -75,7 +73,6 @@ trait RemoteMobileActor extends InnerReference {
   }
 
   abstract override def start: ActorRef = {
-    DefaultLogger.debug("[UUID %s] Remote Actor Start", uuid)
     ReferenceManagement.registerForRemoteClientEvents(this, remoteActorRef.remoteClient)
     super.start
   }

@@ -64,12 +64,13 @@ object MobileActorRef {
     register(new MobileActorRef(localRef))
   }
 
-  private[mobile] def apply(clazz: Class[_ <: MobileActor], existingUuid: String): MobileActorRef = {
-    val localRef = new LocalActorRef(clazz) with LocalMobileActor
+  private[mobile] def apply(clazz: Class[_ <: MobileActor], existingUuid: String, detachedProxy: Boolean): MobileActorRef = {
+    val localRef = 
+      if (!detachedProxy) new LocalActorRef(clazz) with LocalMobileActor
+      else new LocalActorRef(clazz) with LocalMobileActor with DetachedActor
     localRef.uuid = existingUuid
     register(new MobileActorRef(localRef))
   }
-
 
   /**
    * Creates a reference from the UUID of the actor. The reference can be either local or remote.
@@ -122,7 +123,7 @@ object MobileActorRef {
     if (!detached) 
       new RemoteActorRef(uuid, uuid, hostname, port, timeout, None) with RemoteMobileActor
     else 
-      new RemoteActorRef(uuid, uuid, hostname, port, timeout, None) with RemoteMobileActor with DetachedRemoteActor
+      new RemoteActorRef(uuid, uuid, hostname, port, timeout, None) with RemoteMobileActor // with DetachedRemoteActor
   }
 
   /* Registers the mobile reference in the ReferenceManagement */
@@ -220,7 +221,7 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
    * Completes the migration of the actor in the origin theater of that actor.
    */
   protected[mobile] def completeMigration(destination: TheaterNode): Unit = {
-    if (isLocal && isMigrating) {
+    if (isLocal && (isMigrating || innerRef.isInstanceOf[DetachedActor])) {
       // New inner reference (a remote one), will act as a proxy for the actor in its new theater
       val remoteActorRef = MobileActorRef.remoteMobileActor(uuid, destination.hostname, destination.port, innerRef.timeout)
       
