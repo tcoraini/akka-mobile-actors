@@ -3,8 +3,8 @@ package se.scalablesolutions.akka.mobile.dispatcher
 import java.util.Deque
 import java.util.concurrent.LinkedBlockingDeque
 
-import se.scalablesolutions.akka.actor.{ActorRef, IllegalActorStateException}
-import se.scalablesolutions.akka.dispatch.{MessageInvocation, Dispatchers, ThreadPoolBuilder, MessageDispatcher}
+import se.scalablesolutions.akka.actor.{ ActorRef, IllegalActorStateException }
+import se.scalablesolutions.akka.dispatch.{ MessageInvocation, Dispatchers, ThreadPoolBuilder, MessageDispatcher }
 
 import se.scalablesolutions.akka.mobile.actor.LocalMobileActor
 import se.scalablesolutions.akka.mobile.util.messages._
@@ -24,22 +24,22 @@ class MobileExecutorBasedEventDrivenDispatcher(
   def dispatch(invocation: MessageInvocation) = dispatch(invocation, false)
   // invocation.message match {
   //   case moveTo: MoveTo => dispatch(invocation, true)
-    
+
   //   case _ => dispatch(invocation, false)
   //}
 
   def dispatchWithPriority(invocation: MessageInvocation) = dispatch(invocation, true)
-  
+
   private def dispatch(invocation: MessageInvocation, priority: Boolean): Unit = invocation.receiver match {
     case receiver: LocalMobileActor => {
       if (priority)
-	getMailbox(receiver).addFirst(invocation)
+        getMailbox(receiver).addFirst(invocation)
       else
-	getMailbox(receiver).add(invocation)
-      
+        getMailbox(receiver).add(invocation)
+
       dispatch(receiver)
     }
-    
+
     case _ => throw new RuntimeException("This dispatcher can only dispatch messages for mobile actors")
   }
 
@@ -51,13 +51,13 @@ class MobileExecutorBasedEventDrivenDispatcher(
   override def mailboxSize(actorRef: ActorRef) = getMailbox(actorRef).size
 
   override def register(actorRef: ActorRef) = {
-    if (actorRef.mailbox eq null ) {
+    if (actorRef.mailbox eq null) {
       if (mailboxCapacity <= 0) actorRef.mailbox = new LinkedBlockingDeque[MessageInvocation]
       else actorRef.mailbox = new LinkedBlockingDeque[MessageInvocation](mailboxCapacity)
     }
     super.register(actorRef)
   }
-  
+
   def dispatch(receiver: LocalMobileActor): Unit = if (active) {
     executor.execute(new Runnable() {
       def run = {
@@ -93,11 +93,11 @@ class MobileExecutorBasedEventDrivenDispatcher(
   def processMailbox(receiver: LocalMobileActor): Boolean = {
     var processedMessages = 0
     val mailbox = getMailbox(receiver)
-    
+
     // Don't dispatch if the actor is migrating, the messages should stay in the mailbox to be
     // serialized
     if (receiver.isMigrating) return false
-    
+
     var messageInvocation = mailbox.poll
     while (messageInvocation != null) {
       messageInvocation.invoke

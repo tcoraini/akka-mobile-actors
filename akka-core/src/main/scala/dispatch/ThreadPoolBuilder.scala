@@ -6,17 +6,17 @@ package se.scalablesolutions.akka.dispatch
 
 import java.util.Collection
 import java.util.concurrent._
-import atomic.{AtomicLong, AtomicInteger}
+import atomic.{ AtomicLong, AtomicInteger }
 import ThreadPoolExecutor.CallerRunsPolicy
 
 import se.scalablesolutions.akka.actor.IllegalActorStateException
-import se.scalablesolutions.akka.util.{Logger, Logging}
+import se.scalablesolutions.akka.util.{ Logger, Logging }
 
 trait ThreadPoolBuilder extends Logging {
   val name: String
 
-  private val NR_START_THREADS = 16
-  private val NR_MAX_THREADS = 128
+  private val NR_START_THREADS = 10
+  private val NR_MAX_THREADS = 10
   private val KEEP_ALIVE_TIME = 60000L // default is one minute
   private val MILLISECONDS = TimeUnit.MILLISECONDS
 
@@ -113,12 +113,11 @@ trait ThreadPoolBuilder extends Logging {
   }
 
   def configureIfPossible(f: (ThreadPoolBuilder) => Unit): Boolean = synchronized {
-    if(inProcessOfBuilding) {
+    if (inProcessOfBuilding) {
       f(this)
       true
-    }
-    else {
-      log.warning("Tried to configure an already started ThreadPoolBuilder of type [%s]",getClass.getName)
+    } else {
+      log.warning("Tried to configure an already started ThreadPoolBuilder of type [%s]", getClass.getName)
       false
     }
   }
@@ -134,7 +133,6 @@ trait ThreadPoolBuilder extends Logging {
    */
   def setMaxPoolSize(size: Int): ThreadPoolBuilder =
     setThreadPoolExecutorProperty(_.setMaximumPoolSize(size))
-
 
   /**
    * Sets the core pool size to (availableProcessors * multipliers).ceil.toInt
@@ -192,7 +190,6 @@ trait ThreadPoolBuilder extends Logging {
     f(threadPoolBuilder)
     this
   }
-
 
   protected def verifyNotInConstructionPhase = {
     if (inProcessOfBuilding) throw new IllegalActorStateException("Is already in the process of building a thread pool")
@@ -263,8 +260,8 @@ trait ThreadPoolBuilder extends Logging {
     protected val counter = new AtomicLong
 
     def newThread(runnable: Runnable) =
-    new MonitorableThread(runnable, name)
-  //    new Thread(runnable, name + "-" + counter.getAndIncrement)
+      new MonitorableThread(runnable, name)
+    //    new Thread(runnable, name + "-" + counter.getAndIncrement)
   }
 
   /**
@@ -283,7 +280,7 @@ trait ThreadPoolBuilder extends Logging {
    * @author <a href="http://jonasboner.com">Jonas Bon&#233;r</a>
    */
   class MonitorableThread(runnable: Runnable, name: String)
-      extends Thread(runnable, name + "-" + MonitorableThread.created.incrementAndGet) with Logging {
+    extends Thread(runnable, name + "-" + MonitorableThread.created.incrementAndGet) with Logging {
 
     setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
       def uncaughtException(thread: Thread, cause: Throwable) =

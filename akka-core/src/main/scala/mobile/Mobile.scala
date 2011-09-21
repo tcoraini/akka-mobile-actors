@@ -9,6 +9,7 @@ import se.scalablesolutions.akka.mobile.theater.TheaterNode
 import se.scalablesolutions.akka.mobile.theater.RemoteSpawnHelper
 import se.scalablesolutions.akka.mobile.theater.GroupManagement
 import se.scalablesolutions.akka.mobile.util.ClusterConfiguration
+import se.scalablesolutions.akka.mobile.util.DefaultLogger
 
 import se.scalablesolutions.akka.util.Logging
 import se.scalablesolutions.akka.config.Config
@@ -16,21 +17,21 @@ import se.scalablesolutions.akka.config.Config
 import java.net.InetAddress
 
 object Mobile extends Logging {
-  
+
   // Implicit conversion to make it easier to spawn co-located actors from factories (non-default
   // constructor)
   implicit def fromByNameToFunctionLiteral(byName: => MobileActor): () => MobileActor = { () => byName }
-  
+
   private lazy val algorithm: DistributionAlgorithm = {
     lazy val defaultAlgorithm = new RoundRobinAlgorithm
     try {
       ClusterConfiguration.instanceOf[DistributionAlgorithm, RoundRobinAlgorithm]("cluster.distribution-algorithm")
     } catch {
       case cce: ClassCastException =>
-	val classname = Config.config.getString("cluster.distribution-algorithm", "")
-	log.warning("The class [%s] does not extend the DistributionAlgorithm trait. Using the default algorithm [%s] instead.", 
-                    classname, defaultAlgorithm.getClass.getName)
-	defaultAlgorithm
+        val classname = Config.config.getString("cluster.distribution-algorithm", "")
+        log.warning("The class [%s] does not extend the DistributionAlgorithm trait. Using the default algorithm [%s] instead.",
+          classname, defaultAlgorithm.getClass.getName)
+        defaultAlgorithm
     }
   }
 
@@ -56,7 +57,7 @@ object Mobile extends Logging {
   /**
    * Launches the actor(s) in some node chosen by the distribution algorithm
    */
-  def launch[T <: MobileActor : Manifest]: MobileActorRef = {
+  def launch[T <: MobileActor: Manifest]: MobileActorRef = {
     val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
     spawn(Left(clazz))
   }
@@ -66,7 +67,7 @@ object Mobile extends Logging {
   }
 
   // Co-located
-  def launch[T <: MobileActor : Manifest](number: Int): List[MobileActorRef] = {
+  def launch[T <: MobileActor: Manifest](number: Int): List[MobileActorRef] = {
     val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
     spawnColocated(Left(clazz, number), None)
   }
@@ -80,7 +81,7 @@ object Mobile extends Logging {
    * Spawns the actor(s) in the specified node
    */
 
-  def spawn[T <: MobileActor : Manifest] = {
+  def spawn[T <: MobileActor: Manifest] = {
     val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
     new SpawnOps(Left(clazz))
   }
@@ -88,9 +89,9 @@ object Mobile extends Logging {
   def spawn(factory: => MobileActor) = {
     new SpawnOps(Right(() => factory))
   }
-  
+
   // Co-located
-  def spawn[T <: MobileActor : Manifest](number: Int) = {
+  def spawn[T <: MobileActor: Manifest](number: Int) = {
     val clazz = manifest[T].erasure.asInstanceOf[Class[_ <: MobileActor]]
     new ColocateOps(Left(clazz, number))
   }
@@ -121,14 +122,14 @@ object Mobile extends Logging {
 
   // Methods that actually spawns the actor
   private def spawn(
-      constructor: Either[Class[_ <: MobileActor], () => MobileActor], 
-      where: Option[TheaterNode] = None): MobileActorRef = {
+    constructor: Either[Class[_ <: MobileActor], () => MobileActor],
+    where: Option[TheaterNode] = None): MobileActorRef = {
 
     if (!LocalTheater.isRunning) throw new RuntimeException("You must start a local theater before creating mobile " +
-							    "actors. See Mobile.startTheater(..) methods.")
+      "actors. See Mobile.startTheater(..) methods.")
 
     val node: TheaterNode = where.getOrElse(algorithm.chooseTheater)
-  
+
     if (node.isLocal) {
       val mobileRef = constructor match {
         case Left(clazz) => MobileActorRef(clazz)
@@ -136,9 +137,12 @@ object Mobile extends Logging {
         case Right(factory) => MobileActorRef(factory())
       }
       mobileRef.start
+      //      DefaultLogger.debug("### [%s]", mobileRef.uuid)
       mobileRef
     } else {
-      RemoteSpawnHelper.spawnActor(constructor, node)
+      val ref = RemoteSpawnHelper.spawnActor(constructor, node)
+      //      DefaultLogger.debug("### [%s]", ref.uuid)
+      ref
     }
   }
 
@@ -156,42 +160,42 @@ object Mobile extends Logging {
       spawnColocated(constructor, Some(LocalTheater.node))
     }
   }
-  
+
   // Method that actually spawns co-located actors
   private def spawnColocated(
-      constructor: Either[Tuple2[Class[_ <: MobileActor], Int], Seq[() => MobileActor]],
-      where: Option[TheaterNode] = None,
-      nextTo: Option[MobileActorRef] = None): List[MobileActorRef] = {
+    constructor: Either[Tuple2[Class[_ <: MobileActor], Int], Seq[() => MobileActor]],
+    where: Option[TheaterNode] = None,
+    nextTo: Option[MobileActorRef] = None): List[MobileActorRef] = {
 
     if (!LocalTheater.isRunning) throw new RuntimeException("You must start a local theater before creating mobile " +
-							    "actors. See Mobile.startTheater(..) methods.")
+      "actors. See Mobile.startTheater(..) methods.")
 
     val node: TheaterNode = where.getOrElse(algorithm.chooseTheater)
     log.debug("Spawing colocated actors at %s", node.format)
     if (node.isLocal) {
       val mobileRefs: Seq[MobileActorRef] = constructor match {
-	case Left((clazz, n)) =>
-	  for (i <- 1 to n) yield MobileActorRef(clazz) 
-	
-	case Right(factories) =>
-	  for (factory <- factories) yield MobileActorRef(factory()) 
+        case Left((clazz, n)) =>
+          for (i <- 1 to n) yield MobileActorRef(clazz)
+
+        case Right(factories) =>
+          for (factory <- factories) yield MobileActorRef(factory())
       }
-      val groupId = 
-	if (nextTo.isDefined && nextTo.get.groupId.isDefined)
-	  nextTo.get.groupId.get
-	else if (nextTo.isDefined) {
-	  val newId = GroupManagement.newGroupId
-	  nextTo.get.groupId = Some(newId)
-	  newId
-	} else 
-	  GroupManagement.newGroupId
+      val groupId =
+        if (nextTo.isDefined && nextTo.get.groupId.isDefined)
+          nextTo.get.groupId.get
+        else if (nextTo.isDefined) {
+          val newId = GroupManagement.newGroupId
+          nextTo.get.groupId = Some(newId)
+          newId
+        } else
+          GroupManagement.newGroupId
       log.debug("Setting groupId for spawned actors: %s", groupId)
-      mobileRefs.foreach { ref => 
-	ref.groupId = Some(groupId)
-	ref.start
+      mobileRefs.foreach { ref =>
+        ref.groupId = Some(groupId)
+        ref.start
       }
       mobileRefs.toList
-    } else RemoteSpawnHelper.spawnColocatedActors(constructor, node, nextTo) 
+    } else RemoteSpawnHelper.spawnColocatedActors(constructor, node, nextTo)
   }
 
   /**
@@ -202,25 +206,26 @@ object Mobile extends Logging {
   def startTheater(node: TheaterNode): Boolean = startTheater(node.hostname, node.port)
 
   def startTheater(hostname: String, port: Int): Boolean = LocalTheater.start(hostname, port)
-  
+
   // In this case, the system will try to guess which node should run, based on the machine's hostname
   def startTheater(): Boolean = {
     val localHostname = InetAddress.getLocalHost.getHostName
     val iterable = ClusterConfiguration.nodes.values.filter {
-      description => description.node.hostname == localHostname
+      description =>
+        description.node.hostname == localHostname
     } map {
-      description => description.name
+      description =>
+        description.name
     }
     if (iterable.size > 0) {
       LocalTheater.start(iterable.head)
     } else {
       log.warning("Impossible to figure it out which node is supposed to run on this machine. Please use one of the following:\n" +
-		  "\t Mobile.startTheater(nodeName: String)\n" + 
-		  "\t Mobile.startTheater(hostname: String, port: Int)")
-      
+        "\t Mobile.startTheater(nodeName: String)\n" +
+        "\t Mobile.startTheater(hostname: String, port: Int)")
+
       false
     }
   }
 }
-
 

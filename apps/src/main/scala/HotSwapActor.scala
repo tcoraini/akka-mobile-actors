@@ -1,4 +1,4 @@
-package tests
+package apps
 
 import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.Actor._

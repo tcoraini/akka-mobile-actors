@@ -7,6 +7,8 @@ import se.scalablesolutions.akka.actor.ScalaActorRef
 import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.Format
 import se.scalablesolutions.akka.actor.ActorSerialization
+import se.scalablesolutions.akka.mobile.util.DefaultLogger
+import se.scalablesolutions.akka.mobile.util.Logger
 
 import se.scalablesolutions.akka.dispatch.MessageInvocation
 import se.scalablesolutions.akka.dispatch.MessageDispatcher
@@ -51,9 +53,16 @@ trait LocalMobileActor extends InnerReference {
     ensureDispatcherIsMobile()
     super.start()
   }
-  
+
+  // Don't unregister from Name Service, because actor is actually still running (but in
+  // a different theater)
+  override def stopLocal(): Unit = {
+    LocalTheater.unregister(outerRef, true)
+    super.stop()
+  }
+
   abstract override def stop(): Unit = {
-    LocalTheater.unregister(outerRef)
+    LocalTheater.unregister(outerRef, false)
     super.stop()
   }
 
@@ -63,31 +72,31 @@ trait LocalMobileActor extends InnerReference {
     val msg = message match {
       // Message from remote actor received and forwarded by local theater
       case remoteMsg: MobileActorMessage =>
-	profiler.foreach(_.remoteMessageArrived(uuid, remoteMsg))
-	remoteMsg.message
-      
-      case localMsg =>
-	profiler.foreach(_.localMessageArrived(uuid))
-	localMsg
-    }
+        profiler.foreach(_.remoteMessageArrived(uuid, remoteMsg))
+        remoteMsg.message
 
+      case localMsg =>
+        profiler.foreach(_.localMessageArrived(uuid))
+        localMsg
+    }
     super.!(msg)
   }
-	
+
   override def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = {
     if (isMigrating) {
+      //      val logger = new Logger("logs/mobile-actors/" + uuid + ".log")
       holder.holdMessage(message, senderOption)
-    }
-    else {
+      //      logger.debug("Holding message: %s", message)
+    } else {
       //super.postMessageToMailbox(message, senderOption)
       val invocation = new MessageInvocation(this, message, senderOption, None, transactionSet.get)
       if (hasPriority(message))
-	dispatcher.asInstanceOf[MobileMessageDispatcher].dispatchWithPriority(invocation)
+        dispatcher.asInstanceOf[MobileMessageDispatcher].dispatchWithPriority(invocation)
       else
-	invocation.send
+        invocation.send
     }
   }
-  
+
   /**
    * These methods will be called by the external reference (MobileActorRef)
    */
@@ -100,12 +109,11 @@ trait LocalMobileActor extends InnerReference {
   // To be called in the origin theater, after the migration is complete
   protected[actor] def completeMigration(newActor: ActorRef): Unit = holder.forwardHeldMessages(newActor)
 
-
   /**
    * InnerReference methods implementation
    */
   override def groupId: Option[String] = actor.groupId
-  
+
   override protected[mobile] def groupId_=(id: Option[String]) {
     // Removes this actor from the old group id, if it is not None
     groupId.foreach(GroupManagement.remove(outerRef, _))
@@ -115,7 +123,7 @@ trait LocalMobileActor extends InnerReference {
   }
 
   protected[actor] def isLocal = true
-  
+
   protected[actor] def node = LocalTheater.node
 
   /**
@@ -134,7 +142,7 @@ trait LocalMobileActor extends InnerReference {
 
     case _ => dispatcher = MobileDispatchers.globalMobileExecutorBasedEventDrivenDispatcher
   }
-  
+
   private def hasPriority(message: Any): Boolean = message.isInstanceOf[MigrationMessage]
-    
+
 }

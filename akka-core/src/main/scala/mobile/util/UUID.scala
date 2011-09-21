@@ -6,11 +6,11 @@ import util.Random
 
 object UUID {
   // A node ID to be used in the UUID, it's just the index of this node in the list of the configuration file
-  /*private*/lazy val nodeId: Long = ClusterConfiguration.nodeNames.indexOf(LocalTheater.description.name) match {
+  /*private*/ lazy val nodeId: Long = ClusterConfiguration.nodeNames.indexOf(LocalTheater.description.name) match {
     case -1 => 0
     case n => n + 1
   }
-  
+
   // A mask with the bits for the node ID, followed by 41 zeros (the space the timestamp will use)
   private lazy val mask: Long = nodeId << 41
 
@@ -29,11 +29,11 @@ object UUID {
    */
   def newUuid: Long = {
     // Current time
-    var time = System.currentTimeMillis  
+    var time = System.currentTimeMillis
     // Avoiding a race condition when two threads get the same 'time' value
     this.synchronized {
       if (time <= lastTime) {
-	time = lastTime + 1;
+        time = lastTime + 1;
       }
       lastTime = time;
     }
@@ -41,7 +41,7 @@ object UUID {
     // Final UUID, with the node ID and the timestamp
     mask | time
   }
-  
+
   // Returns the node where the UUID was created
   def whereFrom(uuid: Long): TheaterNode = {
     // Removes the timestamp from the UUID, remaining only the node ID

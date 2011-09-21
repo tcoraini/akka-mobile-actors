@@ -1,9 +1,9 @@
 #!/bin/bash
 
 generated_file=$2
-list_of_nodes=`grep '[^ ]' $1`
+list_of_nodes=`grep '[^ ]' $1 | grep -v \#`
 
-number_of_nodes=`grep '[^ ]' $1 | wc -l`
+number_of_nodes=`grep '[^ ]' $1 | grep -v \# | wc -l`
 
 echo -e "cluster {\n"
 echo -e -n "\tnodes = [ \"node_1\""
@@ -37,4 +37,4 @@ for node in $list_of_nodes; do
     index=`expr $index + 1`
 done
 
-cat config/common-config
+cat common-config

@@ -12,12 +12,14 @@ trait InnerReference extends ActorRef with ScalaActorRef with Logging {
 
   protected[actor] var outerRef: MobileActorRef = _
 
-  def isMigrating = 
-    if (outerRef != null) outerRef.isMigrating 
+  private[actor] val _lock = new Object
+
+  def isMigrating =
+    if (outerRef != null) outerRef.isMigrating
     else false
 
   protected lazy val holder = new MessageHolder
-  
+
   /**
    * Abstract methods, to be overriden by subclasses
    */
@@ -32,6 +34,8 @@ trait InnerReference extends ActorRef with ScalaActorRef with Logging {
    * track of group IDs for remote actors
    */
   def groupId: Option[String] = None
-  protected[mobile] def groupId_=(id: Option[String]) { }
+  protected[mobile] def groupId_=(id: Option[String]) {}
+
+  def stopLocal() = stop()
 
 }

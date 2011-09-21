@@ -5,9 +5,9 @@
 package se.scalablesolutions.akka.remote
 
 import se.scalablesolutions.akka.remote.protocol.RemoteProtocol._
-import se.scalablesolutions.akka.actor.{Exit, Actor, ActorRef, RemoteActorRef, IllegalActorStateException}
-import se.scalablesolutions.akka.dispatch.{DefaultCompletableFuture, CompletableFuture}
-import se.scalablesolutions.akka.util.{ListenerManagement, UUID, Logging, Duration}
+import se.scalablesolutions.akka.actor.{ Exit, Actor, ActorRef, RemoteActorRef, IllegalActorStateException }
+import se.scalablesolutions.akka.dispatch.{ DefaultCompletableFuture, CompletableFuture }
+import se.scalablesolutions.akka.util.{ ListenerManagement, UUID, Logging, Duration }
 import se.scalablesolutions.akka.config.Config._
 import se.scalablesolutions.akka.AkkaException
 
@@ -15,18 +15,18 @@ import org.jboss.netty.channel._
 import group.DefaultChannelGroup
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory
 import org.jboss.netty.bootstrap.ClientBootstrap
-import org.jboss.netty.handler.codec.frame.{LengthFieldBasedFrameDecoder, LengthFieldPrepender}
-import org.jboss.netty.handler.codec.compression.{ZlibDecoder, ZlibEncoder}
-import org.jboss.netty.handler.codec.protobuf.{ProtobufDecoder, ProtobufEncoder}
+import org.jboss.netty.handler.codec.frame.{ LengthFieldBasedFrameDecoder, LengthFieldPrepender }
+import org.jboss.netty.handler.codec.compression.{ ZlibDecoder, ZlibEncoder }
+import org.jboss.netty.handler.codec.protobuf.{ ProtobufDecoder, ProtobufEncoder }
 import org.jboss.netty.handler.timeout.ReadTimeoutHandler
-import org.jboss.netty.util.{TimerTask, Timeout, HashedWheelTimer}
+import org.jboss.netty.util.{ TimerTask, Timeout, HashedWheelTimer }
 import org.jboss.netty.handler.ssl.SslHandler
 
-import java.net.{SocketAddress, InetSocketAddress}
-import java.util.concurrent.{TimeUnit, Executors, ConcurrentMap, ConcurrentHashMap, ConcurrentSkipListSet}
+import java.net.{ SocketAddress, InetSocketAddress }
+import java.util.concurrent.{ TimeUnit, Executors, ConcurrentMap, ConcurrentHashMap, ConcurrentSkipListSet }
 import java.util.concurrent.atomic.AtomicLong
 
-import scala.collection.mutable.{HashSet, HashMap}
+import scala.collection.mutable.{ HashSet, HashMap }
 import scala.reflect.BeanProperty
 
 /**
@@ -60,7 +60,7 @@ case class RemoteClientShutdown(
 /**
  * Thrown for example when trying to send a message using a RemoteClient that is either not started or shut down.
  */
-class RemoteClientException private[akka](message: String, @BeanProperty val client: RemoteClient) extends AkkaException(message)
+class RemoteClientException private[akka] (message: String, @BeanProperty val client: RemoteClient) extends AkkaException(message)
 
 /**
  * The RemoteClient object manages RemoteClient instances and gives you an API to lookup remote actor handles.
@@ -68,11 +68,11 @@ class RemoteClientException private[akka](message: String, @BeanProperty val cli
  * @author <a href="http://jonasboner.com">Jonas Bon&#233;r</a>
  */
 object RemoteClient extends Logging {
-  val READ_TIMEOUT =    Duration(config.getInt("akka.remote.client.read-timeout", 1), TIME_UNIT)
+  val READ_TIMEOUT = Duration(config.getInt("akka.remote.client.read-timeout", 1), TIME_UNIT)
   val RECONNECT_DELAY = Duration(config.getInt("akka.remote.client.reconnect-delay", 5), TIME_UNIT)
 
   private val remoteClients = new HashMap[String, RemoteClient]
-  private val remoteActors =  new HashMap[RemoteServer.Address, HashSet[String]]
+  private val remoteActors = new HashMap[RemoteServer.Address, HashSet[String]]
 
   // FIXME: simplify overloaded methods when we have Scala 2.8
 
@@ -147,7 +147,7 @@ object RemoteClient extends Logging {
    * Clean-up all open connections.
    */
   def shutdownAll = synchronized {
-    remoteClients.foreach({case (addr, client) => client.shutdown})
+    remoteClients.foreach({ case (addr, client) => client.shutdown })
     remoteClients.clear
   }
 
@@ -291,13 +291,13 @@ class RemoteClient private[akka] (val hostname: String, val port: Int, val loade
  * @author <a href="http://jonasboner.com">Jonas Bon&#233;r</a>
  */
 class RemoteClientPipelineFactory(
-    name: String,
-    futures: ConcurrentMap[Long, CompletableFuture[_]],
-    supervisors: ConcurrentMap[String, ActorRef],
-    bootstrap: ClientBootstrap,
-    remoteAddress: SocketAddress,
-    timer: HashedWheelTimer,
-    client: RemoteClient) extends ChannelPipelineFactory {
+  name: String,
+  futures: ConcurrentMap[Long, CompletableFuture[_]],
+  supervisors: ConcurrentMap[String, ActorRef],
+  bootstrap: ClientBootstrap,
+  remoteAddress: SocketAddress,
+  timer: HashedWheelTimer,
+  client: RemoteClient) extends ChannelPipelineFactory {
 
   def getPipeline: ChannelPipeline = {
     def join(ch: ChannelHandler*) = Array[ChannelHandler](ch: _*)
@@ -309,15 +309,15 @@ class RemoteClientPipelineFactory(
       e
     }
 
-    val ssl         = if (RemoteServer.SECURE) join(new SslHandler(engine)) else join()
-    val timeout     = new ReadTimeoutHandler(timer, RemoteClient.READ_TIMEOUT.toMillis.toInt)
-    val lenDec      = new LengthFieldBasedFrameDecoder(1048576, 0, 4, 0, 4)
-    val lenPrep     = new LengthFieldPrepender(4)
+    val ssl = if (RemoteServer.SECURE) join(new SslHandler(engine)) else join()
+    val timeout = new ReadTimeoutHandler(timer, RemoteClient.READ_TIMEOUT.toMillis.toInt)
+    val lenDec = new LengthFieldBasedFrameDecoder(1048576, 0, 4, 0, 4)
+    val lenPrep = new LengthFieldPrepender(4)
     val protobufDec = new ProtobufDecoder(RemoteReplyProtocol.getDefaultInstance)
     val protobufEnc = new ProtobufEncoder
-    val (enc, dec)  = RemoteServer.COMPRESSION_SCHEME match {
+    val (enc, dec) = RemoteServer.COMPRESSION_SCHEME match {
       case "zlib" => (join(new ZlibEncoder(RemoteServer.ZLIB_COMPRESSION_LEVEL)), join(new ZlibDecoder))
-      case _      => (join(), join())
+      case _ => (join(), join())
     }
 
     val remoteClient = new RemoteClientHandler(name, futures, supervisors, bootstrap, remoteAddress, timer, client)
@@ -331,18 +331,18 @@ class RemoteClientPipelineFactory(
  */
 @ChannelHandler.Sharable
 class RemoteClientHandler(
-    val name: String,
-    val futures: ConcurrentMap[Long, CompletableFuture[_]],
-    val supervisors: ConcurrentMap[String, ActorRef],
-    val bootstrap: ClientBootstrap,
-    val remoteAddress: SocketAddress,
-    val timer: HashedWheelTimer,
-    val client: RemoteClient)
-    extends SimpleChannelUpstreamHandler with Logging {
+  val name: String,
+  val futures: ConcurrentMap[Long, CompletableFuture[_]],
+  val supervisors: ConcurrentMap[String, ActorRef],
+  val bootstrap: ClientBootstrap,
+  val remoteAddress: SocketAddress,
+  val timer: HashedWheelTimer,
+  val client: RemoteClient)
+  extends SimpleChannelUpstreamHandler with Logging {
 
   override def handleUpstream(ctx: ChannelHandlerContext, event: ChannelEvent) = {
     if (event.isInstanceOf[ChannelStateEvent] &&
-        event.asInstanceOf[ChannelStateEvent].getState != ChannelState.INTEREST_OPS) {
+      event.asInstanceOf[ChannelStateEvent].getState != ChannelState.INTEREST_OPS) {
       log.debug(event.toString)
     }
     super.handleUpstream(ctx, event)
@@ -357,6 +357,11 @@ class RemoteClientHandler(
         val future = futures.get(reply.getId).asInstanceOf[CompletableFuture[Any]]
         if (reply.getIsSuccessful) {
           val message = MessageSerializer.deserialize(reply.getMessage)
+          if (future == null) {
+            log.error("Resposta recebida no cliente: " + message)
+            log.error("Reply ID: " + reply.getId)
+            log.error("Tabela futures: " + futures)
+          }
           future.completeWithResult(message)
         } else {
           if (reply.hasSupervisorUuid()) {
@@ -435,31 +440,31 @@ class RemoteClientHandler(
     val exception = reply.getException
     val classname = exception.getClassname
     val exceptionClass = if (loader.isDefined) loader.get.loadClass(classname)
-                         else Class.forName(classname)
+    else Class.forName(classname)
     exceptionClass
-        .getConstructor(Array[Class[_]](classOf[String]): _*)
-        .newInstance(exception.getMessage).asInstanceOf[Throwable]
+      .getConstructor(Array[Class[_]](classOf[String]): _*)
+      .newInstance(exception.getMessage).asInstanceOf[Throwable]
   }
 }
 
 object RemoteDisconnectTest {
-import se.scalablesolutions.akka.actor.{Actor,ActorRef}
+  import se.scalablesolutions.akka.actor.{ Actor, ActorRef }
 
   class TestClientActor extends Actor {
     def receive = {
-     case ("send ping",akt:ActorRef) => akt ! "ping"
-     case "pong" => {
-       log.debug("got pong")
-     }
-   }
+      case ("send ping", akt: ActorRef) => akt ! "ping"
+      case "pong" => {
+        log.debug("got pong")
+      }
+    }
   }
 
   class TestServerActor extends Actor {
     def receive = {
-     case "ping" => {
-       log.debug("got ping")
-       self reply "pong"
-     }
-   }
+      case "ping" => {
+        log.debug("got ping")
+        self reply "pong"
+      }
+    }
   }
 }

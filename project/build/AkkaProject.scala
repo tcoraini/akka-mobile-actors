@@ -231,14 +231,14 @@ class AkkaParentProject(info: ProjectInfo) extends DefaultProject(info) {
   lazy val akka_osgi        = project("akka-osgi", "akka-osgi", new AkkaOSGiParentProject(_))
   lazy val akka_samples     = project("akka-samples", "akka-samples", new AkkaSamplesParentProject(_)) */
 
-  lazy val my_tests         = project("my-tests", "my-tests", akka_core)
+  lazy val apps             = project("apps", "apps", akka_core)
 
   // -------------------------------------------------------------------------------------------------------------------
   // Miscellaneous
   // -------------------------------------------------------------------------------------------------------------------
 
   //  override def mainClass = Some("se.scalablesolutions.akka.kernel.Main")
-  override def mainClass = Some("tests.Armstrong")
+  override def mainClass = Some("apps.Armstrong")
 
   override def packageOptions =
     manifestClassPath.map(cp => ManifestAttributes(
@@ -273,6 +273,7 @@ class AkkaParentProject(info: ProjectInfo) extends DefaultProject(info) {
 
   //Exclude slf4j1.5.11 from the classpath, it's conflicting...
   override def fullClasspath(config: Configuration): PathFinder = {
+    buildCompilerJar +++
     super.fullClasspath(config) ---
     (super.fullClasspath(config) ** "slf4j*1.5.11.jar")
   }
@@ -280,7 +281,7 @@ class AkkaParentProject(info: ProjectInfo) extends DefaultProject(info) {
   override def mainResources = super.mainResources +++
         (info.projectPath / "config").descendentsExcept("*", "logback-test.xml")
 
-  override def runClasspath = super.runClasspath +++ "config"
+  override def runClasspath = super.runClasspath +++ "config" 
   // ------------------------------------------------------------
   // publishing
   override def managedStyle = ManagedStyle.Maven

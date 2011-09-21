@@ -4,81 +4,57 @@ import se.scalablesolutions.akka.mobile.actor.MobileActorRef
 import se.scalablesolutions.akka.mobile.actor.RemoteMobileActor
 import se.scalablesolutions.akka.mobile.actor.AttachRefToActor
 import se.scalablesolutions.akka.mobile.util.ClusterConfiguration
+import se.scalablesolutions.akka.mobile.util.DefaultLogger
 
 import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.ActorRef
 import se.scalablesolutions.akka.remote.RemoteClientLifeCycleEvent
 import se.scalablesolutions.akka.remote.RemoteClient
 
-import java.util.concurrent.ConcurrentHashMap
+import collection.mutable.SynchronizedMap
+import collection.mutable.HashMap
 
 object ReferenceManagement {
-  
-  private val references = new ConcurrentHashMap[String, MobileActorRef]
-  private val detachedReferences = new ConcurrentHashMap[String, MobileActorRef]
-  private val remoteClients = new ConcurrentHashMap[TheaterNode, ActorRef](ClusterConfiguration.numberOfNodes)
 
-  private[mobile] def put(uuid: String, reference: MobileActorRef, detached: Boolean = false): Unit = {
-    if (!detached) 
-      references.put(uuid, reference)
-    else
-      detachedReferences.put(uuid, reference)
+  private val references = new HashMap[String, MobileActorRef] with SynchronizedMap[String, MobileActorRef]
+  private val remoteClients = new HashMap[TheaterNode, ActorRef] with SynchronizedMap[TheaterNode, ActorRef]
+
+  private[mobile] def putIfAbsent(uuid: String, reference: MobileActorRef): Option[MobileActorRef] = this.synchronized {
+    references.get(uuid) match {
+      case Some(ref) => Some(ref)
+
+      case None =>
+        references.put(uuid, reference)
+        None
+    }
   }
 
   def get(uuid: String): Option[MobileActorRef] = {
-    get(uuid, false) match {
-      case None => get(uuid, true)
-      case some => some
-    }
-  }
-   
-  def get(uuid: String, detached: Boolean): Option[MobileActorRef] = {
-    val map = 
-      if (detached) detachedReferences
-      else references
-
-    map.get(uuid) match {
-      case null => None
-
-      case reference => Some(reference)
-    }
+    references.get(uuid)
   }
 
-  private[mobile] def remove(uuid: String, detached: Boolean = false): Unit = {
-    if (!detached)
-      references.remove(uuid)
-    else
-      detachedReferences.remove(uuid)
-  }
-
-  private[mobile] def attachRefToActor(temporaryId: String, actorUuid: String): Unit = {
-    get(temporaryId, true).foreach { ref => 
-//      ref ! AttachRefToActor(actorUuid)
-      remove(temporaryId, true)
-      put(actorUuid, ref)
-    }
+  private[mobile] def remove(uuid: String): Unit = {
+    references.remove(uuid)
   }
 
   private[mobile] def registerForRemoteClientEvents(reference: RemoteMobileActor, client: RemoteClient): Unit = {
-    var listener = remoteClients.get(TheaterNode(client.hostname, client.port))
-  
-    if (listener == null) {
-      listener = Actor.actorOf[RemoteClientEventsListener].start
-      remoteClients.put(TheaterNode(client.hostname, client.port), listener)
-      client.addListener(listener)
-    }
+    val listener = remoteClients.get(TheaterNode(client.hostname, client.port)) match {
+      case Some(l) =>
+        l
 
+      case None =>
+        val l = Actor.actorOf[RemoteClientEventsListener].start
+        remoteClients.put(TheaterNode(client.hostname, client.port), l)
+        client.addListener(l)
+        l
+    }
     listener ! AddReference(reference)
   }
 
   private[mobile] def unregisterForRemoteClientEvents(reference: RemoteMobileActor, client: RemoteClient): Unit = {
-    val listener = remoteClients.get(TheaterNode(client.hostname, client.port))
-    
-    if (listener != null) {
-      listener ! RemoveReference(reference)
-    }
+    remoteClients.get(TheaterNode(client.hostname, client.port)).foreach(_ ! RemoveReference(reference))
   }
-  
+
   /*
    * Listener for the remote client events
    */
@@ -86,18 +62,17 @@ object ReferenceManagement {
   private case class RemoveReference(ref: RemoteMobileActor)
   private class RemoteClientEventsListener extends Actor {
     private var references: List[RemoteMobileActor] = Nil
-    
+
     def receive = {
       case event: RemoteClientLifeCycleEvent =>
-	references.foreach(ref => ref.handleRemoteClientEvent(event))
-      
+        references.foreach(ref => ref.handleRemoteClientEvent(event))
+
       case AddReference(ref) =>
-	references = ref :: references
-      
+        references = ref :: references
+
       case RemoveReference(ref) =>
-	references = references.filter(_ != ref)
+        references = references.filter(_ != ref)
     }
   }
 }
-
 

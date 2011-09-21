@@ -2,6 +2,8 @@ package se.scalablesolutions.akka.mobile.actor
 
 import se.scalablesolutions.akka.actor.ActorRef
 import se.scalablesolutions.akka.actor.ScalaActorRef
+import se.scalablesolutions.akka.mobile.util.DefaultLogger
+import se.scalablesolutions.akka.mobile.util.Logger
 
 import scala.collection.mutable.SynchronizedQueue
 
@@ -21,11 +23,13 @@ class MessageHolder {
     heldMessages.clear()
   }
 
-  def forwardHeldMessages(to: ActorRef): Unit = {
+  def forwardHeldMessages(to: ActorRef): Unit = lock.synchronized {
     while (!heldMessages.isEmpty) {
       val hm = heldMessages.dequeue()
+      //      val logger = new Logger("logs/mobile-actors/" + to.uuid + ".log")
+      //      logger.debug("Encaminhando mensagem: %s", hm.message)
       to.!(hm.message)(hm.sender)
     }
-  }    
+  }
 }
-    
+

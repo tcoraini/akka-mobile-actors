@@ -8,6 +8,8 @@ import se.scalablesolutions.akka.mobile.theater.GroupManagement
 import se.scalablesolutions.akka.mobile.serialization.DefaultActorFormat
 import se.scalablesolutions.akka.mobile.nameservice.NameService
 import se.scalablesolutions.akka.mobile.Mobile
+import se.scalablesolutions.akka.mobile.util.DefaultLogger
+import se.scalablesolutions.akka.mobile.util.Logger
 
 import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.Actor._
@@ -25,7 +27,7 @@ import se.scalablesolutions.akka.util.Logging
 
 import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicReference
-import java.util.{Map => JMap}
+import java.util.{ Map => JMap }
 
 object MobileActorRef {
 
@@ -38,16 +40,16 @@ object MobileActorRef {
     ReferenceManagement.get(reference.uuid) match {
       case Some(mobileRef) =>
         mobileRef.switchActorRef(reference)
-	if (reference.isLocal) {
-	  LocalTheater.register(mobileRef)
-	}
+        if (reference.isLocal) {
+          LocalTheater.register(mobileRef)
+        }
         mobileRef
 
       case None =>
         register(new MobileActorRef(reference))
     }
   }
-  
+
   /**
    * Creates a local reference for the mobile actor instantiated with the factory provided.
    */
@@ -55,7 +57,7 @@ object MobileActorRef {
     val localRef = new LocalActorRef(() => factory) with LocalMobileActor
     register(new MobileActorRef(localRef))
   }
-  
+
   /**
    * Creates a local reference for a mobile actor of the class specified.
    */
@@ -65,7 +67,7 @@ object MobileActorRef {
   }
 
   private[mobile] def apply(clazz: Class[_ <: MobileActor], existingUuid: String, detachedProxy: Boolean): MobileActorRef = {
-    val localRef = 
+    val localRef =
       if (!detachedProxy) new LocalActorRef(clazz) with LocalMobileActor
       else new LocalActorRef(clazz) with LocalMobileActor with DetachedActor
     localRef.uuid = existingUuid
@@ -79,86 +81,86 @@ object MobileActorRef {
     ReferenceManagement.get(uuid) match {
       // Actor with this uuid is local
       case Some(reference) => Some(reference)
-      
+
       case None => NameService.get(uuid) match {
         case Some(node) => Some(MobileActorRef(uuid, node.hostname, node.port)) // Proxy for remote mobile actor
-
         case None => None // Actor not found
       }
     }
   }
-  
+
   /**
    * Creates a remote reference for the actor with the specified UUID running in the Theater at hostname:port.
    */
   private[mobile] def apply(
-      uuid: String, 
-      hostname: String, 
-      port: Int, 
-      detached: Boolean = false,
-      timeout: Long = Actor.TIMEOUT): MobileActorRef = {
-    
+    uuid: String,
+    hostname: String,
+    port: Int,
+    timeout: Long = Actor.TIMEOUT): MobileActorRef = {
+
     ReferenceManagement.get(uuid) match {
-      case Some(reference) => 
+      case Some(reference) =>
         reference.updateRemoteAddress(TheaterNode(hostname, port))
         reference
 
       case None =>
-        val remoteRef = remoteMobileActor(uuid, hostname, port, timeout, detached)
-        register(new MobileActorRef(remoteRef), detached)
+        val remoteRef = remoteMobileActor(uuid, hostname, port, timeout)
+        register(new MobileActorRef(remoteRef))
     }
   }
-  
+
   /**
    * Creates a reference which mixes in the RemoteMobileActor trait. It will be used
    * as a proxy for a mobile actor remotely located
    */
   private def remoteMobileActor(
-      uuid: String, 
-      hostname: String, 
-      port: Int, 
-      timeout: Long = Actor.TIMEOUT,
-      detached: Boolean = false): RemoteMobileActor = {
-
-    if (!detached) 
-      new RemoteActorRef(uuid, uuid, hostname, port, timeout, None) with RemoteMobileActor
-    else 
-      new RemoteActorRef(uuid, uuid, hostname, port, timeout, None) with RemoteMobileActor // with DetachedRemoteActor
+    uuid: String,
+    hostname: String,
+    port: Int,
+    timeout: Long = Actor.TIMEOUT): RemoteMobileActor = {
+    new RemoteActorRef(uuid, uuid, hostname, port, timeout, None) with RemoteMobileActor
   }
 
   /* Registers the mobile reference in the ReferenceManagement */
-  private def register(reference: MobileActorRef, detached: Boolean = false): MobileActorRef = {
-    ReferenceManagement.put(reference.uuid, reference, detached)
-    if (reference.isLocal) {
-      LocalTheater.register(reference)
+  private def register(reference: MobileActorRef): MobileActorRef = {
+    ReferenceManagement.putIfAbsent(reference.uuid, reference) match {
+      case None =>
+        if (reference.isLocal) {
+          LocalTheater.register(reference)
+        }
+        reference
+
+      case Some(ref) => ref
     }
-    reference
   }
 }
 
-class MobileActorRef private(protected var innerRef: InnerReference) extends MethodDelegation with Logging {
-  
-  if (!LocalTheater.isRunning) 
+// TODO voltar innerRef a protected
+class MobileActorRef private (var innerRef: InnerReference) extends MethodDelegation with Logging {
+
+  if (!LocalTheater.isRunning)
     throw new RuntimeException("There must be a Local Theater running before you can instantiate mobile actors.")
+
+  val logger = new Logger("logs/mobile-actors/" + uuid + ".log")
 
   innerRef.outerRef = this
 
   private var _isMigrating = false
-  
+
   def isMigrating = _isMigrating
 
   def groupId: Option[String] = innerRef.groupId
   protected[mobile] def groupId_=(id: Option[String]) = { innerRef.groupId = id }
 
   def node: TheaterNode = innerRef.node
-  
+
   def isLocal = innerRef.isLocal
 
   /**
    * This methods should be called by the MobileActor trait, when the
    * actor receives a migration-related message
    */
-  
+
   // Individual migration
   private[actor] def moveTo(hostname: String, port: Int): Unit = {
     groupId = None
@@ -174,7 +176,7 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
       moveTo(hostname, port)
     }
   }
-  
+
   // Group migration, used only internally by the infrastructure
   private[actor] def prepareToMigrate(): Unit = {
     if (groupId.isDefined) {
@@ -185,14 +187,19 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
   /**
    * Changes the actor reference behind this proxy.
    * Returns true if the new actor is local, false otherwise.
-   */ 
+   */
   protected def switchActorRef(newRef: InnerReference): Unit = {
-    innerRef.stop
-    innerRef = newRef
-    innerRef.outerRef = this
+    val previousInnerRef = innerRef
+    innerRef._lock.synchronized {
+      innerRef = newRef
+      innerRef.outerRef = this
+    }
+    previousInnerRef.stopLocal()
 
     val label = if (innerRef.isLocal) "local" else "remote"
-    log.debug("Switching mobile reference for actor with UUID [%s] to a %s reference.", uuid, label)  
+    log.debug("Switching mobile reference for actor with UUID [%s] to a %s reference.", uuid, label)
+
+    logger.debug("Trocando referencia interna de [UUID %s] para uma referencia %s", uuid, label)
   }
 
   /**
@@ -201,13 +208,13 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
    */
   protected[mobile] def startMigration(): Array[Byte] = {
     if (!isLocal) throw new RuntimeException("The method 'startMigration' should be call only on local actors")
-    
+
     _isMigrating = true
-    
+
     // The mailbox won't be serialized if the actor has not been started yet. In this case, there will be
     // no messages in it's mailbox. This was used in a previous form of actor remote spawn, where the actor
     // was no started before being serialized. But still makes sense, and maybe will be used in the future.
-    val serializeMailbox = 
+    val serializeMailbox =
       if (isRunning) {
         // Sinalizing the start of the migration process
         innerRef.asInstanceOf[LocalMobileActor].beforeMigration()
@@ -224,9 +231,10 @@ class MobileActorRef private(protected var innerRef: InnerReference) extends Met
     if (isLocal && (isMigrating || innerRef.isInstanceOf[DetachedActor])) {
       // New inner reference (a remote one), will act as a proxy for the actor in its new theater
       val remoteActorRef = MobileActorRef.remoteMobileActor(uuid, destination.hostname, destination.port, innerRef.timeout)
-      
-      innerRef.asInstanceOf[LocalMobileActor].completeMigration(remoteActorRef)
+
+      val previousInnerRef = innerRef
       switchActorRef(remoteActorRef)
+      previousInnerRef.asInstanceOf[LocalMobileActor].completeMigration(remoteActorRef)
 
       _isMigrating = false
     }

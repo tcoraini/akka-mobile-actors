@@ -8,7 +8,7 @@ import se.scalablesolutions.akka.util.Logging
 import se.scalablesolutions.akka.config.Config
 
 object DistributedNameService extends Logging {
-  
+
   private val nodes: Array[TheaterNode] = findNameServiceNodes
 
   private val numberOfNodes = nodes.size
@@ -19,10 +19,10 @@ object DistributedNameService extends Logging {
       ClusterConfiguration.instanceOf[HashFunction, DefaultHashFunction]("cluster.name-service.hash-function")
     } catch {
       case cce: ClassCastException =>
-	val classname = Config.config.getString("cluster.name-service.hash-function", "")
-        log.warning("The class [%s] does not extend the HashFunction trait. Using the default hash function [%s] instead.", 
-                    classname, defaultHashFunction.getClass.getName)
-	defaultHashFunction
+        val classname = Config.config.getString("cluster.name-service.hash-function", "")
+        log.warning("The class [%s] does not extend the HashFunction trait. Using the default hash function [%s] instead.",
+          classname, defaultHashFunction.getClass.getName)
+        defaultHashFunction
     }
   }
 
@@ -30,11 +30,13 @@ object DistributedNameService extends Logging {
 
   private def findNameServiceNodes: Array[TheaterNode] = {
     val nodesWithNameService = ClusterConfiguration.nodes.values.filter {
-      nodeInfo => nodeInfo.hasNameServer
+      nodeInfo =>
+        nodeInfo.hasNameServer
     } map {
-      nodeInfo => nodeInfo.node
+      nodeInfo =>
+        nodeInfo.node
     }
-  
+
     nodesWithNameService.toArray
   }
 
@@ -47,7 +49,7 @@ class DistributedNameService extends NameService {
   import DistributedNameService._
 
   private var initialized = false
-  
+
   private var runningServer: Boolean = _
 
   def init(runServer: Boolean): Unit = {
@@ -64,11 +66,10 @@ class DistributedNameService extends NameService {
   }
 
   def put(uuid: String, node: TheaterNode): Unit = {
-    val nameServer = nameServerFor(uuid)   
+    val nameServer = nameServerFor(uuid)
     val agent = NameServiceAgent.agentFor(nameServer)
-    agent ! ActorRegistrationRequest(uuid, node.hostname, node.port)
+    agent !! ActorRegistrationRequest(uuid, node.hostname, node.port)
   }
-
 
   def get(uuid: String): Option[TheaterNode] = {
     val nameServer = nameServerFor(uuid)
@@ -82,9 +83,9 @@ class DistributedNameService extends NameService {
   }
 
   def remove(uuid: String): Unit = {
-    val nameServer = nameServerFor(uuid)   
+    val nameServer = nameServerFor(uuid)
     val agent = NameServiceAgent.agentFor(nameServer)
-    agent ! ActorUnregistrationRequest(uuid)
+    agent !! ActorUnregistrationRequest(uuid)
   }
 
   override def toString = "Distributed Name Service"

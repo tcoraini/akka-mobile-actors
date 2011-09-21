@@ -1,4 +1,4 @@
-package tests
+package apps
 
 import se.scalablesolutions.akka.mobile.Mobile
 import se.scalablesolutions.akka.mobile.actor.MobileActor
@@ -55,7 +55,7 @@ case class Question(requestId: String, question: Any)
 case class Answer(requestId: String, answer: Any)
 
 object RemoteActorsTesting {
-  private[tests] val requests = new HashMap[String, Any]
+  private[apps] val requests = new HashMap[String, Any]
 
   private def newRequestId = UUID.newUuid.toString
 

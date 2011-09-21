@@ -10,9 +10,11 @@ import se.scalablesolutions.akka.stm.TransactionConfig
 import se.scalablesolutions.akka.config.FaultHandlingStrategy
 import se.scalablesolutions.akka.config.ScalaConfig.LifeCycle
 
+import se.scalablesolutions.akka.mobile.util.DefaultLogger
+
 import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicReference
-import java.util.{Map => JMap}
+import java.util.{ Map => JMap }
 
 /**
  * TODO's:
@@ -25,18 +27,18 @@ import java.util.{Map => JMap}
  */
 
 trait MethodDelegation extends ActorRef with ScalaActorRef {
-  
+
   protected var innerRef: InnerReference
 
   /* 
    * ActorRef
    */
-  
+
   // Implemented methods from ActorRef that depends on attributes of the class
   // Should then forward the call to the actual reference, with the correct attribute values
-  override def setReceiveTimeout(timeout: Long) = innerRef.setReceiveTimeout(timeout) 
+  override def setReceiveTimeout(timeout: Long) = innerRef.setReceiveTimeout(timeout)
   override def getReceiveTimeout(): Option[Long] = innerRef.receiveTimeout
-  override def setTrapExit(exceptions: Array[Class[_ <: Throwable]]) = innerRef.setTrapExit(exceptions) 
+  override def setTrapExit(exceptions: Array[Class[_ <: Throwable]]) = innerRef.setTrapExit(exceptions)
   override def getTrapExit(): Array[Class[_ <: Throwable]] = innerRef.getTrapExit
   override def setFaultHandler(handler: FaultHandlingStrategy) = innerRef.setFaultHandler(handler)
   override def getFaultHandler(): Option[FaultHandlingStrategy] = innerRef.getFaultHandler
@@ -100,14 +102,14 @@ trait MethodDelegation extends ActorRef with ScalaActorRef {
   def invoke(messageHandle: MessageInvocation): Unit = unsupported
   def postMessageToMailbox(message: Any, senderOption: Option[ActorRef]): Unit = unsupported
   def postMessageToMailboxAndCreateFutureResultWithTimeout[T](
-      message: Any,
-      timeout: Long,
-      senderOption: Option[ActorRef],
-      senderFuture: Option[CompletableFuture[T]]): CompletableFuture[T] = unsupported
+    message: Any,
+    timeout: Long,
+    senderOption: Option[ActorRef],
+    senderFuture: Option[CompletableFuture[T]]): CompletableFuture[T] = unsupported
   def actorInstance: AtomicReference[Actor] = unsupported
-  def supervisor_=(sup: Option[ActorRef]): Unit = unsupported 
+  def supervisor_=(sup: Option[ActorRef]): Unit = unsupported
   def mailbox: AnyRef = unsupported
-  def mailbox_=(value: AnyRef):AnyRef = unsupported
+  def mailbox_=(value: AnyRef): AnyRef = unsupported
   def handleTrapExit(dead: ActorRef, reason: Throwable): Unit = unsupported
   def restart(reason: Throwable, maxNrOfRetries: Int, withinTimeRange: Int): Unit = unsupported
   def restartLinkedActors(reason: Throwable, maxNrOfRetries: Int, withinTimeRange: Int): Unit = unsupported
@@ -115,8 +117,8 @@ trait MethodDelegation extends ActorRef with ScalaActorRef {
   def linkedActors: JMap[String, ActorRef] = unsupported
   def linkedActorsAsList: List[ActorRef] = unsupported
 
-  private def unsupported = throw new UnsupportedOperationException("This method cannot be invoked on a MobileActorRef.")  
-  
+  private def unsupported = throw new UnsupportedOperationException("This method cannot be invoked on a MobileActorRef.")
+
   /* 
    * ActorRefShared
    */
@@ -127,19 +129,20 @@ trait MethodDelegation extends ActorRef with ScalaActorRef {
   /*
    * ScalaActorRef
    */
-  
+
   // Implemented methods from ScalaActorRef
   // Should forward to the actual reference
   override def sender: Option[ActorRef] = innerRef.sender
   override def senderFuture(): Option[CompletableFuture[Any]] = innerRef.senderFuture
-  
-  override def !(message: Any)(implicit sender: Option[ActorRef] = None): Unit = 
+
+  override def !(message: Any)(implicit sender: Option[ActorRef] = None): Unit = innerRef._lock.synchronized {
     innerRef.!(message)(sender)
-  override def !!(message: Any, timeout: Long = this.timeout)(implicit sender: Option[ActorRef] = None): Option[Any] = 
+  }
+  override def !!(message: Any, timeout: Long = this.timeout)(implicit sender: Option[ActorRef] = None): Option[Any] =
     innerRef.!!(message, timeout)(sender)
-  override def !!![T](message: Any, timeout: Long = this.timeout)(implicit sender: Option[ActorRef] = None): Future[T] = 
+  override def !!![T](message: Any, timeout: Long = this.timeout)(implicit sender: Option[ActorRef] = None): Future[T] =
     innerRef.!!!(message, timeout)(sender)
-  override def forward(message: Any)(implicit sender: Some[ActorRef]) = 
+  override def forward(message: Any)(implicit sender: Some[ActorRef]) =
     innerRef.forward(message)(sender)
 
 }
